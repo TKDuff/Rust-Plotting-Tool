@@ -1,4 +1,6 @@
 use std::io::{Read}; //import standard input/output, need 'Read' trait to read from byte stream
+use std::thread;
+
 
 fn main(){
     let mut buffer = String::new();
@@ -15,7 +17,14 @@ fn main(){
     expect() is method ran on the Result enum variable Ok or Err, so calling Result.except() is calling either Ok.except() or Err.except()
 
     */
+    println!("{}", buffer); //print buffer as string literal
 
-    println!("{}", buffer) //print buffer as string literal
+
+    let handle = thread::spawn(|| {
+        println!("New Thread");
+    });
+
+    handle.join().unwrap();
+
 
 }
