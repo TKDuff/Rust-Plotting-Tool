@@ -1,41 +1,18 @@
-use std::io::{Read}; //import standard input/output, need 'Read' trait to read from byte stream
-use std::thread;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();          // Get the global stdin instance
+    let locked_stdin = stdin.lock(); // Lock stdin for exclusive access
 
 
-fn main(){
-    let mut buffer = String::new();
-    std::io::stdin().read_to_string(&mut buffer).expect("Failed to read from stdin");
     /*
-    std::io::stdin() - the stanard input stream
-    .read_to_string(&mut buffer) - reads to end of standard input, appends to buffer
-    .expect("Failed to read from stdin") - read_to_string() returns 'Result' which is either Ok or Err, if Err will prints 
-
-    read_to_string() return type is Result
-    Result: represent outcome of operation that can pass or fail
-    Results has two enum variables, Ok and Err
-
-    expect() is method ran on the Result enum variable Ok or Err, so calling Result.except() is calling either Ok.except() or Err.except()
-
+    Read lines from the locked stdin
+    Uses iterator to read each line
+    If line read succesful iterator return Ok(string) else Err(error)
+    Each line in the loop iteration is of type "Result"
+    Access string in Result via the unwrap() method
     */
-    println!("{}", buffer); //print buffer as string literal
-
-
-    let handle1 = thread::spawn(|| {
-        //println!("New Thread");
-        for i in 1..10{
-            println!("{}", i);
-        }
-    });
-
-    let handle2 = thread::spawn(|| {
-        //println!("New Thread");
-        for i in 10..20{
-            println!("{}", i);
-        }
-    });
-
-    handle1.join().unwrap();
-    handle2.join().unwrap();
-
-
+    for line in locked_stdin.lines() {
+        println!("{}", line.unwrap()); 
+    }
 }
