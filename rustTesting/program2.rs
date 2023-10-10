@@ -20,11 +20,22 @@ fn main(){
     println!("{}", buffer); //print buffer as string literal
 
 
-    let handle = thread::spawn(|| {
-        println!("New Thread");
+    let handle1 = thread::spawn(|| {
+        //println!("New Thread");
+        for i in 1..10{
+            println!("{}", i);
+        }
     });
 
-    handle.join().unwrap();
+    let handle2 = thread::spawn(|| {
+        //println!("New Thread");
+        for i in 10..20{
+            println!("{}", i);
+        }
+    });
+
+    handle1.join().unwrap();
+    handle2.join().unwrap();
 
 
 }
