@@ -1,6 +1,7 @@
 use std::io::{self, BufRead};
 use std::thread;
 use std::sync::mpsc;
+use std::io::Write;
 
 fn main() {
     let (tx, rx) = mpsc::channel();
@@ -27,15 +28,21 @@ fn main() {
     });
 
     let processer = thread::spawn(move || {
+        println!("\n\n");
         let mut total_x_value = 0.0;
         let mut total_y_value = 0.0;
+        let mut count = 0.0;
 
         
         for line in rx {
             let parts: Vec<&str> = line.split_whitespace().collect();
             total_x_value += parts[0].parse::<f32>().unwrap();
             total_y_value += parts[1].parse::<f32>().unwrap();
-            println!("Total x value: {} \nTotal y value: {}", total_x_value, total_y_value);
+            count += 1.0;
+            //print!("\x1B[2A");
+            print!("\x1B[3A\rTotal x value: {}\n\rTotal y value: {}\n\r x average: {}\n\r y average: {}", total_x_value, total_y_value, (total_x_value/count), (total_y_value/count));
+            std::io::stdout().flush().unwrap();
+
         }
     });
 
