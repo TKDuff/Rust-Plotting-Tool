@@ -28,7 +28,7 @@ fn main() {
     });
 
     let processer = thread::spawn(move || {
-        println!("\n\n");
+        println!("\n\n\n");
         let mut total_x_value = 0.0;
         let mut total_y_value = 0.0;
         let mut count = 0.0;
@@ -39,8 +39,7 @@ fn main() {
             total_x_value += parts[0].parse::<f32>().unwrap();
             total_y_value += parts[1].parse::<f32>().unwrap();
             count += 1.0;
-            //print!("\x1B[2A");
-            print!("\x1B[3A\rTotal x value: {}\n\rTotal y value: {}\n\r x average: {}\n\r y average: {}", total_x_value, total_y_value, (total_x_value/count), (total_y_value/count));
+            print!("\x1B[4A\rx value: {}\n\rx average: {}\n\n\ry value: {}\n\ry average: {}", parts[0], (total_x_value/count), parts[1], (total_y_value/count));
             std::io::stdout().flush().unwrap();
 
         }
