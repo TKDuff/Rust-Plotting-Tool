@@ -21,14 +21,21 @@ fn main() {
             let line_string = line.unwrap();
             tx.send(line_string).unwrap();
             /*send() method returns Result, this result used as error handling as if receiving thread not exist will print error, hence why we unwrap() the send
-            If send succesful, the Result return Ok(()), no value to extract
+            If send succesful,returned Result value Ok(()), no value to extract
             */
         }
     });
 
     let processer = thread::spawn(move || {
+        let mut total_x_value = 0.0;
+        let mut total_y_value = 0.0;
+
+        
         for line in rx {
-            println!("Test {}", line);
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            total_x_value += parts[0].parse::<f32>().unwrap();
+            total_y_value += parts[1].parse::<f32>().unwrap();
+            println!("Total x value: {} \nTotal y value: {}", total_x_value, total_y_value);
         }
     });
 
