@@ -48,3 +48,18 @@ Result is usually returned by a method, the result of the method is contained in
 Access the value **T** using .unwrap() method, T can be of any type.
 <br> 
 Simply return value of method contained inResult 
+
+GTK - interfact to broaway 
+GTK - build plotting from grond up
+
+- Parrelelism - down the road
+
+Block boundries - look into it - buffer
+metre the reading
+premature optimisation 
+read boundries
+Parser 
+
+
+While printing out, process data
+Wait until output done before printing another one

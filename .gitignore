@@ -1,0 +1,10 @@
+# Ignore Rust build artifacts
+target/
+Cargo.lock
+
+# Ignore other compiled files
+basic_threading
+mpscTest
+plot
+program1
+program2
