@@ -1,6 +1,7 @@
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::egui;
+use egui_plot :: {Line, Plot};
 
 fn main() -> Result<(), eframe::Error> {
 
@@ -37,14 +38,17 @@ impl Default for MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {  //lambda function, 'ui' as argument, here is where the actual UI is designed
-            ui.heading("My egui Application");
-            ui.horizontal(|ui| {
-                let name_label = ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name)
-                    .labelled_by(name_label.id);
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let plot = Plot::new("measurements");
+            let points = vec![
+                [0.0, 0.0],
+                [1.0, 1.0],
+                [2.0, 0.5],
+                [3.0, 1.5],];
+
+            plot.show(ui, |plot_ui| {
+                plot_ui.line(Line::new(points));
             });
-            ui.label(format!("Hello '{}'", self.name));
         });
     }
 }
