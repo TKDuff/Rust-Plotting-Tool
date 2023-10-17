@@ -23,31 +23,34 @@ fn main() -> Result<(), eframe::Error> {
     )
 }
 
+/*create struct for the app, as of now contains points to plot
+*/
 struct MyApp {
-    //name: String,   //name to display
+    points: Vec<[f64; 2]>,   //points to display
 }
 
-//'Default' trait to set initial values for MyApp struct fields 
+/*'Default' is a trait containg the method default() 
+default() assigns default values for a type automatically without needing to explicitaly say the type */
 impl Default for MyApp {
-    fn default() -> Self {
+    fn default() -> Self {  //returns instance of MyApp
+        /*Self {} is the same as MyApp {} , the line below is just initialsing the struct values, point in this case*/
         Self {
-            //name: "Arthur".to_owned()
+            points: vec![
+                [0.0, 0.0],
+                [1.0, 1.0],
+                [2.0, 0.5],
+                [3.0, 1.5],],
         }
     }
 }
 
-impl eframe::App for MyApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+impl eframe::App for MyApp {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
+        egui::CentralPanel::default().show(ctx, |ui| { 
             let plot = Plot::new("measurements");
-            let points = vec![
-                [0.0, 0.0],
-                [1.0, 1.0],
-                [2.0, 0.5],
-                [3.0, 1.5],];
 
             plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(points));
+                plot_ui.line(Line::new(self.points.clone()));
             });
         });
     }
