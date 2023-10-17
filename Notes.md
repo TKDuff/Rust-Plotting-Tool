@@ -58,20 +58,31 @@ If you want a value from memory, click on Plot (or code reference plot)
 
 
 
-## Rust GUI's- big concern & hurdle 15-10-2023
+## Rust GUI's- big concern & hurdle 15-10-2023, should I use rust?
 Want something that updates live, not hard to learn, exist
-* Druid
+* Druid - retained
 * Relm
 * Iced
-* Conrad
-* Egui
+* Conrad - immediate
+* Egui - immediate, native, little documentation
+* GTK.rs - retained, non native
 
 ### Retained Mode
 * Persistent tree of objects
 * Event bounded
 
 ### Immediate Mode - more suitable for this project
+[More information](https://oandre.gal/concepts/immediate-mode-vs-retained-mode/)
 * **Stateless**- don't ratain state between frames, entire GUI build between frames
 * **Transcient** - GUI rendered online
 
+
+#### Rust concerns
+* I am new to it
+* Little documentation for native GUIs (egui, druid) which are most performent
+* Documentation exists for non-native GUI, gtk, matplot but not performent
+#### Rust advantage
+* Memory handling
+* Good language to know in the coming years
+* Performent
 
