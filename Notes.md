@@ -53,3 +53,25 @@ S- ends data to 'processor' thread
 Data not stored in memory, GUI on screen is all the data
 <br>
 If you want a value from memory, click on Plot (or code reference plot)
+
+
+
+
+
+## Rust GUI's- big concern & hurdle 15-10-2023
+Want something that updates live, not hard to learn, exist
+* Druid
+* Relm
+* Iced
+* Conrad
+* Egui
+
+### Retained Mode
+* Persistent tree of objects
+* Event bounded
+
+### Immediate Mode - more suitable for this project
+* **Stateless**- don't ratain state between frames, entire GUI build between frames
+* **Transcient** - GUI rendered online
+
+
