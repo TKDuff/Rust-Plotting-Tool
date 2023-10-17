@@ -7,7 +7,7 @@ fn main() -> Result<(), eframe::Error> {
 
     /*Window configurations */
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(320.0, 240.0)),
+        initial_window_size: Some(egui::vec2(960.0, 720.0)),
         ..Default::default()    //sets the default configurations using default() method
     };
 
@@ -24,14 +24,14 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 struct MyApp {
-    name: String,   //name to display
+    //name: String,   //name to display
 }
 
 //'Default' trait to set initial values for MyApp struct fields 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            name: "Arthur".to_owned()
+            //name: "Arthur".to_owned()
         }
     }
 }
