@@ -63,3 +63,18 @@ Parser
 
 While printing out, process data
 Wait until output done before printing another one
+
+## Struct
+Custom type, contains fields, can group fields togethor into a single type, like Enum
+
+
+struct User {
+    username: String,
+}
+
+let mut user1 = User {
+    username: String::from("alice123"),
+};
+
+user1.email = String::from("new_email@example.com");
+
