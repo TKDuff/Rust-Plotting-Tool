@@ -75,11 +75,13 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 impl eframe::App for MyApp {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) { //'update()' is the method being implemented 
     while let Ok(point) = self.receiver.try_recv() {
         //self.points.push(point);
         println!("New point")
     }
+    
+
 
         egui::CentralPanel::default().show(ctx, |ui| { 
             if ui.button("Double").clicked() {
