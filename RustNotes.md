@@ -78,3 +78,8 @@ let mut user1 = User {
 
 user1.email = String::from("new_email@example.com");
 
+## Mutex
+external crates that provide advanced and specialized concurrency primitives. Some popular ones include crossbeam, tokio, and async-std.
+<br>
+**RwLock** - allows multiple threads to read the data simultaneously. If you have a scenario where reads are more frequent than writes
+
