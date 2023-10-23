@@ -27,8 +27,15 @@ impl Measurements {
         /*
         clone - create copy of values
         into_iter - converts values into iterator
-        collect - 
+        collect - check why I need this? 
          */
         self.values.clone().into_iter().collect()
+    }
+
+    /*Takes in line string from standard input, converts two string numbers to float, appends them to the vector of points to plot*/
+    pub fn append_str(&mut self, s:&str) {
+        let parts: Vec<&str> = s.split_whitespace().collect();
+        self.append_value([parts[0].parse::<f64>().unwrap(), parts[1].parse::<f64>().unwrap()]);
+
     }
 }
