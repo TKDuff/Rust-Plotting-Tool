@@ -32,11 +32,9 @@ impl Default for MyApp {
 fn main() -> Result<(), eframe::Error> {
 
     let app = MyApp::default();
+    //create clonse of app.measurments to access it via mutex
     let measurements_for_thread = app.measurements.clone();
-    /*
-    app.measurements.append_value([5.0, 6.0]);
-    app.measurements.append_value([13.0, 15.0]);
-    app.measurements.append_value([20.0, 24.0]);*/
+
     
     thread::spawn(move ||{
         let stdin = io::stdin();          //global stdin instance
@@ -67,5 +65,6 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
                 plot_ui.line(Line::new(self.measurements.lock().unwrap().get_values()));
             });
         });
+        ctx.request_repaint();
     }
 }
