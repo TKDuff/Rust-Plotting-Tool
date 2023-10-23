@@ -1,6 +1,6 @@
 mod measurements;
 
-use eframe::egui;
+use eframe::{egui, NativeOptions};
 use egui_plot :: {Line, Plot};
 use measurements::Measurements;
 
@@ -35,14 +35,23 @@ impl Default for MyApp {
 
 fn main() -> Result<(), eframe::Error> {
 
-    
+    let mut app = MyApp::default();
+    app.measurements.append_value([5.0, 6.0]);
+    app.measurements.append_value([13.0, 15.0]);
+    app.measurements.append_value([20.0, 24.0]);
 
+    let nativ_options = NativeOptions{
+        initial_window_size: Some(egui::vec2(960.0, 720.0)),
+        ..Default::default()
+    };
+
+    eframe::run_native("App", nativ_options, Box::new(move |_|{Box::new(app)}),)
+    /*/
     /*Window configurations */
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(960.0, 720.0)),
         ..Default::default()    //sets the default configurations using default() method
     };
-
     /*Calling run_native() method provided by eframe to actually run the app 
     Takes three arguments, app name, configuration options (defined above), lambda function setting up the application
     */
@@ -52,7 +61,7 @@ fn main() -> Result<(), eframe::Error> {
         Box::new(|_| {  
             Box::<MyApp>::default()
         }),
-    )
+    )*/
 }
 
 impl eframe::App for MyApp {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
@@ -64,7 +73,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
 
             let plot = Plot::new("measurements");
             plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(self.points.clone()));
+                plot_ui.line(Line::new(self.measurements.get_values()));
             });
         });
     }
