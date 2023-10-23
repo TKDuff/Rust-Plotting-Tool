@@ -11,9 +11,8 @@ use std::sync::{Arc, Mutex};    //'Arc' allows multiple threads to share the own
 
 /*create struct for the app, as of now contains points to plot
 */
-struct MyApp {
-    points: Vec<[f64; 2]>,   //points to display
-    measurements: Arc<Mutex<Measurements>>,
+struct MyApp { 
+    measurements: Arc<Mutex<Measurements>>, //measurments module
 }
 
 
@@ -23,8 +22,7 @@ impl Default for MyApp {
     fn default() -> Self {  //returns instance of MyApp
         /*Self {} is the same as MyApp {} , the line below is just initialsing the struct values, point in this case*/
         Self {
-            points: vec![],
-            measurements: Arc::new(Mutex::new(Measurements::new())),
+            measurements: Arc::new(Mutex::new(Measurements::new(200.0))),
         }
     }
 }
@@ -65,6 +63,6 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
                 plot_ui.line(Line::new(self.measurements.lock().unwrap().get_values()));
             });
         });
-        ctx.request_repaint();
+        ctx.request_repaint();  //repaint GUI without needing event
     }
 }
