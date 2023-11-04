@@ -99,3 +99,21 @@ external crates that provide advanced and specialized concurrency primitives. So
 
 
 cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/plot_test && cargo run --bin plot_test)
+
+Criterion is rust create to benchmark, measure time
+
+
+## 4/11/23
+Idea now is to have a sliding window, split into three sections as follows
+1) Raw Data - raw data from stream plotted, no downsampling, plotted live
+2) Transition - Section where raw data is actually downsampled
+3) DownSampled - Collection of transition sections forming a continous plot of downsampled data
+
+This form a plot of contigous data, but there exist a cut off between the raw and downsampled. The sliding window determines when raw data is cut-off and downsampled. 
+Think off as split into three windows, the raw data window width is dynamic, once it fills up all the data is moved into the transition window to be downsampled, once downsampled it is moved into the D.S window. 
+
+**Exist Few Problems**
+* Transition create bottleneck, if takes a while to downsample the raw data in transition end up blocking R.D window
+* Don't know whether to downsample the DownSampled winodow, if
+  - **not done** means program memory grows and older data not downsampled, use retained GUI
+  - **is done** downsampled then can create bottleneck between Transition, waiting for this section to downsample, **overcome** by having fixed size on this section, thus doesn't grow and fixed downsample time
