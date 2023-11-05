@@ -5,14 +5,16 @@ use egui_plot :: {Line, Plot};
 use raw_data::rawData;
 use std::io::{self, BufRead};
 use std::thread;
-use std::sync::{Arc, Mutex};    //'Arc' allows multiple threads to share the ownership of mutex across threads
+//use std::sync::{Arc, Mutex};    //'Arc' allows multiple threads to share the ownership of mutex across threads
+use std::sync::{Arc, RwLock}; // Change Mutex to RwLock here
+
 
 
 
 /*create struct for the app, as of now contains points to plot
 */
 struct MyApp { 
-    raw_data: Arc<Mutex<rawData>>, //measurments module
+    raw_data: Arc<RwLock<rawData>>, //measurments module
 }
 
 
@@ -22,16 +24,17 @@ impl Default for MyApp {
     fn default() -> Self {  //returns instance of MyApp
         /*Self {} is the same as MyApp {} , the line below is just initialsing the struct values, point in this case*/
         Self {
-            raw_data: Arc::new(Mutex::new(rawData::new(200.0))),
+            raw_data: Arc::new(RwLock::new(rawData::new(200.0))),
         }
     }
 }
+
 
 fn main() -> Result<(), eframe::Error> {
 
     let app = MyApp::default();
     //create clonse of app.measurments to access it via mutex
-    let raw_data_for_thread = app.raw_data.clone();
+    let raw_data_thread = app.raw_data.clone();
 
     
     thread::spawn(move ||{
@@ -40,7 +43,7 @@ fn main() -> Result<(), eframe::Error> {
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
-            raw_data_for_thread.lock().unwrap().append_str(&line_string);
+            raw_data_thread.write().unwrap().append_str(&line_string); //write() method used here since using 'append_str()' method which modifies the vector values
         }
     });
 
@@ -61,7 +64,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
 
             let plot = Plot::new("measurements");
             plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(self.raw_data.lock().unwrap().get_values()));
+                plot_ui.line(Line::new(self.raw_data.read().unwrap().get_values()));//reading from the rawData vector, use read() method with get_values()
             });
         });
         ctx.request_repaint();  //repaint GUI without needing event

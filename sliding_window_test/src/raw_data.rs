@@ -20,17 +20,8 @@ impl rawData {
 
     pub fn append_value(&mut self, point: [f64; 2]) {
         self.values.push(point);
-        //println!("{}", self.values.len());
-        //println!("{}: {} {}", self.values.len(), point[0], point[1]);
+        
         if self.values.len() % 50 == 0 {
-            let mut sample: Vec<_> = self.values[0..50].to_vec();
-            sample = self.down_sample(sample);
-            //self.values.drain(0..50);
-            self.values.splice(0..50, sample.into_iter());
-            println!("---------------------------------");
-            for value in &self.values {
-                println!("{} {}" ,value[0], value[1]);
-            }
         }
     }
 
@@ -43,16 +34,6 @@ impl rawData {
         let parts: Vec<&str> = s.split_whitespace().collect();
         self.append_value([parts[0].parse::<f64>().unwrap(), parts[1].parse::<f64>().unwrap()]);
 
-    }
-
-    
-    pub fn down_sample(&mut self, mut clone_to_downsample: Vec<[f64; 2]>) -> Vec<[f64; 2]> {
-        //println!("{} received", clone_to_downsample.len());
-        for point in &mut clone_to_downsample {
-            point[0] *= 2.0;
-            point[1] *= 2.0;
-        }
-        clone_to_downsample
     }
 
 }
