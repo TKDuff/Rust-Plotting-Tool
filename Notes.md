@@ -109,7 +109,9 @@ Idea now is to have a sliding window, split into three sections as follows
 2) Transition - Section where raw data is actually downsampled
 3) DownSampled - Collection of transition sections forming a continous plot of downsampled data
 
-This form a plot of contigous data, but there exist a cut off between the raw and downsampled. The sliding window determines when raw data is cut-off and downsampled. 
+This form a plot of contigous data, but there exist a cut off between the raw and downsampled. The sliding window determines when raw data is cut-off and downsampled. <br><br>
+**You are essentially** moving the downsampling process on the data from before it is plotted (when it directly comes from stdin) to after it is plotted
+
 Think off as split into three windows, the raw data window width is dynamic, once it fills up all the data is moved into the transition window to be downsampled, once downsampled it is moved into the D.S window. 
 
 **Exist Few Problems**
