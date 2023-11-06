@@ -1,20 +1,16 @@
 mod raw_data;
 
-use eframe::{egui, NativeOptions};
-use egui_plot :: {Line, Plot};
-use raw_data::rawData;
+//use eframe::{egui, NativeOptions};
+//use egui_plot :: {Line, Plot};
+use raw_data::RawData;
 use std::io::{self, BufRead};
 use std::thread;
-//use std::sync::{Arc, Mutex};    //'Arc' allows multiple threads to share the ownership of mutex across threads
-use std::sync::{Arc, RwLock}; // Change Mutex to RwLock here
+use std::sync::{mpsc, Arc, RwLock}; // Change Mutex to RwLock here
 
 
-
-
-/*create struct for the app, as of now contains points to plot
-*/
+/*create struct for the app, as of now contains points to plot*/
 struct MyApp { 
-    raw_data: Arc<RwLock<rawData>>, //measurments module
+    raw_data: Arc<RwLock<RawData>>, //measurments module
 }
 
 
@@ -24,39 +20,83 @@ impl Default for MyApp {
     fn default() -> Self {  //returns instance of MyApp
         /*Self {} is the same as MyApp {} , the line below is just initialsing the struct values, point in this case*/
         Self {
-            raw_data: Arc::new(RwLock::new(rawData::new(200.0))),
+            raw_data: Arc::new(RwLock::new(RawData::new(200.0))),
+
         }
     }
 }
 
 
 fn main() -> Result<(), eframe::Error> {
-
     let app = MyApp::default();
+    let (tx, rx) = mpsc::channel(); 
     //create clonse of app.measurments to access it via mutex
+
+
     let raw_data_thread = app.raw_data.clone();
 
-    
-    thread::spawn(move ||{
+    let raw_data_handle = thread::spawn(move ||{
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
+        let mut lines_iterator = locked_stdin.lines();
 
-        for line in locked_stdin.lines() {
-            let line_string = line.unwrap();
-            raw_data_thread.write().unwrap().append_str(&line_string); //write() method used here since using 'append_str()' method which modifies the vector values
+        loop {
+            match rx.try_recv() {
+                Ok(downsampled_data) => {
+                    // If data is received, process it
+                    raw_data_thread.write().unwrap().amend(&downsampled_data);
+                },
+                Err(mpsc::TryRecvError::Empty) => {
+                    // No data received, nothing to do here
+                },Err(mpsc::TryRecvError::Disconnected) => {
+                    // The sending side of the channel has been closed, handle as needed
+                    break;
+                }
+            }
+
+            match lines_iterator.next() {
+                Some(Ok(line)) => {
+                    raw_data_thread.write().unwrap().append_str(&line);
+                },
+                Some(Err(e)) => {
+                    eprint!("Error")
+                },
+                None => {
+                }
+            }
         }
     });
 
+    let tx_clone = tx.clone(); 
+    let downsample_handle = thread::spawn(move ||{
+        let mut prev_count = 0;
+        loop {
+            let current_count = app.raw_data.read().unwrap().get_length();
+            if current_count % 10 ==0 && current_count != prev_count{
+                /*downsampling done here, use channel to send the downsampled value */
+                let previous_ten_index = current_count - 10;
+                let test = app.raw_data.read().unwrap().get_previous_ten(current_count, previous_ten_index);
+                println!("Last 10 to downsample: {:?}", test);
+                //tx_clone.send([1.0,2.0]).expect("Failed to send");
+                prev_count = current_count;
+            };
+        }
+    });
+
+    /*
     let nativ_options = NativeOptions{
         initial_window_size: Some(egui::vec2(960.0, 720.0)),
         ..Default::default()
     };
 
-    
-    eframe::run_native("App", nativ_options, Box::new(move |_|{Box::new(app)}),)
+    eframe::run_native("App", nativ_options, Box::new(move |_|{Box::new(app)}),)*/
+    raw_data_handle.join().unwrap();
+    downsample_handle.join().unwrap();
+    Ok(())
     
 }
 
+/*
 impl eframe::App for MyApp {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
@@ -69,4 +109,4 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
         });
         ctx.request_repaint();  //repaint GUI without needing event
     }
-}
+}*/
