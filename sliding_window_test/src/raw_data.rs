@@ -24,9 +24,11 @@ impl RawData {
 
     }
 
+    
     pub fn get_values(&self) -> Vec<[f64; 2]> {
         self.values.clone().into_iter().collect()
     }
+
 
     pub fn get_length(&self) -> usize {
         self.values.len()
@@ -36,8 +38,8 @@ impl RawData {
         self.values[length_minus_ten..length].to_vec()
     }
 
-    pub fn amend(&mut self, amended_vector: &[f64; 2]){
-        println!("Received");
+    pub fn amend(&mut self, downsampled_section: &Vec<[f64; 2]>, start_range: usize, end_range: usize){
+        self.values.splice(start_range..end_range, downsampled_section.iter().cloned());
     }
 
     /*Takes in line string from standard input, converts two string numbers to float, appends them to the vector of points to plot*/

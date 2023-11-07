@@ -119,3 +119,25 @@ Think off as split into three windows, the raw data window width is dynamic, onc
 * Don't know whether to downsample the DownSampled winodow, if
   - **not done** means program memory grows and older data not downsampled, use retained GUI
   - **is done** downsampled then can create bottleneck between Transition, waiting for this section to downsample, **overcome** by having fixed size on this section, thus doesn't grow and fixed downsample time
+
+## 7-11-23 - Version 1<br>
+Exist three threads<br>
+1) Raw Data, rd - contain 'values' vector, which are values to be plotted
+2) Downsample, ds - handles downsampling chunk of the 'values' vector
+3) Egui, eg - actual egui window, plotting the values live
+
+* On launch, rawdata module is assigned read write lock
+* rd ds and egui threads spawned. 
+
+* rd thread reads in from standard input, and using the write lock appends the read in x,y points to the raw data 'values' vector
+
+* Egui thread constantly reads rawdata 'values' vector, when new value pushed, egui redraws entire plot thus drawing the new points
+
+* ds thread counts read the 'values' vector length, when 10 values pushed
+* - ds take a copy of the previous 10 values (from the end) 
+  - downsamples them (remove half)
+  - Sends the downsampled vector to rd thread via mpsc channel
+  - rd (having the write lock) amends the downsampled chunk to the vector
+
+* Both egui and ds both share the read lock, only rd has the write lock
+* **Contention does arise when rd has to insert downsampled chunk into 'values' vector, stops reading in from standard input**
