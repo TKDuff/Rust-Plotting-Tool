@@ -73,9 +73,9 @@ fn main() -> Result<(), eframe::Error> {
         let mut prev_count = 0; 
         loop {
             let current_count = app.raw_data.read().unwrap().get_length();
-            if current_count % 10 ==0 && current_count != prev_count{   
+            if current_count % 100 ==0 && current_count != prev_count{   
                 /*downsampling done here, use channel to send the downsampled value */
-                let previous_ten_index = current_count - 10;
+                let previous_ten_index = current_count - 100;
                 let to_downsample = app.raw_data.read().unwrap().get_previous_ten(current_count, previous_ten_index);
                 
                 let downsampled: Vec<_> = to_downsample.into_iter()
