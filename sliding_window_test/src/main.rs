@@ -73,9 +73,9 @@ fn main() -> Result<(), eframe::Error> {
         let mut prev_count = 0; 
         loop {
             let current_count = app.raw_data.read().unwrap().get_length();
-            if current_count % 100 ==0 && current_count != prev_count{   
+            if current_count % 20 ==0 && current_count != prev_count{   
                 /*downsampling done here, use channel to send the downsampled value */
-                let previous_ten_index = current_count - 100;
+                let previous_ten_index = current_count - 20;
                 let to_downsample = app.raw_data.read().unwrap().get_previous_ten(current_count, previous_ten_index);
                 
                 let downsampled: Vec<_> = to_downsample.into_iter()
@@ -109,7 +109,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
         egui::CentralPanel::default().show(ctx, |ui| { 
 
 
-            let plot = Plot::new("measurements");
+            let plot = Plot::new("measurements").allow_zoom(true);
             plot.show(ui, |plot_ui| {
                 plot_ui.line(Line::new(self.raw_data.read().unwrap().get_values()));//reading from the rawData vector, use read() method with get_values()
             });
@@ -117,3 +117,4 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
         ctx.request_repaint();  //repaint GUI without needing event
     }
 }
+//

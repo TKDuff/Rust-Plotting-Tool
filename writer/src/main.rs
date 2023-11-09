@@ -9,6 +9,6 @@ fn main() {
         x += rand::thread_rng().gen_range(1..10);
         let y = rand::thread_rng().gen_range(50..60);
         println!("{} {}", x, y);
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(100));
     }  
 }

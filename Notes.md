@@ -141,3 +141,8 @@ Exist three threads<br>
 
 * Both egui and ds both share the read lock, only rd has the write lock
 * **Contention does arise when rd has to insert downsampled chunk into 'values' vector, stops reading in from standard input**
+
+**Problem, big problem 9-11-23**
+potential efficiency issue with using RwLock in a situation where writes are frequent and reads are constant. This setup can lead to what's known as "write starvation," where the reader(s) may frequently block the writer(s) from accessing the data, especially if there are many reader threads or if the reader holds the lock for a long duration. Additionally, if the downsampler is constantly checking the length of the vector in a tight loop, it can lead to a high contention situation, which is inefficient.
+
+
