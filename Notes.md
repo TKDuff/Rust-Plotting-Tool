@@ -145,4 +145,15 @@ Exist three threads<br>
 **Problem, big problem 9-11-23**
 potential efficiency issue with using RwLock in a situation where writes are frequent and reads are constant. This setup can lead to what's known as "write starvation," where the reader(s) may frequently block the writer(s) from accessing the data, especially if there are many reader threads or if the reader holds the lock for a long duration. Additionally, if the downsampler is constantly checking the length of the vector in a tight loop, it can lead to a high contention situation, which is inefficient.
 
+## 12 - 11 - 2023
+### Looked into lock-free data structures
+* Such as 'crossbeam' which provide such as 'SegQueue', which allow concurrent reads and writes without using locks since they use atomics. 
+* All of the lock-free data structures don't support **non-destructive reads or iteration over elements** which means cannot get all elements of vector, simply can't return entire vector, designed for concurrent enqueueing and dequeueing operations 
+* Since egui/druid require access to the entire vector to be plotted, as they are data driven, and l.f.d.s don't allow the reading of an entire vector, they cannot be used
+* Hence, a RW-lock is the best mechanism for thread-safe concurrency
+### Looked into using thread-pools for downsampling
+* Instead of single downsampling thread, can use thread pools which will downsamples different chunks coming in from r.d in **parallel**, more performent
+* Looked into *Rayon* which is an API that looks after thread pooling
+* Looked into standard library thread pooling, will have look into more tomorrow
 
+Key takeway is to stick with RW-lock, can't use lock free data structure that allows good concurrency access to shared datastructure
