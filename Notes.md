@@ -157,3 +157,20 @@ potential efficiency issue with using RwLock in a situation where writes are fre
 * Looked into standard library thread pooling, will have look into more tomorrow
 
 Key takeway is to stick with RW-lock, can't use lock free data structure that allows good concurrency access to shared datastructure
+
+## 13 - 11- 2023
+Going to use a thread pool instead of single D.S thread to downsample. Done if downsample rate slower than rate at which chunks comes in, mutliple threads of pool can downsample in parralel. 
+* **Thread pools used primrarily for CPU-bound tasks**, downsampling is CPU instensive, doing math on vector of points. This is why I am not using anync methods for downsampling, async offers concurrency but not parallelism
+
+12-11-23
+Get simple crossbeam demo working
+Contain r.d thread writing to vector, egui thread reading from vector, should be no locking
+
+Could use DashMap, is a hashmap, could use to store times as keys
+
+So is there no concurrent queue crate in rust that allows non Destructive Reads?I no longer mind if it uses locks or mutual exclusion, anything quicker than a RW lock and not a buffer
+
+* Look into
+* * Atomic signal
+* * Lock granularity
+* * Thread pools 
