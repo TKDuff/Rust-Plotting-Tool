@@ -1,11 +1,20 @@
 mod raw_data;
 
+extern crate statrs;
+
 use eframe::{egui, NativeOptions};
 use egui_plot :: {Line, Plot};
 use raw_data::RawData;
 use std::io::{self, BufRead};
 use std::thread;
-use std::sync::{mpsc, Arc, RwLock}; // Change Mutex to RwLock here
+use std::sync::{Arc, RwLock}; // Change Mutex to RwLock here
+use crossbeam::channel::unbounded;
+use statrs::statistics::{OrderStatistics, Min, Max};
+use statrs::statistics::Data;
+
+
+
+
 
 
 /*create struct for the app, as of now contains points to plot*/
@@ -29,47 +38,54 @@ impl Default for MyApp {
 
 fn main() -> Result<(), eframe::Error> {
     let app = MyApp::default();
-    let (tx, rx) = mpsc::channel(); 
+    let (sender, receiver) = unbounded();
     //create clonse of app.measurments to access it via mutex
 
 
     let raw_data_thread = app.raw_data.clone();
-    let raw_data_clone_for_gui = app.raw_data.clone();
+    let raw_data_for_downsampler = app.raw_data.clone();
+    let raw_data_for_egui = app.raw_data.clone();
 
-    thread::spawn(move ||{
+    let writer = thread::spawn(move ||{
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
-        let mut lines_iterator = locked_stdin.lines();
+        let mut count = 0;
+        let points = 50;
 
-        loop {
-            match rx.try_recv() {
-                Ok((downsampled_data, start_range, end_range)) => {
-                    // If data is received, process it
-                    raw_data_thread.write().unwrap().amend(&downsampled_data, start_range, end_range);
-                },
-                Err(mpsc::TryRecvError::Empty) => {
-                    // No data received, nothing to do here
-                },Err(mpsc::TryRecvError::Disconnected) => {
-                    // The sending side of the channel has been closed, handle as needed
-                    break;
-                }
+
+        for line in locked_stdin.lines() {
+            let line_string = line.unwrap();
+            raw_data_thread.write().unwrap().append_str(&line_string);
+            count+= 1;
+            if count % points == 0 {
+                sender.send(points).unwrap(); 
             }
 
-            match lines_iterator.next() {
-                Some(Ok(line)) => {
-                    raw_data_thread.write().unwrap().append_str(&line);
-                },
-                Some(Err(_e)) => {
-                    eprint!("Error")
-                },
-                None => {
-                }
-            }
         }
     });
 
-    let tx_clone = tx.clone(); 
-    thread::spawn(move ||{
+    let downsample = thread::spawn(move ||{
+        let mut chunk: Vec<[f64; 2]> = Vec::new();
+
+        loop {
+            if let Ok(points) = receiver.recv() {
+                chunk = raw_data_for_downsampler.read().unwrap().get_chunk(points);
+                let x_for_quartile: Vec<f64> = chunk.iter().map(|&[val, _]| val).collect();
+                let y_for_quartile: Vec<f64> = chunk.iter().map(|&[_, val]| val).collect();
+
+                println!("\n{:?}\n\n{:?}", x_for_quartile, y_for_quartile);
+                let mut x = Data::new(x_for_quartile);
+                let mut y = Data::new(y_for_quartile);
+
+
+
+                println!("X:\nLower Quartile: {}\nUpper Quartile: {}\nMedian: {}\nMin: {}\nMax: {}",x.lower_quartile(), x.upper_quartile(), x.median(), x.min(), x.max());
+                println!("\nY:\nLower Quartile: {}\nUpper Quartile: {}\nMedian: {}\nMin: {}\nMax: {}",y.lower_quartile(), y.upper_quartile(), y.median(), x.min(), x.max());
+                //let quartiles = Quartiles::new
+            }   
+        }
+
+        /*
         let mut prev_count = 0; 
         loop {
             let current_count = app.raw_data.read().unwrap().get_length();
@@ -87,23 +103,26 @@ fn main() -> Result<(), eframe::Error> {
                 tx_clone.send((downsampled, previous_ten_index ,current_count)).expect("Failed to send");
                 prev_count = current_count;
             };
-        }
+        }*/
     });
 
-    
+    /*
     let nativ_options = NativeOptions{
         initial_window_size: Some(egui::vec2(960.0, 720.0)),
         ..Default::default()
-    };
+    };*/
 
+    /*
     eframe::run_native("App", nativ_options, Box::new(move |_|{Box::new(MyApp {
-        raw_data: raw_data_clone_for_gui,})}),);
-    
+        raw_data: raw_data_for_egui,})}),);
+    */
+    writer.join().unwrap();
+    downsample.join().unwrap();
     Ok(())
     
 }
 
-
+/*
 impl eframe::App for MyApp {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
@@ -116,5 +135,4 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
         });
         ctx.request_repaint();  //repaint GUI without needing event
     }
-}
-//
+}*/

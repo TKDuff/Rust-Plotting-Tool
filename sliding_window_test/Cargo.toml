@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+crossbeam = "0.8.2"
 eframe = "0.23.0"
 egui_plot = "0.23.0"
-tokio = { version = "1.33.0", features = ["full"] }
+statrs = "0.16.0"
 

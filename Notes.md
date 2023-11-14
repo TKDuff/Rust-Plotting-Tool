@@ -182,3 +182,10 @@ So is there no concurrent queue crate in rust that allows non Destructive Reads?
    * Be sure to drop the locks, using a Reader Get Chunk method, implement crossbeam, not using atomics as no polling
 2) Downsample get Descriptive statistics points per second
 3) Plot as boxplot, switch to time series
+
+Must choose between the following statistical libraries in rust
+statrs - https://github.com/statrs-dev/statrs
+incr_stats - https://github.com/garyboone/incr_stats
+Using plotters for now, no crate to outright get quartiles
+
+Look into using this **ndarray** - https://docs.rs/ndarray/latest/ndarray/

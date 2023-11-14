@@ -17,25 +17,14 @@ impl RawData {
         window_size,
      }
     }
-
-    pub fn append_value(&mut self, point: [f64; 2]) {
-        println!("{} {} {}", self.values.len(), point[0], point[1]);
-        self.values.push(point);
-
-    }
-
     
     pub fn get_values(&self) -> Vec<[f64; 2]> {
         self.values.clone().into_iter().collect()
     }
 
-
-    pub fn get_length(&self) -> usize {
-        self.values.len()
-    }
-
-    pub fn get_previous_ten(&self, length:usize, length_minus_ten:usize) -> Vec<[f64; 2]> {
-        self.values[length_minus_ten..length].to_vec()
+    pub fn get_chunk(&self, start:usize) -> Vec<[f64; 2]> {
+        let len = self.values.len();
+        self.values[len - start..len].to_vec()  //define end of vector, since new values being pushed in parralel must ensure don't include new values
     }
 
     pub fn amend(&mut self, downsampled_section: &Vec<[f64; 2]>, start_range: usize, end_range: usize){
@@ -46,7 +35,11 @@ impl RawData {
     pub fn append_str(&mut self, s:&str) {
         let parts: Vec<&str> = s.split_whitespace().collect();
         self.append_value([parts[0].parse::<f64>().unwrap(), parts[1].parse::<f64>().unwrap()]);
+    }
 
+    pub fn append_value(&mut self, point: [f64; 2]) {
+        println!("{} {} {}", self.values.len(), point[0], point[1]);
+        self.values.push(point);
     }
 
 }

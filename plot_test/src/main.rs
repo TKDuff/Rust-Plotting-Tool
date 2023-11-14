@@ -1,7 +1,7 @@
 mod measurements;
 
 use eframe::{egui, NativeOptions};
-use egui_plot :: {Line, Plot};
+use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
 use measurements::Measurements;
 use std::io::{self, BufRead};
 use std::thread;
@@ -58,11 +58,24 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
         egui::CentralPanel::default().show(ctx, |ui| { 
 
 
+        let box_plot = BoxPlot::new(vec![
+            BoxElem::new(3.0, BoxSpread::new(1.5, 2.2, 2.5, 2.6, 3.1))
+            .name("Data Set")
+            .box_width(0.25),
+        ])
+        .name("Box plot demo");
+
+        Plot::new("measurements")
+        .legend(Legend::default())
+        .show(ui, |plot_ui| plot_ui.box_plot(box_plot));
+
+            /*
             let plot = Plot::new("measurements");
             plot.show(ui, |plot_ui| {
                 plot_ui.line(Line::new(self.measurements.lock().unwrap().get_values()));
-            });
+            });*/
         });
         ctx.request_repaint();  //repaint GUI without needing event
     }
+
 }
