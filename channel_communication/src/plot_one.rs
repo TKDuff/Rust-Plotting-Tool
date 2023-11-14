@@ -11,12 +11,13 @@ impl PlotOne {
         self.values.push([point_one, point_two]);
     }
 
+    /*
     pub fn get_values(&self) -> Vec<[f64; 2]> {
         self.values.clone().into_iter().collect()
-    }
+    }*/
 
-    pub fn get_chunk(&self) -> Vec<[f64; 2]> {
+    pub fn get_chunk(&self, points: usize) -> Vec<[f64; 2]> {
         let len = self.values.len();
-        self.values[(len - 1000)..].to_vec()
+        self.values[(len - points)..].to_vec()
     }
 }

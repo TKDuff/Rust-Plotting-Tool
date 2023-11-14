@@ -174,3 +174,11 @@ So is there no concurrent queue crate in rust that allows non Destructive Reads?
 * * Atomic signal
 * * Lock granularity
 * * Thread pools 
+
+
+## 13 - 11- 2023
+**To get working**
+1) Fix off by one using crossbeam channel send
+   * Be sure to drop the locks, using a Reader Get Chunk method, implement crossbeam, not using atomics as no polling
+2) Downsample get Descriptive statistics points per second
+3) Plot as boxplot, switch to time series
