@@ -27,7 +27,6 @@ impl Default for MyApp {
         Self {
             raw_data: Arc::new(RwLock::new(RawData::new())),
             plotType: "Box Plot".to_string(),
-
         }
     }
 }
@@ -107,26 +106,6 @@ fn main() -> Result<(), eframe::Error> {
                 raw_data_for_downsampler.write().unwrap().append_box_plot(singleStat);
             }   
         }
-
-        /*
-        let mut prev_count = 0; 
-        loop {
-            let current_count = app.raw_data.read().unwrap().get_length();
-            if current_count % 20 ==0 && current_count != prev_count{   
-                /*downsampling done here, use channel to send the downsampled value */
-                let previous_ten_index = current_count - 20;
-                let to_downsample = app.raw_data.read().unwrap().get_previous_ten(current_count, previous_ten_index);
-                
-                let downsampled: Vec<_> = to_downsample.into_iter()
-                .enumerate()
-                    .filter_map(|(index, value)| {
-                    if index % 2 == 0 { Some(value) } else { None }
-                }).collect();
-
-                tx_clone.send((downsampled, previous_ten_index ,current_count)).expect("Failed to send");
-                prev_count = current_count;
-            };
-        }*/
     });
 
     
