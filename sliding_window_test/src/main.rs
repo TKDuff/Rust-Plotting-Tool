@@ -165,11 +165,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
 
                 }
                     _ => {}
-            }
-
-
-            
-            
+            }         
         });
         ctx.request_repaint();  //repaint GUI without needing event
     }

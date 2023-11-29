@@ -23,13 +23,19 @@ impl StdinData {
         self.points.len()
     }
 
-    pub fn get_chunk(&self, start: usize, end: usize) -> Vec<[f64;2]> {
-        self.points[start..end].to_vec()
+    pub fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
+        self.points[0..10].to_vec()
     }
 
     /*So use into_iter if you want to consume the entire collection, and use drain if you only want to consume part of the collection or if you want to reuse the emptied collection later. */
     pub fn remove_chunk(&mut self, count:usize) {
+        println!("\n\n{:?} {}\n", self.points, self.points.len());
         self.points.drain(0..count);
+        println!("{:?} {}\n\n", self.points, self.points.len());
+    }
+
+    pub fn get_values(&self) -> Vec<[f64; 2]> {
+        self.points.clone().into_iter().collect()
     }
 }
 
@@ -55,5 +61,11 @@ impl DownsampledData {
 
         self.x_stats.push([x.lower_quartile(), x.upper_quartile(), x.median(), x.min(), x.max(), x.mean().unwrap()]);
         self.y_stats.push([y.lower_quartile(), y.upper_quartile(), y.median(), y.min(), y.max(), y.mean().unwrap()]);
+    }
+
+    pub fn get_means(&self) -> Vec<[f64; 2]> {
+        self.x_stats.iter().zip(self.y_stats.iter())
+            .map(|(x, y)| [x[5], y[5]]) // Assuming index 5 is the mean
+            .collect()
     }
 }
