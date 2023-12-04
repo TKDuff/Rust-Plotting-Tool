@@ -34,19 +34,17 @@ fn main() -> Result<(), eframe::Error> {
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
         let mut count = 0;
-        
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
             raw_data_thread.write().unwrap().append_str(&line_string);
+            count+= 1;
+            println!("Flag: {},just added point: {}", PROCESS_FLAG.load(Ordering::SeqCst), count);
             if PROCESS_FLAG.load(Ordering::SeqCst) {
-                count +=1;
-                println!("Remove chunk {}", count);
+                println!("length: {}", raw_data_thread.read().unwrap().get_length());
                 raw_data_thread.write().unwrap().remove_chunk(10);
                 PROCESS_FLAG.store(false, Ordering::SeqCst);
-            }
-            
-
+            }  
         }
     });
 
@@ -56,18 +54,23 @@ fn main() -> Result<(), eframe::Error> {
 
     let historic_data_handle = thread::spawn(move || {
         let mut length = 0;
+        let mut prev_length = 0;
         let point_count = 10;
         let mut chunk: Vec<[f64;2]>;
         loop {
             length = downsampler_raw_data_thread.read().unwrap().get_length();
-            if length == 10 /*&& length != prev_length*/ {
+            if length == 10  && length != prev_length {
+                println!("I see the length is 10");
                 chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(length);
                 downsampler_thread.write().unwrap().append_statistics(chunk);
+                //println!("{}", length);
                 PROCESS_FLAG.store(true, Ordering::SeqCst);
             }
+            prev_length = length;
         }
     });
 
+    
     let native_options = NativeOptions{
         ..Default::default()
     };

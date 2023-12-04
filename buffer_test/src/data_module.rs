@@ -11,6 +11,7 @@ impl StdinData {
 
     pub fn append_points(&mut self, points: [f64; 2]) {
         self.points.push([points[0], points[1]]);
+        println!("Appended point");
     }
 
     /*Takes in line string from standard input, converts two string numbers to float, appends them to the vector of points to plot*/
@@ -29,9 +30,9 @@ impl StdinData {
 
     /*So use into_iter if you want to consume the entire collection, and use drain if you only want to consume part of the collection or if you want to reuse the emptied collection later. */
     pub fn remove_chunk(&mut self, count:usize) {
-        println!("\n\n{:?} {}\n", self.points, self.points.len());
+        //println!("\n\n{:?} {}\n", self.points, self.points.len());
         self.points.drain(0..count);
-        println!("{:?} {}\n\n", self.points, self.points.len());
+        //println!("{:?} {}\n\n", self.points, self.points.len());
     }
 
     pub fn get_values(&self) -> Vec<[f64; 2]> {
