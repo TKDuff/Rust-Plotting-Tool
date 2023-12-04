@@ -39,11 +39,12 @@ fn main() -> Result<(), eframe::Error> {
             let line_string = line.unwrap();
             raw_data_thread.write().unwrap().append_str(&line_string);
             count+= 1;
-            println!("Flag: {},just added point: {}", PROCESS_FLAG.load(Ordering::SeqCst), count);
+            //println!("Flag: {},just added point: {}", PROCESS_FLAG.load(Ordering::SeqCst), count);
+            //println!("Outer length: {}", raw_data_thread.read().unwrap().get_length());
             if PROCESS_FLAG.load(Ordering::SeqCst) {
-                println!("length: {}", raw_data_thread.read().unwrap().get_length());
                 raw_data_thread.write().unwrap().remove_chunk(10);
                 PROCESS_FLAG.store(false, Ordering::SeqCst);
+                println!("Upon exit {}", PROCESS_FLAG.load(Ordering::SeqCst));
             }  
         }
     });
@@ -54,19 +55,16 @@ fn main() -> Result<(), eframe::Error> {
 
     let historic_data_handle = thread::spawn(move || {
         let mut length = 0;
-        let mut prev_length = 0;
         let point_count = 10;
         let mut chunk: Vec<[f64;2]>;
         loop {
             length = downsampler_raw_data_thread.read().unwrap().get_length();
-            if length == 10  && length != prev_length {
-                println!("I see the length is 10");
+            if length == 10 {
                 chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(length);
                 downsampler_thread.write().unwrap().append_statistics(chunk);
                 //println!("{}", length);
                 PROCESS_FLAG.store(true, Ordering::SeqCst);
             }
-            prev_length = length;
         }
     });
 

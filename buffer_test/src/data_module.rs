@@ -11,8 +11,7 @@ impl StdinData {
 
     pub fn append_points(&mut self, points: [f64; 2]) {
         self.points.push([points[0], points[1]]);
-        println!("Appended point");
-    }
+        }
 
     /*Takes in line string from standard input, converts two string numbers to float, appends them to the vector of points to plot*/
     pub fn append_str(&mut self, s:&str) {
