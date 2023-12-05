@@ -24,7 +24,7 @@ impl StdinData {
     }
 
     pub fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-        self.points[0..1000].to_vec()
+        self.points[0..count].to_vec()
     }
 
     /*So use into_iter if you want to consume the entire collection, and use drain if you only want to consume part of the collection or if you want to reuse the emptied collection later. */

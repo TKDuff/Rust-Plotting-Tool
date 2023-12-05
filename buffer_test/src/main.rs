@@ -11,6 +11,7 @@ use std::io::{self, BufRead};
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 static PROCESS_FLAG: AtomicBool = AtomicBool::new(false);
+use crossbeam::channel;
 
 struct MyApp {
     raw_data: Arc<RwLock<StdinData>>,
@@ -27,38 +28,46 @@ impl Default for MyApp {
 }
 
 fn main() -> Result<(), eframe::Error> {
+    let (rd_sender, hd_receiver) = channel::unbounded();
+    let (hd_sender, rd_receiver) = channel::unbounded();
+
     let my_app = MyApp::default();
+
+    //let sender_clone = sender.clone();
     let raw_data_thread = my_app.raw_data.clone();
 
     let raw_data_handle = thread::spawn(move || { 
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
-        let mut count = 0;
+        let mut length = 0;
+        let mut points_count = 100;
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
             raw_data_thread.write().unwrap().append_str(&line_string);
-            if PROCESS_FLAG.load(Ordering::SeqCst) {
-                raw_data_thread.write().unwrap().remove_chunk(1000);
-                PROCESS_FLAG.store(false, Ordering::SeqCst);
-            }  
+            length = raw_data_thread.read().unwrap().get_length();
+            if length % points_count == 0 {
+                rd_sender.send((length, points_count)).unwrap();
+            }
+            if let Ok(processed_length) = rd_receiver.try_recv() {
+                println!("{}", raw_data_thread.read().unwrap().get_length());
+                raw_data_thread.write().unwrap().remove_chunk(points_count);
+                println!("{}", raw_data_thread.read().unwrap().get_length());
+            }
         }
     });
 
     let downsampler_raw_data_thread = my_app.raw_data.clone();
     let downsampler_thread = my_app.historic_data.clone();
 
-
+    
     let historic_data_handle = thread::spawn(move || {
-        let mut length = 0;
         let mut chunk: Vec<[f64;2]>;
-        loop {
-            length = downsampler_raw_data_thread.read().unwrap().get_length();
-            if length == 1000 && !PROCESS_FLAG.load(Ordering::SeqCst) {   //hack solution with flag check
-                chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(length);
-                downsampler_thread.write().unwrap().append_statistics(chunk);
-                PROCESS_FLAG.store(true, Ordering::SeqCst);
-            }
+        for message in hd_receiver {
+            let(length, point_count) = message;
+            chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
+            downsampler_thread.write().unwrap().append_statistics(chunk);
+            hd_sender.send("Done");
         }
     });
 
@@ -67,13 +76,13 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
 
-
     eframe::run_native(
         "My egui App",native_options,Box::new(move |_|{Box::new(my_app)}),
     );
 
     raw_data_handle.join().unwrap();
     historic_data_handle.join().unwrap();
+
     Ok(())
 }
 
