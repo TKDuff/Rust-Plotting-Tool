@@ -39,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
             let line_string = line.unwrap();
             raw_data_thread.write().unwrap().append_str(&line_string);
             if PROCESS_FLAG.load(Ordering::SeqCst) {
-                raw_data_thread.write().unwrap().remove_chunk(10);
+                raw_data_thread.write().unwrap().remove_chunk(1000);
                 PROCESS_FLAG.store(false, Ordering::SeqCst);
             }  
         }
@@ -51,11 +51,10 @@ fn main() -> Result<(), eframe::Error> {
 
     let historic_data_handle = thread::spawn(move || {
         let mut length = 0;
-        let point_count = 10;
         let mut chunk: Vec<[f64;2]>;
         loop {
             length = downsampler_raw_data_thread.read().unwrap().get_length();
-            if length == 10 {
+            if length == 1000 && !PROCESS_FLAG.load(Ordering::SeqCst) {   //hack solution with flag check
                 chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(length);
                 downsampler_thread.write().unwrap().append_statistics(chunk);
                 PROCESS_FLAG.store(true, Ordering::SeqCst);
@@ -98,3 +97,5 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
         ctx.request_repaint();
     }
 }
+/* 
+race condition is intrinsic due to H's reliance on periodic polling for data that R updates continuously */

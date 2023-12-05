@@ -204,3 +204,18 @@ Look into using this **ndarray** - https://docs.rs/ndarray/latest/ndarray/
 * R appends a point
 * R sees the flag is true (based on when H saw the length was 10)
 * R tries to remove but failes
+
+**H always see stale data, here is where problem lies**
+* R.D has the live view of the data
+* Since H.D reads the data from R.D vector, it will always have a stale view of the data
+* Currently, H.D polls length of R.D vector, downsamples, then tells R.D to delete chunk
+* Since has a view of stale data, therefore always risk of race condition
+
+## Solution - change R.D concerns
+* R.D now writes and checks length, R.D thread has full access to R.D thread
+
+Race Condition Window: There's still a small window for a race condition. After H checks the flag and before it starts the downsampling, R could potentially change the state. This window might be small, but in highly concurrent systems, even tiny windows can lead to issues.
+
+Dependency on Flag State: This approach heavily relies on the accurate and timely update of the PROCESS_FLAG. Any delay or missed update could lead to incorrect behavior.
+
+Stale Data Risk: If R is appending data very quickly, there's a risk that H might act on stale data. When H decides not to downsample because the flag is true, R might have already appended more data, changing the situation by the time H checks again.
