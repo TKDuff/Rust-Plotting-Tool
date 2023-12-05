@@ -189,3 +189,18 @@ incr_stats - https://github.com/garyboone/incr_stats
 Using plotters for now, no crate to outright get quartiles
 
 Look into using this **ndarray** - https://docs.rs/ndarray/latest/ndarray/
+
+## 5-12-2023 
+**Problem with current buffer method** 
+* R (the R.D.T)
+* H sees length is 10
+* Set flag true
+* R check condition, see R true
+* Crucially, while this check occurs, since H is in a loop, it sees the length is still 10, so it beings the downsample process during the remove
+* So R removes the points (keep in mind H is still downsampling)
+* R sets the flag to false
+* Crucially, when R finishes the remove and sets the flag to false, H sets the downsample flag to true (since it fished the downsample) right after
+* Now the flag is true again
+* R appends a point
+* R sees the flag is true (based on when H saw the length was 10)
+* R tries to remove but failes

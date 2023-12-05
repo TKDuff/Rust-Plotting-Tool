@@ -38,13 +38,9 @@ fn main() -> Result<(), eframe::Error> {
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
             raw_data_thread.write().unwrap().append_str(&line_string);
-            count+= 1;
-            //println!("Flag: {},just added point: {}", PROCESS_FLAG.load(Ordering::SeqCst), count);
-            //println!("Outer length: {}", raw_data_thread.read().unwrap().get_length());
             if PROCESS_FLAG.load(Ordering::SeqCst) {
                 raw_data_thread.write().unwrap().remove_chunk(10);
                 PROCESS_FLAG.store(false, Ordering::SeqCst);
-                println!("Upon exit {}", PROCESS_FLAG.load(Ordering::SeqCst));
             }  
         }
     });
@@ -62,7 +58,6 @@ fn main() -> Result<(), eframe::Error> {
             if length == 10 {
                 chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(length);
                 downsampler_thread.write().unwrap().append_statistics(chunk);
-                //println!("{}", length);
                 PROCESS_FLAG.store(true, Ordering::SeqCst);
             }
         }

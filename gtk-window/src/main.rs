@@ -24,7 +24,7 @@ fn main() {
             drop(data); // Drop the lock manually
             
             // Sleep for a short duration to simulate data generation interval
-            thread::sleep(Duration::from_millis(500));
+            thread::sleep(Duration::from_millis(10));
         }
     });
 
@@ -44,7 +44,7 @@ fn main() {
 
         // Clone the Arc to move into the GTK thread
         let data_for_gtk = Arc::clone(&data);
-        gtk4::glib::timeout_add_local(Duration::from_millis(1000), move || {
+        gtk4::glib::timeout_add_local(Duration::from_millis(10), move || {
             // Lock the mutex and update the label with the new data
             let data = data_for_gtk.lock().unwrap();
             label.set_label(&format!("Latest data: {:.2}", data));
