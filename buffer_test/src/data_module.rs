@@ -1,3 +1,5 @@
+use std::usize;
+
 use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
 
 pub struct StdinData {
@@ -47,20 +49,41 @@ pub struct DownsampledData {
 impl DownsampledData {
     pub fn new() -> Self {
         Self { 
-            x_stats: Vec::default(),
-            y_stats: Vec::default(),
+            x_stats: vec![[0.0; 6]],//Vec::default(),
+            y_stats: vec![[0.0; 6]],//Vec::default(),
         }
     }
 
-    pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>) {
-        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
+    pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>, point_count:usize, length:usize) {
 
+        //split chunk into two vectors, exclude the last points,these are the points in the next chunk
+        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter() //create iterator
+                                                .take(chunk.len().saturating_sub(1)) // all but the last element of iterator
+                                                .map(|&[x, y]| (x, y)) //map each pair [x,y] to tuple (x,y)
+                                                .unzip(); //seperate tuple into two seperate vectors                       
 
-        let mut x = Data::new(x_vec);
+        let mut x = Data::new(x_vec);   
         let mut y = Data::new(y_vec);
 
-        self.x_stats.push([x.lower_quartile(), x.upper_quartile(), x.median(), x.min(), x.max(), x.mean().unwrap()]);
-        self.y_stats.push([y.lower_quartile(), y.upper_quartile(), y.median(), y.min(), y.max(), y.mean().unwrap()]);
+        //replace the previous next chunk beginning point with the statistic values for each x,y vector
+        self.x_stats[length] = [x.lower_quartile(), x.upper_quartile(), x.median(), x.min(), x.max(), x.mean().unwrap()];
+        self.y_stats[length] = [y.lower_quartile(), y.upper_quartile(), y.median(), y.min(), y.max(), y.mean().unwrap()];
+
+        //push the beginning point of the next chunk
+        self.x_stats.push([0.0, 0.0, 0.0, 0.0, 0.0, chunk[10][0]]);
+        self.y_stats.push([0.0, 0.0, 0.0, 0.0, 0.0, chunk[10][1]]);
+
+        /*
+        Fill historic and raw data gap as follows
+        -exist x_stats & y_stats vectors, initialised with single point 
+        -take in vector (chunk), the size is the number of points to downsample plus 1, so if downsample 10 points, chunk size is 11, [1..11]
+        -split 2d vector into respective x,y vectors, each vector length 10, [1..10], excluding the last point
+        -aggregate each respective vector points into summary stats (x,y)
+        -Replace the x_stats, y_stat current point at the end with the respective summary statistics
+        -Push the last point from the taken in chunk (excluded from aggregation) to the repsective vector, so point 11 in this case
+
+        This ensures the last point in hisotric data plot is the first point in the next chunk to be downsample
+         */
     }
 
     pub fn get_means(&self) -> Vec<[f64; 2]> {

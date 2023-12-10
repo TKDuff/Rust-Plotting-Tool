@@ -9,9 +9,8 @@ use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
 use egui::{Vec2, CentralPanel};
 use std::io::{self, BufRead};
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::{AtomicBool, Ordering};
-static PROCESS_FLAG: AtomicBool = AtomicBool::new(false);
 use crossbeam::channel;
+use std::time::Duration;
 
 struct MyApp {
     raw_data: Arc<RwLock<StdinData>>,
@@ -40,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
         let mut length = 0;
-        let mut points_count = 100;
+        let mut points_count = 11;
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
@@ -50,9 +49,7 @@ fn main() -> Result<(), eframe::Error> {
                 rd_sender.send((length, points_count)).unwrap();
             }
             if let Ok(processed_length) = rd_receiver.try_recv() {
-                println!("{}", raw_data_thread.read().unwrap().get_length());
-                raw_data_thread.write().unwrap().remove_chunk(points_count);
-                println!("{}", raw_data_thread.read().unwrap().get_length());
+                raw_data_thread.write().unwrap().remove_chunk(points_count-1);  //remove all points except last
             }
         }
     });
@@ -63,10 +60,12 @@ fn main() -> Result<(), eframe::Error> {
     
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
+        let mut length = 0;
         for message in hd_receiver {
-            let(length, point_count) = message;
+            let(raw_data_length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
-            downsampler_thread.write().unwrap().append_statistics(chunk);
+            downsampler_thread.write().unwrap().append_statistics(chunk, point_count, length);
+            length+=1;
             hd_sender.send("Done");
         }
     });
@@ -90,13 +89,14 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
           
+            //let raw_data_points = self.raw_data.read().unwrap().get_values();
+            //let historic_data_points = self.raw_data.read().unwrap().get_values();
+
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_values());
             let historic_plot_line = Line::new(self.historic_data.read().unwrap().get_means());
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(400.0, 300.0));
-
-            
 
             plot.show(ui, |plot_ui| {
                 plot_ui.line(historic_plot_line);
