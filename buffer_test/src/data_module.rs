@@ -1,3 +1,5 @@
+use std::usize;
+
 use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
 
 pub struct StdinData {
@@ -46,16 +48,15 @@ pub struct DownsampledData {
 impl DownsampledData {
     pub fn new() -> Self {
         Self { 
-            x_stats: Vec::default(),
-            y_stats: Vec::default(),
+            x_stats: vec![[0.0; 6]],//Vec::default(),
+            y_stats: vec![[0.0; 6]],//Vec::default(),
         }
     }
 
     pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>) -> (f64, f64) {
-        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
+        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();                 
 
-
-        let mut x = Data::new(x_vec);
+        let mut x = Data::new(x_vec);   
         let mut y = Data::new(y_vec);
 
         let x_mean =  x.mean().unwrap();

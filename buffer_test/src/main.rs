@@ -9,8 +9,8 @@ use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
 use egui::{Vec2, CentralPanel};
 use std::io::{self, BufRead};
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::{AtomicBool, Ordering};
 use crossbeam::channel;
+use std::time::Duration;
 
 struct MyApp {
     raw_data: Arc<RwLock<StdinData>>,
@@ -62,8 +62,9 @@ fn main() -> Result<(), eframe::Error> {
     
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
+        let mut length = 0;
         for message in hd_receiver {
-            let(length, point_count) = message;
+            let(raw_data_length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
             hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk));
         }
@@ -88,13 +89,14 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
           
+            //let raw_data_points = self.raw_data.read().unwrap().get_values();
+            //let historic_data_points = self.raw_data.read().unwrap().get_values();
+
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_values());
             let historic_plot_line = Line::new(self.historic_data.read().unwrap().get_means());
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(400.0, 300.0));
-
-            
 
             plot.show(ui, |plot_ui| {
                 plot_ui.line(historic_plot_line);
