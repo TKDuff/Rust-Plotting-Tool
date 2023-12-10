@@ -10,7 +10,6 @@ use egui::{Vec2, CentralPanel};
 use std::io::{self, BufRead};
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
-static PROCESS_FLAG: AtomicBool = AtomicBool::new(false);
 use crossbeam::channel;
 
 struct MyApp {
@@ -40,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
         let mut length = 0;
-        let mut points_count = 100;
+        let mut points_count = 11;
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
@@ -49,10 +48,10 @@ fn main() -> Result<(), eframe::Error> {
             if length % points_count == 0 {
                 rd_sender.send((length, points_count)).unwrap();
             }
-            if let Ok(processed_length) = rd_receiver.try_recv() {
-                println!("{}", raw_data_thread.read().unwrap().get_length());
-                raw_data_thread.write().unwrap().remove_chunk(points_count);
-                println!("{}", raw_data_thread.read().unwrap().get_length());
+            if let Ok(point_means) = rd_receiver.try_recv() {
+                //println!("{}", raw_data_thread.read().unwrap().get_length());
+                raw_data_thread.write().unwrap().remove_chunk(points_count, point_means);
+                //println!("{}", raw_data_thread.read().unwrap().get_length());
             }
         }
     });
@@ -66,8 +65,7 @@ fn main() -> Result<(), eframe::Error> {
         for message in hd_receiver {
             let(length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
-            downsampler_thread.write().unwrap().append_statistics(chunk);
-            hd_sender.send("Done");
+            hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk));
         }
     });
 

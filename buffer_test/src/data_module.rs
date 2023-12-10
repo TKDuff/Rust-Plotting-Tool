@@ -28,10 +28,9 @@ impl StdinData {
     }
 
     /*So use into_iter if you want to consume the entire collection, and use drain if you only want to consume part of the collection or if you want to reuse the emptied collection later. */
-    pub fn remove_chunk(&mut self, count:usize) {
-        //println!("\n\n{:?} {}\n", self.points, self.points.len());
-        self.points.drain(0..count);
-        //println!("{:?} {}\n\n", self.points, self.points.len());
+    pub fn remove_chunk(&mut self, count:usize, point_means: (f64, f64)) {
+        self.points[0] = [point_means.0, point_means.1];
+        self.points.drain(1..count);
     }
 
     pub fn get_values(&self) -> Vec<[f64; 2]> {
@@ -52,15 +51,20 @@ impl DownsampledData {
         }
     }
 
-    pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>) {
+    pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>) -> (f64, f64) {
         let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
 
 
         let mut x = Data::new(x_vec);
         let mut y = Data::new(y_vec);
 
-        self.x_stats.push([x.lower_quartile(), x.upper_quartile(), x.median(), x.min(), x.max(), x.mean().unwrap()]);
-        self.y_stats.push([y.lower_quartile(), y.upper_quartile(), y.median(), y.min(), y.max(), y.mean().unwrap()]);
+        let x_mean =  x.mean().unwrap();
+        let y_mean = y.mean().unwrap();
+
+        self.x_stats.push([x.lower_quartile(), x.upper_quartile(), x.median(), x.min(), x.max(), x_mean]);
+        self.y_stats.push([y.lower_quartile(), y.upper_quartile(), y.median(), y.min(), y.max(), y_mean]); 
+
+        (x_mean, y_mean)
     }
 
     pub fn get_means(&self) -> Vec<[f64; 2]> {
