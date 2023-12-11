@@ -60,11 +60,16 @@ fn main() -> Result<(), eframe::Error> {
     
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
-        let mut length = 0;
+        let mut objective_length = 0;
+        
         for message in hd_receiver {
             let(raw_data_length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
             hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk, point_count));
+            objective_length += 1;
+            if objective_length % 4 == 0 {
+                downsampler_thread.write().unwrap().combineBins();
+            }
         }
     });
 

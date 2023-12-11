@@ -9,7 +9,7 @@ fn main() {
         x += rand::thread_rng().gen_range(1.0..5.0);
         let y = rand::thread_rng().gen_range(1.0..50.0);
         println!("{} {}", x, y);
-        thread::sleep(Duration::from_millis(250));
+        thread::sleep(Duration::from_millis(100));
     }  
 }
 

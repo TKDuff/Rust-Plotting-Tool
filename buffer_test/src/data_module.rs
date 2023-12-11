@@ -42,14 +42,14 @@ impl StdinData {
 
 
 pub struct DownsampledData {
-    pub x_stats: Vec<[f64;6]>,
-    pub y_stats: Vec<[f64;6]>,
+    pub x_stats: Vec<[f64;2]>,
+    pub y_stats: Vec<[f64;2]>,
 }
 impl DownsampledData {
     pub fn new() -> Self {
         Self { 
-            x_stats: vec![[0.0; 6]],//Vec::default(),
-            y_stats: vec![[0.0; 6]],//Vec::default(),
+            x_stats: vec![[0.0; 2]],//Vec::default(),
+            y_stats: vec![[0.0; 2]],//Vec::default(),
         }
     }
 
@@ -62,6 +62,7 @@ impl DownsampledData {
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
 
+        /*
         let x_variance = x.variance().unwrap();
         let y_variance = y.variance().unwrap();
 
@@ -70,7 +71,10 @@ impl DownsampledData {
 
 
         self.x_stats.push([x_mean, x_sum_of_squares, point_count as f64, x_variance, x.min(), x.max()]);
-        self.y_stats.push([y_mean, y_sum_of_squares, point_count as f64, y_variance, y.min(), y.max()]); 
+        self.y_stats.push([y_mean, y_sum_of_squares, point_count as f64, y_variance, y.min(), y.max()]); */
+
+        self.x_stats.push([x_mean, point_count as f64]);
+        self.y_stats.push([y_mean, point_count as f64]); 
 
         (x_mean, y_mean) //returned as replace aggregated chunk with with the average value, fills gap between two plots
     }
@@ -81,5 +85,42 @@ impl DownsampledData {
         self.x_stats.iter().zip(self.y_stats.iter())
             .map(|(x, y)| [x[0], y[0]]) // Assuming index 5 is the mean
             .collect()
+    }
+
+    pub fn combineBins(&mut self) {
+        let stat_bin_length = self.x_stats.len();
+        let last_instances = stat_bin_length - 4;
+
+        println!("\nLength: {}\nLast Instance Index: {}", stat_bin_length, last_instances);
+        let x_last_three = self.x_stats[last_instances..stat_bin_length-1].to_vec();
+        let combined_x = self.get_combined_stats(&x_last_three);
+
+        println!("Last three: {:?}\nTo be inserted: {:?}\nFull: {:?}", x_last_three, combined_x, self.x_stats);
+        self.x_stats[last_instances-1] = combined_x;
+        self.x_stats.drain(last_instances..stat_bin_length-1);
+        println!("With drain{:?}", self.x_stats)
+
+        /*
+        let x_last_three = self.x_stats[last_instances..stat_bin_length-1].to_vec();
+        let y_last_three = self.y_stats[last_instances..stat_bin_length-1].to_vec();
+
+        let combined_x = self.get_combined_stats(&x_last_three);
+
+        println!("length: {}\ncombined: {:?}\ninstances: {:?}\nFull {:?}", stat_bin_length, combined_x ,&x_last_three, self.x_stats);
+
+        
+        self.x_stats[last_instances] = self.get_combined_stats(&x_last_three);*/
+
+
+
+    }
+
+    pub fn get_combined_stats(&self, stats: &Vec<[f64; 2]>) -> [f64; 2] {
+        let total_count: f64 = stats.iter().map(|x| x[1]).sum();
+        
+        let combined_mean = stats.iter().map(|x| x[0] * x[1]).sum::<f64>() / total_count;
+
+        //println!("Combined:\nTotal count: {}\nMean: {}", total_count, combined_mean);
+        [combined_mean, total_count]
     }
 }
