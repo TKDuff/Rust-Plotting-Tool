@@ -53,7 +53,7 @@ impl DownsampledData {
         }
     }
 
-    pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>) -> (f64, f64) {
+    pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>, point_count:usize) -> (f64, f64) {
         let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip(); //refactor, calculate mean while iterating over             
 
         let mut x = Data::new(x_vec.clone());   
@@ -62,18 +62,20 @@ impl DownsampledData {
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
 
+        let x_variance = x.variance().unwrap();
+        let y_variance = y.variance().unwrap();
+
         let x_sum_of_squares: f64 = x_vec.iter().map(|&xi| (xi - x_mean).powi(2)).sum();
         let y_sum_of_squares: f64 = y_vec.iter().map(|&yi| (yi - y_mean).powi(2)).sum();
 
 
-
-
-
-        self.x_stats.push([x_mean, x_sum_of_squares, x.upper_quartile(), x.median(), x.min(), x.max()]);
-        self.y_stats.push([y_mean, y_sum_of_squares, y.upper_quartile(), y.median(), y.min(), y.max()]); 
+        self.x_stats.push([x_mean, x_sum_of_squares, point_count as f64, x_variance, x.min(), x.max()]);
+        self.y_stats.push([y_mean, y_sum_of_squares, point_count as f64, y_variance, y.min(), y.max()]); 
 
         (x_mean, y_mean) //returned as replace aggregated chunk with with the average value, fills gap between two plots
     }
+
+    
 
     pub fn get_means(&self) -> Vec<[f64; 2]> {
         self.x_stats.iter().zip(self.y_stats.iter())

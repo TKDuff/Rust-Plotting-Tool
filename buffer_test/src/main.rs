@@ -64,7 +64,7 @@ fn main() -> Result<(), eframe::Error> {
         for message in hd_receiver {
             let(raw_data_length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
-            hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk));
+            hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk, point_count));
         }
     });
 
