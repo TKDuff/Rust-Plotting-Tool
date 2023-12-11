@@ -49,9 +49,7 @@ fn main() -> Result<(), eframe::Error> {
                 rd_sender.send((length, points_count)).unwrap();
             }
             if let Ok(point_means) = rd_receiver.try_recv() {
-                //println!("{}", raw_data_thread.read().unwrap().get_length());
                 raw_data_thread.write().unwrap().remove_chunk(points_count, point_means);
-                //println!("{}", raw_data_thread.read().unwrap().get_length());
             }
         }
     });
