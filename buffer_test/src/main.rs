@@ -49,6 +49,7 @@ fn main() -> Result<(), eframe::Error> {
                 rd_sender.send((length, points_count)).unwrap();
             }
             if let Ok(point_means) = rd_receiver.try_recv() {
+                println!("To be appended to raw data: {:?}", point_means);
                 raw_data_thread.write().unwrap().remove_chunk(points_count, point_means);
             }
         }

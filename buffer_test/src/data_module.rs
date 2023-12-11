@@ -91,25 +91,24 @@ impl DownsampledData {
         let stat_bin_length = self.x_stats.len();
         let last_instances = stat_bin_length - 4;
 
-        println!("\nLength: {}\nLast Instance Index: {}", stat_bin_length, last_instances);
-        let x_last_three = self.x_stats[last_instances..stat_bin_length-1].to_vec();
-        let combined_x = self.get_combined_stats(&x_last_three);
-
-        println!("Last three: {:?}\nTo be inserted: {:?}\nFull: {:?}", x_last_three, combined_x, self.x_stats);
-        self.x_stats[last_instances-1] = combined_x;
-        self.x_stats.drain(last_instances..stat_bin_length-1);
-        println!("With drain{:?}", self.x_stats)
-
-        /*
+        //println!("\nLength: {}\nLast Instance Index: {}", stat_bin_length, last_instances);
         let x_last_three = self.x_stats[last_instances..stat_bin_length-1].to_vec();
         let y_last_three = self.y_stats[last_instances..stat_bin_length-1].to_vec();
-
-        let combined_x = self.get_combined_stats(&x_last_three);
-
-        println!("length: {}\ncombined: {:?}\ninstances: {:?}\nFull {:?}", stat_bin_length, combined_x ,&x_last_three, self.x_stats);
-
         
-        self.x_stats[last_instances] = self.get_combined_stats(&x_last_three);*/
+        let combined_x = self.get_combined_stats(&x_last_three);
+        let combined_y = self.get_combined_stats(&y_last_three);
+
+
+
+        //println!("Last three: {:?}\nTo be inserted: {:?}\nFull: {:?}", x_last_three, combined_x, self.x_stats);
+        self.x_stats[last_instances-1] = combined_x;
+        self.y_stats[last_instances-1] = combined_y;
+        self.x_stats.drain(last_instances..stat_bin_length-1);
+        self.y_stats.drain(last_instances..stat_bin_length-1);
+
+        //println!("With drain{:?}", self.x_stats)
+
+
 
 
 
