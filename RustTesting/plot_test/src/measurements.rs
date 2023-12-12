@@ -1,5 +1,8 @@
 use std::collections::VecDeque;
 use egui_plot::{Plot, PlotPoint};
+extern crate lttb;
+
+use lttb::{DataPoint,lttb};
 
 pub struct Measurements {
     //each entry in value is array of two float, in the form [x,y]
@@ -54,9 +57,28 @@ impl Measurements {
         clone - create copy of values
         into_iter - converts values into iterator
         collect - check why I need this? 
-         */
-        self.values.clone().into_iter().collect()
+        self.values.clone().into_iter().collect()*/
+        vec![[2.0,5.0], [3.0,9.0], [4.0,6.0], [5.0,18.0], [7.0,12.0],[8.0,15.0],[9.0,14.0],
+             [10.0,7.0], [12.0,9.0], [14.0,12.0], [15.0,18.0], [17.0,22.0],[20.0,15.0],[21.0,14.0]
+        ]
     }
+
+    pub fn get_lttb(&self) -> Vec<[f64; 2]> {
+        let mut raw = vec!();
+        let points = vec![(2.0,5.0), (3.0,9.0), (4.0,6.0), (5.0,18.0), (7.0,12.0),(8.0,15.0),(9.0,14.0),
+        (10.0,7.0), (12.0,9.0), (14.0,12.0), (15.0,18.0), (17.0,22.0),(20.0,15.0),(21.0,14.0),];
+
+        for(p1, p2) in points {
+            raw.push(DataPoint::new(p1, p2));
+          }
+
+        let downsampled = lttb(raw, 7);
+        //let tuples: Vec<(f64, f64)> = downsampled.iter().map(|dp| (dp.x, dp.y)).collect();
+        let arrays: Vec<[f64; 2]> = downsampled.iter().map(|dp| [dp.x, dp.y]).collect();
+        arrays
+
+    }
+
 
     /*Takes in line string from standard input, converts two string numbers to float, appends them to the vector of points to plot*/
     pub fn append_str(&mut self, s:&str) {

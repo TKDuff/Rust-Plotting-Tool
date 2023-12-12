@@ -4,7 +4,7 @@ use data_module::{StdinData, DownsampledData};
 
 
 use std::thread;
-use eframe::{egui, NativeOptions};
+use eframe::{egui, NativeOptions}; 
 use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
 use egui::{Vec2, CentralPanel};
 use std::io::{self, BufRead};
@@ -39,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
         let mut length = 0;
-        let mut points_count = 101;
+        let mut points_count = 51;
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
@@ -61,14 +61,15 @@ fn main() -> Result<(), eframe::Error> {
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
+        let lltb_points = 25;
         
         for message in hd_receiver {
             let(raw_data_length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
             hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk, point_count));
             objective_length += 1;
-            if objective_length % 4 == 0 {
-                downsampler_thread.write().unwrap().combineBins();
+            if objective_length % lltb_points == 0 {
+                downsampler_thread.write().unwrap().combineBins(lltb_points);
             }
         }
     });

@@ -1,11 +1,13 @@
 [package]
-name = "plot_test"
+name = "buffer_lttb"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = "0.23.0"
-egui_plot = "0.23.0"
+crossbeam = "0.8.2"
+eframe = "0.24.1"
+egui_plot = "0.24.1"
 lttb = "0.2.0"
+statrs = "0.16.0"

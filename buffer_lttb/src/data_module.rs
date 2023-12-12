@@ -1,5 +1,7 @@
 use std::usize;
+extern crate lttb;
 
+use lttb::{DataPoint,lttb};
 use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
 
 pub struct StdinData {
@@ -63,17 +65,6 @@ impl DownsampledData {
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
 
-        /*
-        let x_variance = x.variance().unwrap();
-        let y_variance = y.variance().unwrap();
-
-        let x_sum_of_squares: f64 = x_vec.iter().map(|&xi| (xi - x_mean).powi(2)).sum();
-        let y_sum_of_squares: f64 = y_vec.iter().map(|&yi| (yi - y_mean).powi(2)).sum();
-
-
-        self.x_stats.push([x_mean, x_sum_of_squares, point_count as f64, x_variance, x.min(), x.max()]);
-        self.y_stats.push([y_mean, y_sum_of_squares, point_count as f64, y_variance, y.min(), y.max()]); */
-
         self.x_stats.push([x_mean, point_count as f64]);
         self.y_stats.push([y_mean, point_count as f64]); 
 
@@ -88,39 +79,25 @@ impl DownsampledData {
             .collect()
     }
 
-    pub fn combineBins(&mut self) {
-        let stat_bin_length = self.x_stats.len();
-        let last_instances = stat_bin_length - 4;
-
-        //println!("\nLength: {}\nLast Instance Index: {}", stat_bin_length, last_instances);
-        let x_last_three = self.x_stats[last_instances..stat_bin_length-1].to_vec();
-        let y_last_three = self.y_stats[last_instances..stat_bin_length-1].to_vec();
+    pub fn combineBins(&mut self, lttb_points:usize) {
         
-        let combined_x = self.get_combined_stats(&x_last_three);
-        let combined_y = self.get_combined_stats(&y_last_three);
-
-
-
-        //println!("Last three: {:?}\nTo be inserted: {:?}\nFull: {:?}", x_last_three, combined_x, self.x_stats);
-        self.x_stats[last_instances-1] = combined_x;
-        self.y_stats[last_instances-1] = combined_y;
-        self.x_stats.drain(last_instances..stat_bin_length-1);
-        self.y_stats.drain(last_instances..stat_bin_length-1);
-
-        //println!("With drain{:?}", self.x_stats)
-
-
-
-
-
-    }
-
-    pub fn get_combined_stats(&self, stats: &Vec<[f64; 2]>) -> [f64; 2] {
-        let total_count: f64 = stats.iter().map(|x| x[1]).sum();
+        let mut raw = vec!();
+        let combined_vec: Vec<[f64; 2]> = self.x_stats.iter().zip(self.y_stats.iter()).take(lttb_points - 1)
+                                                        .map(|(x, y)| [x[0], y[0]]) // Change indices if needed
+                                                        .collect();
         
-        let combined_mean = stats.iter().map(|x| x[0] * x[1]).sum::<f64>() / total_count;
+        raw = combined_vec.into_iter()
+                               .map(|[x, y]| DataPoint::new(x, y)) // Corrected destructuring for an array
+                               .collect();
 
-        //println!("Combined:\nTotal count: {}\nMean: {}", total_count, combined_mean);
-        [combined_mean, total_count]
+        let length = raw.len();
+        let downsampled = lttb(raw, length/2);
+        self.x_stats = downsampled.iter().map(|dp| [dp.x, 0.0]).collect(); //[dp.x, dp.y] - array of 2 f64 while (dp.x, dp.y) - tuple of 2 f64
+        self.y_stats = downsampled.iter().map(|dp| [dp.y, 0.0]).collect();
+
+        /*
+        println!("Post-downsample {:?}\nLength {}\n", downsampled, downsampled.len());*/
     }
+    
+
 }

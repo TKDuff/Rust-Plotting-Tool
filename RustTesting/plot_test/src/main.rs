@@ -33,7 +33,7 @@ fn main() -> Result<(), eframe::Error> {
     //create clonse of app.measurments to access it via mutex
     let measurements_for_thread = app.measurements.clone();
 
-    
+    /*
     thread::spawn(move ||{
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
@@ -42,7 +42,7 @@ fn main() -> Result<(), eframe::Error> {
             let line_string = line.unwrap();
             measurements_for_thread.lock().unwrap().append_str(&line_string);
         }
-    });
+    });*/
 
     let nativ_options = NativeOptions{
         initial_window_size: Some(egui::vec2(960.0, 720.0)),
@@ -57,7 +57,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
 
-
+        
         let box_plot = BoxPlot::new(vec![
             BoxElem::new(3.0, BoxSpread::new(1.5, 2.2, 2.5, 2.6, 3.1))
             .name("Data Set")
@@ -65,15 +65,17 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
         ])
         .name("Box plot demo");
 
+            /*
         Plot::new("measurements")
         .legend(Legend::default())
-        .show(ui, |plot_ui| plot_ui.box_plot(box_plot));
+        .show(ui, |plot_ui| plot_ui.box_plot(box_plot));*/
 
-            /*
+            
             let plot = Plot::new("measurements");
             plot.show(ui, |plot_ui| {
                 plot_ui.line(Line::new(self.measurements.lock().unwrap().get_values()));
-            });*/
+                plot_ui.line(Line::new(self.measurements.lock().unwrap().get_lttb()));
+            });
         });
         ctx.request_repaint();  //repaint GUI without needing event
     }
