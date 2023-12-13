@@ -61,7 +61,7 @@ fn main() -> Result<(), eframe::Error> {
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
-        let lltb_points = 25;
+        let lltb_points = 30;
         
         for message in hd_receiver {
             let(raw_data_length, point_count) = message;

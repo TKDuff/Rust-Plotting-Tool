@@ -80,7 +80,6 @@ impl DownsampledData {
     }
 
     pub fn combineBins(&mut self, lttb_points:usize) {
-        
         let mut raw = vec!();
         let combined_vec: Vec<[f64; 2]> = self.x_stats.iter().zip(self.y_stats.iter()).take(lttb_points - 1)
                                                         .map(|(x, y)| [x[0], y[0]]) // Change indices if needed

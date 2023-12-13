@@ -42,30 +42,47 @@ impl StdinData {
 
 
 
-
-
+#[derive(Clone, Default)] //allow deriving clones
+pub struct statistic {
+    pub mean: f64,
+    pub sum: f64,
+    pub min: f64,
+    pub max: f64,
+    pub count: usize,
+}
+impl statistic {
+    fn print(&self) {
+        println!("Mean {}\nSum {}\n Min {}\nMax {}\nCount {}", self.mean, self.sum, self.min, self.max, self.count);
+    }
+}
 
 pub struct DownsampledData {
-    pub x_stats: Vec<[f64;2]>,
-    pub y_stats: Vec<[f64;2]>,
+    pub x_stats: Vec<statistic>,
+    pub y_stats: Vec<statistic>,
 }
 impl DownsampledData {
     pub fn new() -> Self {
         Self { 
-            x_stats: vec![[0.0; 2]],//Vec::default(),
-            y_stats: vec![[0.0; 2]],//Vec::default(),
+            x_stats: vec![statistic { ..Default::default() }],
+            y_stats: vec![statistic { ..Default::default() }],
         }
     }
 
     pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>, point_count:usize) -> (f64, f64) {
         let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip(); //refactor, calculate mean while iterating over             
-
+        
+        
+        let x_sum: f64 = x_vec.iter().sum();
+        let y_sum: f64 = y_vec.iter().sum();
+         
+ 
         let mut x = Data::new(x_vec.clone());   
         let mut y = Data::new(y_vec.clone());
 
         /*Look into using moving average */
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
+
 
         /*
         let x_variance = x.variance().unwrap();
@@ -78,27 +95,38 @@ impl DownsampledData {
         self.x_stats.push([x_mean, x_sum_of_squares, point_count as f64, x_variance, x.min(), x.max()]);
         self.y_stats.push([y_mean, y_sum_of_squares, point_count as f64, y_variance, y.min(), y.max()]); */
 
-        self.x_stats.push([x_mean, point_count as f64]);
-        self.y_stats.push([y_mean, point_count as f64]); 
+        self.x_stats.push(statistic { mean: x_mean, sum: x_sum, min: x.min(), max: x.max(), count: point_count });
+        self.y_stats.push(statistic { mean: y_mean, sum: y_sum, min: y.min(), max: y.max(), count: point_count });
 
         (x_mean, y_mean) //returned as replace aggregated chunk with with the average value, fills gap between two plots
+    }
+
+    pub fn get_statistics (chunk: Vec<f64>) -> (f64, f64) {
+        let sum: f64 = chunk.iter().sum();
+        let data = Data::new(chunk.clone());
+        let mean = data.mean().unwrap();
+        (mean, sum)
     }
 
     
 
     pub fn get_means(&self) -> Vec<[f64; 2]> {
         self.x_stats.iter().zip(self.y_stats.iter())
-            .map(|(x, y)| [x[0], y[0]]) // Assuming index 5 is the mean
+            .map(|(x, y)| [x.mean, y.mean]) // Assuming index 5 is the mean
             .collect()
     }
 
+    
     pub fn combineBins(&mut self) {
+
+        
         let stat_bin_length = self.x_stats.len();
         let last_instances = stat_bin_length - 4;
 
         //println!("\nLength: {}\nLast Instance Index: {}", stat_bin_length, last_instances);
-        let x_last_three = self.x_stats[last_instances..stat_bin_length-1].to_vec();
-        let y_last_three = self.y_stats[last_instances..stat_bin_length-1].to_vec();
+        
+        let x_last_three: Vec<statistic>  = self.x_stats[last_instances..stat_bin_length-1].to_vec();
+        let y_last_three: Vec<statistic> = self.y_stats[last_instances..stat_bin_length-1].to_vec();
         
         let combined_x = self.get_combined_stats(&x_last_three);
         let combined_y = self.get_combined_stats(&y_last_three);
@@ -110,21 +138,23 @@ impl DownsampledData {
         self.y_stats[last_instances-1] = combined_y;
         self.x_stats.drain(last_instances..stat_bin_length-1);
         self.y_stats.drain(last_instances..stat_bin_length-1);
-
-        //println!("With drain{:?}", self.x_stats)
-
-
-
-
-
     }
 
-    pub fn get_combined_stats(&self, stats: &Vec<[f64; 2]>) -> [f64; 2] {
-        let total_count: f64 = stats.iter().map(|x| x[1]).sum();
-        
-        let combined_mean = stats.iter().map(|x| x[0] * x[1]).sum::<f64>() / total_count;
+    pub fn get_combined_stats(&self, stats: &Vec<statistic>) -> statistic {
+        let total_count: usize = stats.iter().map(|x| x.count).sum();
+        let total_sum: f64 = stats.iter().map(|x| x.sum).sum();
 
-        //println!("Combined:\nTotal count: {}\nMean: {}", total_count, combined_mean);
-        [combined_mean, total_count]
+        
+        //let combined_mean = stats.iter().map(|x| x.mean * x.count as f64).sum::<f64>() / total_count as f64;
+        let combined_mean= total_sum / total_count as f64;
+
+        let combined_stat = statistic {
+            mean: combined_mean,
+            sum: total_sum,
+            min: 0.0,
+            max: 0.0,
+            count: total_count,
+        };
+        combined_stat
     }
 }
