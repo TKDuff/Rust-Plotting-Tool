@@ -41,6 +41,10 @@ impl StdinData {
 }
 
 
+
+
+
+
 pub struct DownsampledData {
     pub x_stats: Vec<[f64;2]>,
     pub y_stats: Vec<[f64;2]>,
