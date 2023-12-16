@@ -5,9 +5,9 @@ use std::time::Duration;
 fn main() {
     let mut x = 0.0;
     loop {
-        //x += 0.7;
-        x += rand::thread_rng().gen_range(1.0..5.0);
-        let y = rand::thread_rng().gen_range(1.0..50.0);
+        x += 5.0;
+        //x += rand::thread_rng().gen_range(1.0..5.0);
+        let y = rand::thread_rng().gen_range(1.0..10.0);
         println!("{} {}", x, y*y);
         thread::sleep(Duration::from_millis(5));
     }  
