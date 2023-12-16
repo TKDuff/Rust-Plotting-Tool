@@ -39,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
         let mut length = 0;
-        let mut points_count = 101;
+        let mut points_count = 30;
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
@@ -66,10 +66,11 @@ fn main() -> Result<(), eframe::Error> {
             let(raw_data_length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
             hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk, point_count));
+            /*
             objective_length += 1;
             if objective_length % 4 == 0 {
                 downsampler_thread.write().unwrap().combineBins();
-            }
+            }*/
         }
     });
 
