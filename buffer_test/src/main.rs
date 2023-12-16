@@ -18,7 +18,7 @@ struct MyApp {
 }
 
 impl Default for MyApp {
-    fn default() -> Self {
+    fn default() ->  Self {
         Self {
             raw_data: Arc::new(RwLock::new(StdinData::new())),
             historic_data: Arc::new(RwLock::new(DownsampledData::new())),
@@ -37,23 +37,36 @@ fn main() -> Result<(), eframe::Error> {
 
     let raw_data_handle = thread::spawn(move || { 
         let stdin = io::stdin();          //global stdin instance
-        let locked_stdin = stdin.lock();  //lock stdin for exclusive access
+        let mut locked_stdin = stdin.lock();  //lock stdin for exclusive access
         let mut length = 0;
-        let mut points_count = 30;
 
-        for line in locked_stdin.lines() {
-            let line_string = line.unwrap();
-            raw_data_thread.write().unwrap().append_str(&line_string);
+        let mut points_count = 5;
+        let mut line_string = String::new();
+        let mut last_line = String::new();
+
+        loop {
+            println!("Looping");
+            line_string.clear(); // Clear the string to store the next line
+            if let Ok(bytes_read) = locked_stdin.read_line(&mut line_string) {
+                if bytes_read == 0 { break; } // If no bytes were read, it's EOF or no input
+                line_string = line_string.to_string();
+                if(line_string != last_line) {
+                    println!("New line added");
+                    raw_data_thread.write().unwrap().append_str(&line_string);
+                }
+            }
             length = raw_data_thread.read().unwrap().get_length();
             if length % points_count == 0 {
                 rd_sender.send((length, points_count)).unwrap();
             }
             if let Ok(point_means) = rd_receiver.try_recv() {
+                println!("Removing");
                 raw_data_thread.write().unwrap().remove_chunk(points_count, point_means);
             }
         }
     });
 
+    
     let downsampler_raw_data_thread = my_app.raw_data.clone();
     let downsampler_thread = my_app.historic_data.clone();
 
@@ -74,7 +87,6 @@ fn main() -> Result<(), eframe::Error> {
         }
     });
 
-    
     let native_options = NativeOptions{
         ..Default::default()
     };
@@ -100,7 +112,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
             let historic_plot_line = Line::new(self.historic_data.read().unwrap().get_means());
 
             let plot = Plot::new("plot")
-            .min_size(Vec2::new(400.0, 300.0));
+            .min_size(Vec2::new(800.0, 600.0));
 
             plot.show(ui, |plot_ui| {
                 plot_ui.line(historic_plot_line);

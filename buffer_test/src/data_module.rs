@@ -97,7 +97,7 @@ impl DownsampledData {
 
         self.x_stats.push(statistic { mean: x_mean, sum: x_sum, min: x.min(), max: x.max(), count: point_count });
         self.y_stats.push(statistic { mean: y_mean, sum: y_sum, min: y.min(), max: y.max(), count: point_count });
-
+        println!("Appending");
         (x_mean, y_mean) //returned as replace aggregated chunk with with the average value, fills gap between two plots
     }
 
