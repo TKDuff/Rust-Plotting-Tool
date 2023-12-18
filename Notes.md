@@ -219,3 +219,9 @@ Race Condition Window: There's still a small window for a race condition. After 
 Dependency on Flag State: This approach heavily relies on the accurate and timely update of the PROCESS_FLAG. Any delay or missed update could lead to incorrect behavior.
 
 Stale Data Risk: If R is appending data very quickly, there's a risk that H might act on stale data. When H decides not to downsample because the flag is true, R might have already appended more data, changing the situation by the time H checks again.
+
+## 17 - 12 - 2023
+data streams in from standard input, the data is in the form of two floating points numbers think of as x,y. The async thread (call it r.d) appends the x,y values to a vector, called 'points'. The async thread monitors the length, after N amount of points (lets say 10 points) are added, another thread, (call it h.d) aggregates the chunk of points and appends the aggregate statistics to another vector, called 'statistics'. Once the aggregate stats for a chunk is appended to 'statistics' vector, the async thread r.d. removes the chunk of points.
+Think of r.d as a sliding window, when certain amount read in removes the last chunk while reading in new points at the same time.
+
+The egui thread plots both the 'points' vector with the raw data steaming in and being deleted and the statistics vector, with the aggregate statistics being added incrementally (thus removing the the chunk it represents from 'points')

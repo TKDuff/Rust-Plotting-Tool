@@ -43,7 +43,7 @@ fn main() -> Result<(), eframe::Error> {
 
         let mut interval = time::interval(Duration::from_secs(1));
         let mut line_count = 0;
-        let  points_count = 5;
+        let  points_count = 10;
         let mut length = 0;
         /*
         In this loop, make use of the select! macro, allows to wait on multiple asynchronous operations simultaneously and proceed with the one that completes first
@@ -82,49 +82,14 @@ fn main() -> Result<(), eframe::Error> {
                         raw_data_thread.write().unwrap().remove_chunk(points_count, point_means);
                     }
                 },
+                /*
                 _ = interval.tick() => {
                     println!("Lines added in last second {}", line_count);
                     line_count = 0;
-                },
+                },*/
             }
         }
     });
-    
-    /*
-    //let sender_clone = sender.clone();
-    let raw_data_thread = my_app.raw_data.clone();
-
-    
-    let raw_data_handle = thread::spawn(move || { 
-        let stdin = io::stdin();          //global stdin instance
-        let mut locked_stdin = stdin.lock();  //lock stdin for exclusive access
-        let mut length = 0;
-
-        let mut points_count = 5;
-        let mut line_string = String::new();
-        let mut last_line = String::new();
-
-        loop {
-            println!("Looping");
-            line_string.clear(); // Clear the string to store the next line
-            if let Ok(bytes_read) = locked_stdin.read_line(&mut line_string) {
-                if bytes_read == 0 { break; } // If no bytes were read, it's EOF or no input
-                line_string = line_string.to_string();
-                if(line_string != last_line) {
-                    println!("New line added");
-                    raw_data_thread.write().unwrap().append_str(&line_string);
-                }
-            }
-            length = raw_data_thread.read().unwrap().get_length();
-            if length % points_count == 0 {
-                rd_sender.send((length, points_count)).unwrap();
-            }
-            if let Ok(point_means) = rd_receiver.try_recv() {
-                println!("Removing");
-                raw_data_thread.write().unwrap().remove_chunk(points_count, point_means);
-            }
-        }
-    });*/
 
     
     let downsampler_raw_data_thread = my_app.raw_data.clone();
