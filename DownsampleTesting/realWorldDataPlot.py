@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 df = pd.read_csv('Generated_Reward_Data_10000.csv')
 
 # Slice the DataFrame to keep only the first 500 rows
-df_subset = df.iloc[:9995]
+df_subset = df.iloc[:2000]
 
 # Convert the Series to NumPy arrays
 episode_numbers = df_subset["Episode No."].to_numpy()
