@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 #file = 'LunarLander-v2_Reward.csv'
 #file = 'slow_increase_with_chunks.csv'
 file = 'variance_dataset.csv'
-df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/%s" % file)
+df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % file)
 
 # Extract data from the DataFrame
-x_data = df['Episode No.'].to_numpy()  # Convert to NumPy array
-y_data = df['Reward'].to_numpy()  # Convert to NumPy array
+x_data = df['x_col'].to_numpy()  # Convert to NumPy array
+y_data = df['y_col'].to_numpy()  # Convert to NumPy array
 
 # Set up the plot
 fig, ax = plt.subplots()

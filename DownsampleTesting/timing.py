@@ -5,7 +5,7 @@ import numpy as np  # Import numpy for variance calculation
 # Load the CSV file
 file = 'LunarLander-v2_Reward.csv'
 #file = 'Generated_Reward_Data_10000.csv'
-df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/%s" % file)
+df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % file)
 
 # Initialize arrays to store the plot data
 x_data = []

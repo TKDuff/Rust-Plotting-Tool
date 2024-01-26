@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # Load the CSV file
 file = 'variance_dataset.csv'
-df = pd.read_csv(file)
+df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % (file))
 
 # Convert DataFrame columns to NumPy arrays
 x_data = df['x_col'].to_numpy()

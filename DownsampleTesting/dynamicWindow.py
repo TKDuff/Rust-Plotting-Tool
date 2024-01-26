@@ -4,8 +4,8 @@ import time
 
 
 # Load the dataset
-file_path = 'variance_dataset.csv'
-df = pd.read_csv(file_path)
+file = 'variance_dataset.csv'
+df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % (file))
 
 # Initialize the default window size
 window_size = 20  # A starting point; can be adjusted based on further analysis
