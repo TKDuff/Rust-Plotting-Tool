@@ -13,8 +13,6 @@ fn main() {
         let x: i32 = parts[0].parse().expect("Expected x to be an integer");
         let y: f64 = parts[1].parse().expect("Expected y to be a floating point number");
 
-        //println!("{}, {}", x,y);
-
         stats.update(y).expect("Failed to update stats");
 
         if stats.count() >= 2 {
