@@ -83,12 +83,11 @@ fn main() -> Result<(), eframe::Error> {
                         // Now that we have point_means, we can use it
                         raw_data_thread.write().unwrap().remove_chunk(points_count, point_means);
                     }
-                },
-                /*
+                },  
                 _ = interval.tick() => {
                     println!("Lines added in last second {}", line_count);
                     line_count = 0;
-                },*/
+                },
             }
         }
     });

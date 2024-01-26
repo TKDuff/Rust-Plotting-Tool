@@ -212,7 +212,7 @@ Look into using this **ndarray** - https://docs.rs/ndarray/latest/ndarray/
 * Since has a view of stale data, therefore always risk of race condition
 
 ## Solution - change R.D concerns
-* R.D now writes and checks length, R.D thread has full access to R.D thread
+* R.D now writes and checks length, R.D thread has full access to R.D thread## 17 - 12 - 2023
 
 Race Condition Window: There's still a small window for a race condition. After H checks the flag and before it starts the downsampling, R could potentially change the state. This window might be small, but in highly concurrent systems, even tiny windows can lead to issues.
 
@@ -225,3 +225,25 @@ data streams in from standard input, the data is in the form of two floating poi
 Think of r.d as a sliding window, when certain amount read in removes the last chunk while reading in new points at the same time.
 
 The egui thread plots both the 'points' vector with the raw data steaming in and being deleted and the statistics vector, with the aggregate statistics being added incrementally (thus removing the the chunk it represents from 'points')
+
+## 24 - 01 - 2023
+Considered using **Estimated Moving Average** which 
+* tracks the average value of a series over time
+* Calculates average for all points, giving more weight to more recent data, less to older. So is over entire data set not just window
+* Plots trends more similar raw data as it comes in, also not waiting on window to fill up, get average as point comes in
+* Average is for entire collection of points, not a bucket, so more representative of entire trend
+
+How ever decided to not use it now, continue using buckets for now, may implement later as...
+1) Only calculate average, not statistical values which are important and can be done via sliding window
+2) Does not work aggregate all points, just gets average
+3) While smoother, not too far off average for a winow
+
+##### Will use EMA near end, as a user option, as a **hybrid** appraoch
+So the EMA is calculated in parralel, when a bucket is full all the stats will be obtained for that bucket (min,max,count) but the average won't be calculate from the points in the bucket alone, it will be a snapshot of the EMA at the time the bucket is filled/created
+
+EMA would provide a smooth trend line that is continuously updated with each new data point
+
+## 25-01-23
+Spent the day looking at ways to dynamically adjust the tumbling window size. The window size is static, this is not good in cases when the variance fluctuates. A shorter window is necessary for high variance to extract detail, while a larger window is need for low variance since not much to represent.
+Will add times aggregation, but this seems most important. 
+Planning to use r.d plot to capture variance, then with live variance change the tumbling window size. 

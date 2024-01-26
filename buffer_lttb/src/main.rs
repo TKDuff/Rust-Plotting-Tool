@@ -39,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
         let stdin = io::stdin();          //global stdin instance
         let locked_stdin = stdin.lock();  //lock stdin for exclusive access
         let mut length = 0;
-        let mut points_count = 51;
+        let mut points_count = 30;
 
         for line in locked_stdin.lines() {
             let line_string = line.unwrap();
@@ -61,7 +61,7 @@ fn main() -> Result<(), eframe::Error> {
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
-        let lltb_points = 30;
+        let lltb_points = 14;
         
         for message in hd_receiver {
             let(raw_data_length, point_count) = message;

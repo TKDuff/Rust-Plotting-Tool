@@ -1,28 +1,28 @@
 import pandas as pd
 import numpy as np
 
-# Set a random seed for reproducibility
-np.random.seed(0)
+# Create an empty DataFrame
+data = pd.DataFrame(columns=['Instance', 'Value'])
 
-# Generate 10,000 sequential numbers for the x-axis (Episode No.)
-episode_numbers = np.arange(1, 10001)
+# Generate 100 instances with low variance
+low_variance_chunk = np.random.normal(50, 5, 100)
+data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': low_variance_chunk})], ignore_index=True)
 
-# Generate granular data with a general upward trend for the y-axis (Reward)
-# We'll use a combination of a linear trend and some noise.
-trend = np.linspace(0, 50, 10000)  # Linear trend upwards
-noise = np.random.normal(0, 2, 10000)  # Random noise
+# Generate 100 instances with high variance
+high_variance_chunk = np.random.normal(50, 25, 100)
+data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': high_variance_chunk})], ignore_index=True)
 
-# Create a smooth dip around 1000 and 4000 points
-dip = -15 * np.exp(-0.001 * (episode_numbers - 2500)**2) - 15 * np.exp(-0.0005 * (episode_numbers - 7000)**2)
+# Generate 100 more instances with low variance
+low_variance_chunk = np.random.normal(50, 5, 100)
+data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': low_variance_chunk})], ignore_index=True)
 
-# Combine trend, noise, and dip
-rewards = trend + noise + dip
+# Generate 100 more instances with high variance
+high_variance_chunk = np.random.normal(50, 25, 100)
+data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': high_variance_chunk})], ignore_index=True)
 
-# Create a DataFrame
-df = pd.DataFrame({
-    'Episode No.': episode_numbers,
-    'Reward': rewards
-})
+# Generate 100 final instances with low variance
+low_variance_chunk = np.random.normal(50, 5, 100)
+data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': low_variance_chunk})], ignore_index=True)
 
-# Save to a CSV file
-df.to_csv('Generated_Reward_Data_10000.csv', index=False)
+# Save the dataset to a CSV file
+data.to_csv('variance_dataset.csv', index=False)

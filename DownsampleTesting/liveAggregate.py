@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import time
 
 # Load the CSV file
-df = pd.read_csv('Generated_Reward_Data_10000.csv')
+#file = 'Generated_Reward_Data_10000.csv'
+file = 'variance_dataset.csv'
+df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/%s" % (file))
 
 # Initialize arrays to store the plot data
 x_data = []
@@ -13,11 +15,11 @@ y_data = []
 plt.ion()  # Enable interactive mode
 fig, ax = plt.subplots()
 line, = ax.plot(x_data, y_data, 'r-')  # Initialize an empty line
-ax.set_xlim(0, 2000)  # Set the x-axis limit
+ax.set_xlim(0, 500)  # Set the x-axis limit
 ax.set_ylim(min(df['Reward']), max(df['Reward']))  # Set the y-axis limit
 
 # Live plot and replace every 20 elements with their mean
-for i in range(2000):
+for i in range(500):
     # Add the new point to the data arrays
     x_data.append(df['Episode No.'].iloc[i])
     y_data.append(df['Reward'].iloc[i])
@@ -34,9 +36,8 @@ for i in range(2000):
         # Replace the last 20 points with the mean
         x_data[-20:] = [mean_x] * 20
         y_data[-20:] = [mean_y] * 20
-        print(f"Mean X: {mean_x}, Mean Y: {mean_y}")
 
-    time.sleep(0.01)  # Adjust the speed of plotting here
+    #time.sleep(0.01)  # Adjust the speed of plotting here
 
 plt.ioff()  # Disable interactive mode
 plt.show()

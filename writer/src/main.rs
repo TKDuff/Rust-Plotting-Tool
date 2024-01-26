@@ -1,4 +1,3 @@
-/*
 use rand::{Rng};
 use std::thread;
 use std::time::Duration;
@@ -9,13 +8,13 @@ fn main() {
         //x += rand::thread_rng().gen_range(1.0..5.0);
         let y = rand::thread_rng().gen_range(1.0..10.0);
         println!("{} {}", x, y*y);
-        thread::sleep(Duration::from_millis(500));
+        thread::sleep(Duration::from_millis(200));
     }  
-}*/
+}
 
 
 
-
+/*
 use csv::Reader;
 use serde::Deserialize;
 use std::error::Error;
@@ -40,13 +39,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     for result in rdr.deserialize() {
         let record: Record = result?;
         println!("{} {}", record.episode_no, record.reward);
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(100));
     }
 
     Ok(())
-}
+}*/
 
 
-
+//cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/buffer_lttb/ && cargo run --bin buffer_lttb)
 //cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/buffer_test/ && cargo run --bin buffer_test)
 //cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/sliding_window_test/ && cargo run --bin sliding_window_test)
