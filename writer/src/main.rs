@@ -8,7 +8,7 @@ fn main() {
         //x += rand::thread_rng().gen_range(1.0..5.0);
         let y = rand::thread_rng().gen_range(1.0..10.0);
         println!("{} {}", x, y*y);
-        thread::sleep(Duration::from_millis(200));
+        //thread::sleep(Duration::from_millis(1));
     }  
 }
 

@@ -247,3 +247,5 @@ EMA would provide a smooth trend line that is continuously updated with each new
 Spent the day looking at ways to dynamically adjust the tumbling window size. The window size is static, this is not good in cases when the variance fluctuates. A shorter window is necessary for high variance to extract detail, while a larger window is need for low variance since not much to represent.
 Will add times aggregation, but this seems most important. 
 Planning to use r.d plot to capture variance, then with live variance change the tumbling window size. 
+
+### LOOK INTO PAGE HINKLEY METHOD
