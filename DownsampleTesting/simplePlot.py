@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 # Load the CSV file
 #file = 'Generated_Reward_Data_10000.csv'
 #file = 'LunarLander-v2_Reward.csv'
-#file = 'slow_increase_with_chunks.csv'
-file = 'variance_dataset.csv'
+file = 'slow_increase_with_chunks.csv'
+#file = 'variance_dataset.csv'
 df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % file)
 
 # Extract data from the DataFrame

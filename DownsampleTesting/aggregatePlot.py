@@ -12,7 +12,7 @@ y_data = df['y_col'].to_numpy()
 # Calculate the average of every 20 points and store in the new arrays
 x_avg_data = []
 y_avg_data = []
-chunk_size = 10
+chunk_size = 4
 
 for i in range(0, len(df), chunk_size):
     x_avg = df['x_col'].iloc[i:i+chunk_size].mean()

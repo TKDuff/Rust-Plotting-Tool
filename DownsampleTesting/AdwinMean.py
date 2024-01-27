@@ -1,9 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import math
 
-# ADWIN Implementation
 class ADWIN:
     def __init__(self, delta=0.002):
         self.delta = delta
@@ -33,52 +31,67 @@ def read_data(file_path):
     df = pd.read_csv(file_path)
     return df['x_col'], df['y_col']
 
-# Plotting function
-def plot_with_windows(x_vals, y_vals, window_end_indices):
+def plot_window_means(x_vals, y_vals, window_end_indices):
     plt.figure(figsize=(12, 6))
-
+    
     # Convert pandas Series to numpy arrays
     x_vals_np = x_vals.to_numpy()
     y_vals_np = y_vals.to_numpy()
 
-    plt.plot(x_vals_np, y_vals_np, label='Data Stream')
-    
-    # Add window rectangles
+    # Initialize start index for the first window
     start_index = 0
+
+    # Lists to store the mean of each window
+    window_means_x = []
+    window_means_y = []
+
+    # Calculate means for each window
     for end_index in window_end_indices:
-        if end_index < len(x_vals_np):
-            window = patches.Rectangle((x_vals_np[start_index], min(y_vals_np)), 
-                                       x_vals_np[end_index] - x_vals_np[start_index], 
-                                       max(y_vals_np) - min(y_vals_np), 
-                                       alpha=0.2, 
-                                       color='grey',
-                                       edgecolor='none')  # Set edgecolor to 'none'
-            plt.gca().add_patch(window)
+        if start_index <= end_index:
+            # Calculate the mean for the current window
+            window_x_vals = x_vals_np[start_index:end_index+1]
+            window_y_vals = y_vals_np[start_index:end_index+1]
+            mean_x = window_x_vals.mean()
+            mean_y = window_y_vals.mean()
+            
+            # Store the means in their respective lists
+            window_means_x.append(mean_x)
+            window_means_y.append(mean_y)
+            
+            # Update start_index for the next window
             start_index = end_index + 1
 
-    plt.title('Data Stream with ADWIN Windows')
+    # Plot the original data stream
+    plt.plot(x_vals_np, y_vals_np, label='Data Stream', alpha=0.5)
+
+    # Plot the means as a line plot to connect them
+    plt.plot(window_means_x, window_means_y, color='red', label='Window Means')
+
+    # Title and labels
+    plt.title('Means of Windows in Data Stream')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
     plt.legend()
     plt.show()
 
+# ... (main function remains unchanged) ...
 
-# Main program
+# Ensure the main function calls the new plot function
 def main():
+    #file = 'variance_dataset_low_100.csv'
     file = 'variance_dataset.csv'
     file_path = "/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % (file)
-
-    adwin = ADWIN(delta=0.002)
-    window_end_indices = []
-
     x_vals, y_vals = read_data(file_path)
+
+    adwin = ADWIN(delta=0.00000000000000001)
+    window_end_indices = []
 
     for i, y in enumerate(y_vals):
         adwin.add(y)
         if len(adwin.window) == 1:  # New window started
-            window_end_indices.append(i - 1)
+            window_end_indices.append(i)
 
-    plot_with_windows(x_vals, y_vals, window_end_indices)
+    plot_window_means(x_vals, y_vals, window_end_indices)
 
 if __name__ == "__main__":
     main()
