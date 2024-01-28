@@ -249,3 +249,18 @@ Will add times aggregation, but this seems most important.
 Planning to use r.d plot to capture variance, then with live variance change the tumbling window size. 
 
 ### LOOK INTO PAGE HINKLEY METHOD
+
+## 26-01-23
+Will need to write, look into Adaptive Window
+
+## 27-01-23
+Will need to write, look into Adaptive Window
+
+## 28-01-23 
+Getting ADWIN to work with Rust
+Got github Adwin (https://github.com/Patrick-Harned/adwin/tree/master) to work,however not useful as
+* Uses a sliding, not tumbling, window
+* Window size remains constant
+* Mainly used to detect drift which is used for ML, not for aggregating the window
+
+Thus will have to create my own

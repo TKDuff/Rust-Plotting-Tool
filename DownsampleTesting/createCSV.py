@@ -1,28 +1,27 @@
-import pandas as pd
-import numpy as np
+import csv
 
-# Create an empty DataFrame
-data = pd.DataFrame(columns=['Instance', 'Value'])
+# Generate x and y data
+x_data = list(range(1, 101))  # Generate x values from 1 to 100
+y_data = [2 * x + 5 for x in x_data]  # Generate y values as a straight line y = 2x + 5
 
-# Generate 100 instances with low variance
-low_variance_chunk = np.random.normal(50, 5, 100)
-data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': low_variance_chunk})], ignore_index=True)
+# Add a big step to y_data
+step_size = 100  # Size of the step
+for i in range(100, 150):
+    y_data.append(y_data[-1] + step_size)
 
-# # Generate 100 instances with high variance
-# high_variance_chunk = np.random.normal(50, 25, 100)
-# data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': high_variance_chunk})], ignore_index=True)
+# Add fluctuations to y_data
+import random
 
-# # Generate 100 more instances with low variance
-# low_variance_chunk = np.random.normal(50, 5, 100)
-# data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': low_variance_chunk})], ignore_index=True)
+for i in range(150, 201):
+    y_data.append(y_data[-1] + random.uniform(-5, 5))
 
-# # Generate 100 more instances with high variance
-# high_variance_chunk = np.random.normal(50, 25, 100)
-# data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': high_variance_chunk})], ignore_index=True)
+# Write the data to a CSV file
+with open('data.csv', 'w', newline='') as csvfile:
+    fieldnames = ['x', 'y']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    
+    writer.writeheader()
+    for x, y in zip(x_data, y_data):
+        writer.writerow({'x': x, 'y': y})
 
-# # Generate 100 final instances with low variance
-# low_variance_chunk = np.random.normal(50, 5, 100)
-# data = pd.concat([data, pd.DataFrame({'Instance': range(len(data), len(data) + 100), 'Value': low_variance_chunk})], ignore_index=True)
-
-# Save the dataset to a CSV file
-data.to_csv('variance_dataset_low_100.csv', index=False)
+print("CSV file 'data.csv' created successfully.")

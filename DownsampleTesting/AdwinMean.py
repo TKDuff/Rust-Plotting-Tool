@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
 import math
 
 class ADWIN:
@@ -78,12 +79,14 @@ def plot_window_means(x_vals, y_vals, window_end_indices):
 
 # Ensure the main function calls the new plot function
 def main():
-    #file = 'variance_dataset_low_100.csv'
     file = 'variance_dataset.csv'
+    #file = 'Generated_Reward_Data_10000.csv'
+    #file = 'slow_increase_with_chunks.csv'
+    #file = 'personal_dataset.csv'
     file_path = "/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % (file)
     x_vals, y_vals = read_data(file_path)
 
-    adwin = ADWIN(delta=0.00000000000000001)
+    adwin = ADWIN(delta=0.0000000000000001)
     window_end_indices = []
 
     for i, y in enumerate(y_vals):
