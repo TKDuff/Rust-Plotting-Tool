@@ -264,3 +264,6 @@ Got github Adwin (https://github.com/Patrick-Harned/adwin/tree/master) to work,h
 * Mainly used to detect drift which is used for ML, not for aggregating the window
 
 Thus will have to create my own
+
+Got a working version on ADWIN in rust, does not plot to EGUI but aggregates.
+Have window, split into 2, N1 and N2. N1 is aggregated and plotted while N2 becomes the new tumbling window

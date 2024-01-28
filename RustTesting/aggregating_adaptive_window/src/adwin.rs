@@ -6,6 +6,8 @@ use std::f64;
 pub struct ADWIN {
     delta: f64,          // The delta parameter, determining sensitivity to change
     window: Vec<f64>, // The window of data points, implemented as a double-ended queue
+    plot: Vec<[f64;2]>
+
 }
 
 // Implementation block for ADWIN
@@ -15,25 +17,28 @@ impl ADWIN {
         ADWIN {
             delta, // Set the delta value
             window: Vec::new(), // Initialize an empty VecDeque for the window
+            plot: Vec::new(),
         }
     }
 
     // Method to add a new data point to the ADWIN window
-    pub fn add(&mut self, value: f64) {
-        self.window.push(value); // Append the value to the end of the window
+    pub fn add(&mut self, x_value: f64, y_value: f64) {
+        self.window.push(y_value); // Append the value to the end of the window
 
         if let (Some(cut_index), mean) = self.check_cut() {
-            self.cut_window(cut_index, mean);
+            self.cut_window(cut_index, mean, x_value);
         } 
     }
 
     // Method to potentially cut the window
-    fn cut_window(&mut self, cut_index: usize, mean: f64) {
-        println!("Pre-Cut:{}", &self.window.len());
-        println!("To be cut is {:?}: ", &self.window[..cut_index]);
-        println!("The mean is {}", mean);
+    fn cut_window(&mut self, cut_index: usize, mean: f64, x_value: f64) {
+        // println!("Pre-Cut:{}", &self.window.len());
+        // println!("To be cut is {:?}: ", &self.window[..cut_index]);
+        // println!("The mean is {}", mean);
         self.window.drain(..cut_index); // Drain the elements up to the cut index
-        println!("Post-Cut:{}", &self.window.len());
+        // println!("Post-Cut:{}", &self.window.len());
+        println!("Now pushing {} {} to the plot", x_value, mean);
+        self.plot.push([x_value, mean]);
     }
 
     // Method to check if a cut is needed in the window
@@ -70,5 +75,9 @@ impl ADWIN {
 
     pub fn get_window(&self) -> &[f64] {
         &self.window
+    }
+
+    pub fn get_plot(&self) -> &Vec<[f64;2]> {
+        &self.plot
     }
 }
