@@ -21,28 +21,33 @@ impl ADWIN {
     // Method to add a new data point to the ADWIN window
     pub fn add(&mut self, value: f64) {
         self.window.push(value); // Append the value to the end of the window
-        if let Some(cut_index) = self.check_cut() {
-            self.cut_window(cut_index); // Pass the cut index to cut_window
-        }
+
+        if let (Some(cut_index), mean) = self.check_cut() {
+            self.cut_window(cut_index, mean);
+        } 
     }
 
     // Method to potentially cut the window
-    fn cut_window(&mut self, cut_index: usize) {
+    fn cut_window(&mut self, cut_index: usize, mean: f64) {
+        println!("Pre-Cut:{}", &self.window.len());
+        println!("To be cut is {:?}: ", &self.window[..cut_index]);
+        println!("The mean is {}", mean);
         self.window.drain(..cut_index); // Drain the elements up to the cut index
+        println!("Post-Cut:{}", &self.window.len());
     }
 
     // Method to check if a cut is needed in the window
-    fn check_cut(&self) -> Option<usize> {
+    fn check_cut(&self) -> (Option<usize>, f64) {
         for i in 1..self.window.len() {
             let (mean1, mean2) = self.compute_means(i);
             let n1 = i as f64;
             let n2 = self.window.len() as f64 - n1;
             let epsilon = self.compute_epsilon(n1, n2);
             if (mean1 - mean2).abs() > epsilon {
-                return Some(i); // Return Some(index) where the cut should occur
+                return (Some(i), mean1); // Return Some(index) where the cut should occur
             }
         }
-        None // Return None if no cut is needed
+        (None, 0.0) // Return None if no cut is needed
     }
 
     // Helper method to compute the means of two sub-windows
