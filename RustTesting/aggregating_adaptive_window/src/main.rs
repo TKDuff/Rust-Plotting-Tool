@@ -87,7 +87,7 @@ impl eframe::App for myApp {
 
             plot.show(ui, |plot_ui| {
                 plot_ui.line(raw_plot_line);
-                //plot_ui.line(aggregate_plot_line);
+                plot_ui.line(aggregate_plot_line);
             });
 
         });
