@@ -28,15 +28,20 @@ struct myApp {
 impl Default for myApp {
     fn default() -> Self {
         Self {
-            adwin_plot: Arc::new(RwLock::new(ADWIN::new(1e-100))) ,
+            adwin_plot: Arc::new(RwLock::new(ADWIN::new(0.0000000000000000000000000000000000000000000000000000000001))) ,
         }
     }
 }
+//delta
+//1e-100
+//0.0001
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
 
-    let file = File::open("variance_dataset.csv")?;
+    let file_name = "variance_dataset.csv";
+    //let file_name = "test.csv";
+
+    let file = File::open(file_name)?;
     let rdr = io::BufReader::new(file);
     //let file_path = "variance_dataset_low_100.csv";
 
@@ -48,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(line) = line {
                 //adwin_plot_accesor.lock().unwrap().append_str(line);
                 adwin_plot_accesor.write().append_str(line);
-                thread::sleep(Duration::from_millis(50));
+                thread::sleep(Duration::from_millis(10));
             }
         }
     });
@@ -82,7 +87,7 @@ impl eframe::App for myApp {
 
             plot.show(ui, |plot_ui| {
                 plot_ui.line(raw_plot_line);
-                plot_ui.line(aggregate_plot_line);
+                //plot_ui.line(aggregate_plot_line);
             });
 
         });
