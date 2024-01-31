@@ -1,6 +1,6 @@
 #![allow(warnings)] //Remove warning, be sure to remove this
 mod data_module;
-use data_module::{StdinData, DownsampledData};
+use data_module::{StdinData};
 use tokio::runtime::Runtime;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 use tokio::time::{self, Duration, Interval};
@@ -12,30 +12,33 @@ use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
 use egui::{Vec2, CentralPanel};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
+use tokio::sync::mpsc;
 
 struct MyApp {
     raw_data: Arc<RwLock<StdinData>>,
-    historic_data: Arc<RwLock<DownsampledData>>,
+    //historic_data: Arc<RwLock<DownsampledData>>,
 }
 
 impl Default for MyApp {
     fn default() ->  Self {
         Self {
             raw_data: Arc::new(RwLock::new(StdinData::new())),
-            historic_data: Arc::new(RwLock::new(DownsampledData::new())),
+            //historic_data: Arc::new(RwLock::new(DownsampledData::new())),
         }
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
+
+    let (timer_sender, mut raw_data_receiver) = mpsc::unbounded_channel::<&str>();
+
     let rt = Runtime::new().unwrap();
 
     let my_app = MyApp::default();
     let raw_data_thread = my_app.raw_data.clone();
 
     rt.spawn(async move {
-
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
@@ -57,24 +60,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         break;
                     }
                 },
-                _ = interval.tick() => {
-                    rd_sender.send(line_count).unwrap();
+                aggregate_signal = raw_data_receiver.recv() => {
+                    if let Some(signal) = aggregate_signal{
+                        //println!("{}", signal);
+                        rd_sender.send("msg").unwrap();
+                    }
                 }
             }
+        }
+    });
 
+    /*
+    Asynchronous timer */
+    rt.spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(1));
+
+        loop {
+            interval.tick().await;
+            timer_sender.send("test");
         }
     });
 
     let downsampler_raw_data_thread = my_app.raw_data.clone();
+
+
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
 
         for message in hd_receiver {
-            println!("{:?}", downsampler_raw_data_thread.read().unwrap().get_chunk(message));
-            downsampler_raw_data_thread.write().unwrap().remove_chunk(message);
+            chunk = downsampler_raw_data_thread.read().unwrap().get_values();
         }
 
+    });
+
+    rt.block_on(async {
+        time::sleep(Duration::from_secs(3600)).await; // Placeholder for long-running main task
     });
 
     historic_data_handle.join().unwrap();
@@ -90,13 +111,13 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
             //let historic_data_points = self.raw_data.read().unwrap().get_values();
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_values()).width(2.0);
-            let historic_plot_line = Line::new(self.historic_data.read().unwrap().get_means()).width(2.0);
+            //let historic_plot_line = Line::new(self.historic_data.read().unwrap().get_means()).width(2.0);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
 
             plot.show(ui, |plot_ui| {
-                plot_ui.line(historic_plot_line);
+                //plot_ui.line(historic_plot_line);
                 plot_ui.line(raw_plot_line);
             });
         });
