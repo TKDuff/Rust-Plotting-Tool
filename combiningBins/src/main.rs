@@ -1,6 +1,9 @@
 #![allow(warnings)] //Remove warning, be sure to remove this
 mod data_module;
-use data_module::{AggregateData, StdinData};
+mod aggregate_data;
+
+use data_module::StdinData;
+use aggregate_data::AggregateData;
 use tokio::runtime::Runtime;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 use tokio::time::{self, Duration, Interval};
@@ -71,8 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    /*
-    Asynchronous timer */
+    /*Asynchronous timer */
     rt.spawn(async move {
         let mut interval = time::interval(Duration::from_secs(1));
 
@@ -88,7 +90,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
-        println!("ONNNONOINI:OCNCIO:{:?}", downsampler_thread.read().unwrap().get_means());
 
         for message in hd_receiver {
             chunk = downsampler_raw_data_thread.read().unwrap().get_values();
