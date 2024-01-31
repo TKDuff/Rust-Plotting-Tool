@@ -6,4 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+average = "0.14.1"
 incr_stats = "1.0.1"
+statrs = "0.16.0"

@@ -1,6 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+import numpy as np
+import math
+
 
 class ADWIN:
     def __init__(self, delta=0.00000000000000001):
@@ -62,9 +65,9 @@ def plot_window_means(x_vals, y_vals, window_end_indices):
 
 # Main function
 def main():
-    #file = 'variance_dataset.csv'
+    file = 'variance_dataset.csv'
     #file = 'variance_dataset_low_100.csv'
-    file = 'Generated_Reward_Data_10000.csv'
+    #file = 'Generated_Reward_Data_10000.csv'
     file_path = "/home/thomas/FinalYearProject/online-graph/DownsampleTesting/plot_data/%s" % (file)
     x_vals, y_vals = read_data(file_path)
 

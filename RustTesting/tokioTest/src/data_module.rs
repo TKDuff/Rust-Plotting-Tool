@@ -83,20 +83,10 @@ impl DownsampledData {
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
 
-
-        /*
-        let x_variance = x.variance().unwrap();
-        let y_variance = y.variance().unwrap();
-
-        let x_sum_of_squares: f64 = x_vec.iter().map(|&xi| (xi - x_mean).powi(2)).sum();
-        let y_sum_of_squares: f64 = y_vec.iter().map(|&yi| (yi - y_mean).powi(2)).sum();
-
-
-        self.x_stats.push([x_mean, x_sum_of_squares, point_count as f64, x_variance, x.min(), x.max()]);
-        self.y_stats.push([y_mean, y_sum_of_squares, point_count as f64, y_variance, y.min(), y.max()]); */
-
         self.x_stats.push(statistic { mean: x_mean, sum: x_sum, min: x.min(), max: x.max(), count: point_count });
         self.y_stats.push(statistic { mean: y_mean, sum: y_sum, min: y.min(), max: y.max(), count: point_count });
+        println!("The sum is: {} The lenght is: {}, The y mean is {}", y_sum, y.len(), y_mean);
+
         (x_mean, y_mean) //returned as replace aggregated chunk with with the average value, fills gap between two plots
     }
 
@@ -106,8 +96,6 @@ impl DownsampledData {
         let mean = data.mean().unwrap();
         (mean, sum)
     }
-
-    
 
     pub fn get_means(&self) -> Vec<[f64; 2]> {
         self.x_stats.iter().zip(self.y_stats.iter())

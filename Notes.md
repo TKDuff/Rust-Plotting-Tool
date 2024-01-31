@@ -267,3 +267,24 @@ Thus will have to create my own
 
 Got a working version on ADWIN in rust, does not plot to EGUI but aggregates.
 Have window, split into 2, N1 and N2. N1 is aggregated and plotted while N2 becomes the new tumbling window
+
+## 30-01-23 
+Considered using mean and variation in this scenario of 
+'1,101
+2,105
+3,104
+4,106
+5,201
+6,205
+7,204
+8,206'
+
+Both sets [1-4] and [5-8] have a variance of 11.33 however the range between them is 100, can solve this by taking mean into account means for both sets different.
+
+Going to take a break from adaptive windowing to focus on other parts of the project, will look into focusing on using variation instead of mean. Here is all the notes i have on it
+
+The problem is the ADWIN algorithm uses the mean to compare sub-windows, however the mean is the central tendency of the data or shifts in the central value
+I want to change it to use variance, as variance is a better measure of fluctuations of the data.
+I want High fluctuations to mean a smaller window size and small fluctuation to mean a larger window size
+
+using variance to detect changes identifies transitions from high-fluctuation to low-fluctuation periods (or vice versa) as significant, even if the mean remains relatively constant.
