@@ -48,17 +48,21 @@ impl ADWIN {
         if let (Some(cut_index), mean_y) = self.check_cut(y_values_slice) {
             // Calculate the mean x-value for the cut window
             let mean_x = self.window.iter().take(cut_index).map(|&[x, _]| x).sum::<f64>() / cut_index as f64;
-            self.cut_window(cut_index, mean_y, mean_x);
+            self.cut_window(cut_index, mean_x, mean_y);
         }
     }
 
-    fn cut_window(&mut self, cut_index: usize, y_mean: f64, x_mean: f64) {
-        self.window.drain(..cut_index); // Drain the elements up to the cut index
-        println!("Now pushing {} {} to the aggregate_points", x_mean, y_mean);
+    //remove chunk
+    fn cut_window(&mut self, cut_index: usize, x_mean: f64, y_mean: f64) {
+        self.window[0] = [x_mean, y_mean];
+        self.window.drain(1..cut_index);
+        // self.window.drain(..cut_index); // Drain the elements up to the cut index
+        // println!("Now pushing {} {} to the aggregate_points", x_mean, y_mean);
         self.aggregate_points.push([x_mean, y_mean]);
     }
     
     // Method to check if a cut is needed in the window
+    // Is the condition of the async method
     fn check_cut(&self, window_y_values: &[f64]) -> (Option<usize>, f64) {
         for i in 1..self.window.len() {
             let (mean1, mean2) = self.compute_means(i, window_y_values);
@@ -73,6 +77,7 @@ impl ADWIN {
     }
     
     // Helper method to compute the means of two sub-windows
+    // append_chunk_aggregate_statistics
     fn compute_means(&self, split_index: usize, window_y_values: &[f64]) -> (f64, f64) {
         let sum1: f64 = window_y_values.iter().take(split_index).sum();
         let mean1 = sum1 / split_index as f64;
@@ -87,10 +92,11 @@ impl ADWIN {
         (1.0 / (2.0 * n2) * (4.0 / self.delta).ln()).sqrt()
     }
 
+    //get_means
     pub fn get_aggregate_points(&self) -> Vec<[f64; 2]> {
         self.aggregate_points.clone().into_iter().collect()
     }
-
+    //get_values
     pub fn get_window_points(&self) -> Vec<[f64;2]> {
         self.window.clone().into_iter().collect()
     }
