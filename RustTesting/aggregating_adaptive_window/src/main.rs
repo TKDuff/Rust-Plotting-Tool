@@ -58,7 +58,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-
     let native_options = NativeOptions{
         ..Default::default()
     };
@@ -80,14 +79,14 @@ impl eframe::App for myApp {
             ctx.set_visuals(Visuals::light());
 
             let aggregate_plot_line = Line::new(self.adwin_plot.read().get_aggregate_points()).width(2.0);
-            let raw_plot_line = Line::new(self.adwin_plot.read().get_raw_points()).width(2.0);
+            let window_line = Line::new(self.adwin_plot.read().get_window_points()).width(2.0);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(400.0, 300.0));
 
             plot.show(ui, |plot_ui| {
-                plot_ui.line(raw_plot_line);
                 plot_ui.line(aggregate_plot_line);
+                plot_ui.line(window_line);
             });
 
         });
