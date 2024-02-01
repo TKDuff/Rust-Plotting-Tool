@@ -45,17 +45,17 @@ impl ADWIN {
         let y_values: Vec<f64> = self.window.iter().map(|&[_, y]| y).collect();
         let y_values_slice = &y_values[..];
     
-        if let (Some(cut_index), mean) = self.check_cut(y_values_slice) {
+        if let (Some(cut_index), mean_y) = self.check_cut(y_values_slice) {
             // Calculate the mean x-value for the cut window
             let mean_x = self.window.iter().take(cut_index).map(|&[x, _]| x).sum::<f64>() / cut_index as f64;
-            self.cut_window(cut_index, mean, mean_x);
+            self.cut_window(cut_index, mean_y, mean_x);
         }
     }
 
-    fn cut_window(&mut self, cut_index: usize, mean: f64, x_value: f64) {
+    fn cut_window(&mut self, cut_index: usize, y_mean: f64, x_mean: f64) {
         self.window.drain(..cut_index); // Drain the elements up to the cut index
-        println!("Now pushing {} {} to the aggregate_points", x_value, mean);
-        self.aggregate_points.push([x_value, mean]);
+        println!("Now pushing {} {} to the aggregate_points", x_mean, y_mean);
+        self.aggregate_points.push([x_mean, y_mean]);
     }
     
     // Method to check if a cut is needed in the window
