@@ -55,9 +55,9 @@ impl ADWIN {
     //remove chunk
     fn cut_window(&mut self, cut_index: usize, x_mean: f64, y_mean: f64) {
         self.window[0] = [x_mean, y_mean];
-        self.window.drain(1..cut_index);
-        // self.window.drain(..cut_index); // Drain the elements up to the cut index
-        // println!("Now pushing {} {} to the aggregate_points", x_mean, y_mean);
+        self.window.drain(1..cut_index+1);
+        //self.window.drain(..cut_index); // Drain the elements up to the cut index
+        println!("{} {}",x_mean, y_mean);
         self.aggregate_points.push([x_mean, y_mean]);
     }
     
