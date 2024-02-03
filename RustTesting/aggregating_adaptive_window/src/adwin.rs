@@ -45,7 +45,7 @@ impl ADWIN {
 
         let y_values_slice: &[f64] = &self.window.iter().skip(1).map(|&[_, y]| y).collect::<Vec<f64>>()[..];
 
-        println!("pre length {}", y_values_slice.len());
+        println!("{:?}", y_values_slice);
 
         
         if let (Some(cut_index), mean_y) = self.check_cut(y_values_slice) {

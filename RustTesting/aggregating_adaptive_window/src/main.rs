@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(line) = line {
                 //adwin_plot_accesor.lock().unwrap().append_str(line);
                 adwin_plot_accesor.write().append_str(line);
-                thread::sleep(Duration::from_millis(50));
+                thread::sleep(Duration::from_millis(250));
             }
         }
     });
