@@ -6,7 +6,6 @@ use std::f64;
 pub struct ADWIN {
     delta: f64,          // The delta parameter, determining sensitivity to change
     window: Vec<[f64;2]>, // The window of data points, implemented as a double-ended queue
-    //raw_points: Vec<[f64;2]>,
     aggregate_points: Vec<[f64;2]>
 
 }
@@ -17,8 +16,7 @@ impl ADWIN {
     pub fn new(delta: f64) -> ADWIN {
         ADWIN {
             delta, // Set the delta value
-            window: Vec::new(), // Initialize an empty VecDeque for the window
-            //raw_points: Vec::default(),
+            window: vec![[0.0, 0.0]], // Initialize an empty VecDeque for the window
             aggregate_points: Vec::default(),
         }
     }
@@ -42,14 +40,35 @@ impl ADWIN {
         self.window.push([x_value, y_value]); // Append the value to the end of the window
     
         // Create a slice of y-values
-        let y_values: Vec<f64> = self.window.iter().map(|&[_, y]| y).collect();
-        let y_values_slice = &y_values[..];
-    
+        // let y_values: Vec<f64> = self.window.iter().map(|&[_, y]| y).collect();
+        // let y_values_slice = &y_values[..];
+
+        let y_values_slice: &[f64] = &self.window.iter().skip(1).map(|&[_, y]| y).collect::<Vec<f64>>()[..];
+
+        println!("pre length {}", y_values_slice.len());
+
+        
         if let (Some(cut_index), mean_y) = self.check_cut(y_values_slice) {
+
             // Calculate the mean x-value for the cut window
             let mean_x = self.window.iter().take(cut_index).map(|&[x, _]| x).sum::<f64>() / cut_index as f64;
             self.cut_window(cut_index, mean_x, mean_y);
         }
+    }
+
+    // Method to check if a cut is needed in the window
+    // Is the condition of the async method
+    fn check_cut(&self, window_y_values: &[f64]) -> (Option<usize>, f64) {
+        for i in 1..window_y_values.len() {
+            let (mean1, mean2) = self.compute_means(i, window_y_values);
+            let n1 = i as f64;
+            let n2 = window_y_values.len() as f64 - n1;
+            let epsilon = self.compute_epsilon(n1, n2);
+            if (mean1 - mean2).abs() > epsilon {
+                return (Some(i), mean1); // Return Some(index) where the cut should occur
+            }
+        }
+        (None, 0.0) // Return None if no cut is needed
     }
 
     //remove chunk
@@ -61,20 +80,6 @@ impl ADWIN {
         self.aggregate_points.push([x_mean, y_mean]);
     }
     
-    // Method to check if a cut is needed in the window
-    // Is the condition of the async method
-    fn check_cut(&self, window_y_values: &[f64]) -> (Option<usize>, f64) {
-        for i in 1..self.window.len() {
-            let (mean1, mean2) = self.compute_means(i, window_y_values);
-            let n1 = i as f64;
-            let n2 = window_y_values.len() as f64 - n1;
-            let epsilon = self.compute_epsilon(n1, n2);
-            if (mean1 - mean2).abs() > epsilon {
-                return (Some(i), mean1); // Return Some(index) where the cut should occur
-            }
-        }
-        (None, 0.0) // Return None if no cut is needed
-    }
     
     // Helper method to compute the means of two sub-windows
     // append_chunk_aggregate_statistics
