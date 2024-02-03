@@ -28,7 +28,7 @@ struct myApp {
 impl Default for myApp {
     fn default() -> Self {
         Self {
-            adwin_plot: Arc::new(RwLock::new(ADWIN::new(0.0000000000000000000000000000000000000000000000000000000001))) ,
+            adwin_plot: Arc::new(RwLock::new(ADWIN::new(0.000000000000000000000000000001))) ,
         }
     }
 }
@@ -38,8 +38,8 @@ impl Default for myApp {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
+    //let file_name = "person.csv";
     let file_name = "variance_dataset.csv";
-    //let file_name = "test.csv";
 
     let file = File::open(file_name)?;
     let rdr = io::BufReader::new(file);
@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(line) = line {
                 //adwin_plot_accesor.lock().unwrap().append_str(line);
                 adwin_plot_accesor.write().append_str(line);
-                thread::sleep(Duration::from_millis(250));
+                thread::sleep(Duration::from_millis(100));
             }
         }
     });
