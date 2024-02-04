@@ -52,3 +52,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 //cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/buffer_test/ && cargo run --bin buffer_test)
 //cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/sliding_window_test/ && cargo run --bin sliding_window_test)
 //cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/combiningBins/ && cargo run --bin combiningBins)
+//cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/RustTesting/tokioTest/ && cargo run --bin tokioTest)
+//cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/RustTesting/aggregating_adaptive_window/ && cargo run --bin aggregating_adaptive_window)
