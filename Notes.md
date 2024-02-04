@@ -288,3 +288,28 @@ I want to change it to use variance, as variance is a better measure of fluctuat
 I want High fluctuations to mean a smaller window size and small fluctuation to mean a larger window size
 
 using variance to detect changes identifies transitions from high-fluctuation to low-fluctuation periods (or vice versa) as significant, even if the mean remains relatively constant.
+
+
+### Adwin algorithm has a issue- need to fix
+When the delta is small and the streaming rate is high (10 milliseconds) the raw-data line can jump around. May be due to N2 vector always being split up
+
+## 02-01-23 
+Facing a big problem.
+Yesterday determined in order for user to be able to use different aggregation approaches, Interval, Count and Adwin, the 'strategy pattern' must be used.
+Strategy pattern allows for the implemetation of different algorithms depending on user selection at run time. 
+Implement S.P by creating an abstract interface that contains methods that all algorithms share. 
+Each algorithm creates concrete methods of interface with their own implementation
+
+Currently Interval, Count and Adwin have common methods
+* Add - addpend IO to vector
+* Check - Condition to check if chunk should be aggregated
+* Aggregate - To actually aggregate the chunk
+* Remove - remove chunk and repalace with aggregate point
+
+Now I am trying to combine the Adwin with the current Interval aggregation. The interval aggregation has loop
+Line 67 in text file
+Going to create interface first,then go back and change loop. 
+Both interval and adwin share add, check, aggregate remove methods, so can create interface. 
+Contention lie in where to but check condition in loop to accomodate both. 
+Interval loop require seperate branch to receive interval tick message from channel
+Adwin/Count don't require seperate branch as add and check condition method combined, thus for every add the check condition is called. 

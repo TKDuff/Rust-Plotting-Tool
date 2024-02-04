@@ -8,10 +8,6 @@ impl StdinData {
         Self { points: vec![[0.0, 0.0]],}
     }
 
-    pub fn append_points(&mut self, points: [f64; 2]) {
-        self.points.push([points[0], points[1]]);
-        }
-
     pub fn append_str(&mut self, line:String) {
         let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
@@ -28,6 +24,10 @@ impl StdinData {
         }
     }
 
+    pub fn append_points(&mut self, points: [f64; 2]) {
+        self.points.push([points[0], points[1]]);
+    }
+
     pub fn get_length(&self) -> usize {
         self.points.len()
     }
@@ -42,7 +42,6 @@ impl StdinData {
         self.points[0] = [point_means.0, point_means.1];
         self.points.drain(1..count+1);
     }
-
 
     pub fn get_values(&self) -> Vec<[f64; 2]> {
         self.points.clone().into_iter().collect()

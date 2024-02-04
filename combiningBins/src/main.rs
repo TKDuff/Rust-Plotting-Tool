@@ -4,10 +4,6 @@ mod aggregate_data;
 
 use data_module::StdinData;
 use aggregate_data::AggregateData;
-use tokio::runtime::Runtime;
-use tokio::io::{self, AsyncBufReadExt, BufReader};
-use tokio::time::{self, Duration, Interval};
-use tokio::fs::File;
 use std::thread;
 use eframe::{egui, NativeOptions}; 
 use egui::{Style, Visuals};
@@ -15,6 +11,10 @@ use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
 use egui::{Vec2, CentralPanel};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
+use tokio::runtime::Runtime;
+use tokio::io::{self, AsyncBufReadExt, BufReader};
+use tokio::time::{self, Duration, Interval};
+use tokio::fs::File;
 use tokio::sync::mpsc;
 
 struct MyApp {

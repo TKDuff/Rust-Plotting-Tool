@@ -28,7 +28,7 @@ struct myApp {
 impl Default for myApp {
     fn default() -> Self {
         Self {
-            adwin_plot: Arc::new(RwLock::new(ADWIN::new(0.0000000000000000000000000000000000000000000000000001))) ,
+            adwin_plot: Arc::new(RwLock::new(ADWIN::new(0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001))) ,
         }
     }
 }
