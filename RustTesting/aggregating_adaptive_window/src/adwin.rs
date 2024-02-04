@@ -23,7 +23,7 @@ impl ADWIN {
     }
 
     pub fn append_str(&mut self, line:String) {
-        let values_result: Result<Vec<f64>, _> = line.split(',')
+        let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
         .collect();
         match values_result {
@@ -52,21 +52,24 @@ impl ADWIN {
 
         
         //vector window y elements excluding the first element, since its the previous N1 mean. 
-        let y_values_slice_t: &[f64] = &self.window.iter().skip(1).map(|&[_, y]| y).collect::<Vec<f64>>()[..];
+        //let y_values_slice_t: &[f64] = &self.window.iter().skip(1).map(|&[_, y]| y).collect::<Vec<f64>>()[..];
 
         // cut_index is indexed in relation to window as a whole, not the window excluding the first element
-        if let (Some(cut_index), mean_y) = self.check_cut(y_values_slice_t) {
+
+        /*
+        if let (Some(cut_index), mean_y) = self.check_cut() {
             println!("The current window is {:?}", self.window);
             self.append_chunk_aggregate_statistics(self.window[..cut_index+1].to_vec());
             let mean_x = self.window.iter().skip(1).take(cut_index).map(|&[x, _]| x).sum::<f64>() / cut_index as f64;
             self.cut_window(cut_index, mean_x, mean_y);
             println!("After cutting {:?}\n\n", self.window);
-        }
+        }*/
     }
 
     // Method to check if a cut is needed in the window
     // Is the condition of the async method
-    fn check_cut(&self, window_y_values: &[f64]) -> (Option<usize>, f64) {
+    pub fn check_cut(&self) -> (Option<usize>, f64) {
+        let window_y_values: &[f64] = &self.window.iter().skip(1).map(|&[_, y]| y).collect::<Vec<f64>>()[..];
         for i in 1..window_y_values.len() {
             let (mean1, mean2, fC, sC) = self.compute_means(i, window_y_values);
             let n1 = i as f64;
@@ -82,7 +85,7 @@ impl ADWIN {
     }
 
     //remove chunk
-    fn cut_window(&mut self, cut_index: usize, x_mean: f64, y_mean: f64) {
+    pub fn cut_window(&mut self, cut_index: usize, x_mean: f64, y_mean: f64) {
         self.window[0] = [x_mean, y_mean];
         self.window.drain(1..cut_index+1);  // Drain the elements up to the cut index, increment it since cut_index is indexed based on full window, not excluding the first element
     }
@@ -116,7 +119,7 @@ impl ADWIN {
         self.window.clone().into_iter().collect()
     }
 
-    pub fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) /*-> (f64, f64, usize)*/ {
+    pub fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>, cut_index:usize) -> (f64, f64, usize) {
            
         let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().skip(1).map(|&[x, y]| (x, y)).unzip();
 
@@ -133,7 +136,7 @@ impl ADWIN {
         println!("\nx_Vec{:?}\ny_vec{:?}", x_vec, y_vec);
         println!("Method x mean is {} and y mean is {}\n", x_mean, y_mean);
 
-        //(x_mean, y_mean, x.len())
+        (x_mean, y_mean, cut_index)
     }
 
 }
