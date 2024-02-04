@@ -4,9 +4,17 @@ mod data_strategy;
 use data_strategy::DataStrategy;
 
 mod interval_data;
-use interval_data::StdinData;
+use interval_data::IntervalRawData;
+
+mod adwin_data;
+use adwin_data::AdwinRawData;
+
+mod aggregation_strategy;
+use aggregation_strategy::AggregationStrategy;
 
 
+mod interval_aggregation;
+use interval_aggregation::IntervalAggregateData;
 
 
 use std::thread;
@@ -22,30 +30,91 @@ use tokio::time::{self, Duration, Interval};
 use tokio::fs::File;
 use tokio::sync::mpsc;
 
-struct MyApp<T: DataStrategy + Send + Sync> {
+struct MyApp<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> {
     raw_data: Arc<RwLock<T>>,
+    aggregate_data: Arc<RwLock<U>>,
     // other fields...
 }
 
-impl<T: DataStrategy + Send + Sync> MyApp<T> {
-    pub fn new(raw_data: T) -> Self {
+impl<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> MyApp<T, U> {
+    pub fn new(raw_data: T, aggregate_data: U) -> Self {
         Self {
             raw_data: Arc::new(RwLock::new(raw_data)),
-            // Initialize other fields...
+            aggregate_data: Arc::new(RwLock::new(aggregate_data)),
         }
     }
 }
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let my_app = MyApp::new(StdinData::new());
+    let my_app = MyApp::new(IntervalRawData::new(), IntervalAggregateData::new());
+    //let my_app: MyApp<AdwinRawData> = MyApp::new(AdwinRawData::new());
 
+
+    let (rd_sender, hd_receiver) = channel::unbounded();
+    let (timer_sender, mut raw_data_receiver) = mpsc::unbounded_channel::<&str>();
+    let (hd_sender, mut rd_receiver) = tokio::sync::mpsc::unbounded_channel::<(f64, f64, usize)>();
+
+
+    let rt = Runtime::new().unwrap();
     let raw_data_thread = my_app.raw_data.clone();
 
-    raw_data_thread.write().unwrap().append_str(String::from("123 45.67"));
-    raw_data_thread.write().unwrap().append_str(String::from("246 91"));
+    rt.spawn(async move {
+        let stdin = io::stdin();
+        let reader = BufReader::new(stdin);
+        let mut lines = reader.lines();
 
-    println!("{:?}", raw_data_thread.read().unwrap().get_raw_data());
+        loop {
+            tokio::select! {
+                line = lines.next_line() => {
+                    if let Ok(Some(line)) = line {
+                        raw_data_thread.write().unwrap().append_str(line);
+                    } else {
+                        // End of input or an error. You can break or handle it as needed.
+                        break;
+                    }
+                }, 
+                aggregate_signal = raw_data_receiver.recv(), if raw_data_thread.read().unwrap().requires_external_trigger() => {
+                    if let Some(signal) = aggregate_signal{
+                        rd_sender.send("msg").unwrap();
+                    }
+                },
+                point_means_result = rd_receiver.recv() => {
+                    if let Some((x_mean, y_mean, len)) = point_means_result {
+                        raw_data_thread.write().unwrap().remove_chunk(len, (x_mean, y_mean));
+                    }
+                },
+            }
+        }
+    });
+
+    /*Asynchronous timer */
+    rt.spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(1));
+
+        loop {
+            interval.tick().await;
+            timer_sender.send("test");
+        }
+    });
+
+
+    let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
+    let aggregate_thread_aggregate_data_accessor = my_app.aggregate_data.clone();
+
+    
+    //Aggregate points thread
+    thread::spawn(move || {
+        let mut chunk: Vec<[f64;2]>;
+        let mut objective_length = 0;
+
+        
+        for message in hd_receiver {
+            chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_values();
+            hd_sender.send(aggregate_thread_aggregate_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk));
+        }
+
+    });
 
 
     let native_options = NativeOptions{
@@ -60,17 +129,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 
-impl<T: DataStrategy + Send + Sync> App for MyApp<T>  {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
+impl<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> App for MyApp<T, U>  {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
             ctx.set_visuals(Visuals::light());
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0);
+            let historic_plot_line = Line::new(self.aggregate_data.read().unwrap().get_means()).width(2.0);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
 
             plot.show(ui, |plot_ui| {
+                plot_ui.line(historic_plot_line);
                 plot_ui.line(raw_plot_line);
             });
 
@@ -79,7 +150,7 @@ impl<T: DataStrategy + Send + Sync> App for MyApp<T>  {    //implementing the Ap
     }
 }
 
-
+//cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/strategy_pattern/ && cargo run --bin strategy_pattern)
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window

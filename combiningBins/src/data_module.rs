@@ -1,4 +1,6 @@
 use std::usize;
+
+
 pub struct StdinData {
     pub points: Vec<[f64;2]>,
 }
@@ -16,7 +18,7 @@ impl StdinData {
         match values_result {
             Ok(values) => {
                 println!("{}", values[1]);
-                self.points.push([values[0], values[1]]);
+                self.append_points(values[0], values[1]);
             }
             Err(err) => {
                 println!("Error parsing values: {:?}", err);
@@ -24,8 +26,8 @@ impl StdinData {
         }
     }
 
-    pub fn append_points(&mut self, points: [f64; 2]) {
-        self.points.push([points[0], points[1]]);
+    pub fn append_points(&mut self, x_value: f64, y_value: f64) {
+        self.points.push([x_value, y_value]);
     }
 
     pub fn get_length(&self) -> usize {

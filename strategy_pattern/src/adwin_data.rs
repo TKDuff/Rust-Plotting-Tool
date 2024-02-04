@@ -1,16 +1,16 @@
 use crate::data_strategy::DataStrategy;
 
-pub struct IntervalRawData {
+pub struct AdwinRawData {
     pub points: Vec<[f64;2]>,
 }
 
-impl IntervalRawData {
+impl AdwinRawData {
     pub fn new() -> Self {
         Self { points: vec![[0.0, 0.0]] }
     }
 }
 
-impl DataStrategy for IntervalRawData {
+impl DataStrategy for AdwinRawData {
     fn append_str(&mut self, line:String) {
         let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
@@ -34,8 +34,9 @@ impl DataStrategy for IntervalRawData {
         self.points.push([x_value, y_value]);
     }
 
+
     fn requires_external_trigger(&self) -> bool {
-        true
+        false
     }
 
     fn get_values(&self) -> Vec<[f64; 2]> {

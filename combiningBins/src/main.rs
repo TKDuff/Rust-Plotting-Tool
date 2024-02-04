@@ -46,15 +46,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
 
-        let mut line_count = 0;
-        let mut length = 0;
 
         loop {
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
                         raw_data_thread.write().unwrap().append_str(line);
-                        line_count += 1;
                     } else {
                         // End of input or an error. You can break or handle it as needed.
                         break;
