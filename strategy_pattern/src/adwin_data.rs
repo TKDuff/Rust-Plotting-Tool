@@ -77,8 +77,6 @@ impl DataStrategy for AdwinRawData {
             let n2 = window_y_values.len() as f64 - n1;
             let epsilon = self.compute_epsilon(n1, n2);
             if (mean1 - mean2).abs() > epsilon {
-                println!("fC{:?}\nsC{:?}", fC, sC);
-                println!("The cut index is {}", i);
                 return Some(i); // Return Some(index) where the cut should occur
             }
         }

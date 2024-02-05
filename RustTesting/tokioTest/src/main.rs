@@ -66,7 +66,7 @@ fn main() -> Result<(), eframe::Error> {
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        println!("{}", line);
+                        //println!("{}", line);
                         raw_data_thread.write().unwrap().append_str(&line);
                         line_count += 1;
                         length = raw_data_thread.read().unwrap().get_length();

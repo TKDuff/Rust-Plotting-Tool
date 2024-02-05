@@ -9,6 +9,9 @@ use interval_data::IntervalRawData;
 mod adwin_data;
 use adwin_data::AdwinRawData;
 
+mod count_data;
+use count_data::CountRawData;
+
 mod aggregation_strategy;
 use aggregation_strategy::AggregationStrategy;
 
@@ -18,6 +21,9 @@ use interval_aggregation::IntervalAggregateData;
 
 mod adwin_aggregation;
 use adwin_aggregation::AdwinAggregateData;
+
+mod count_aggregation;
+use count_aggregation::CountAggregateData;
 
 
 use std::thread;
@@ -51,7 +57,8 @@ impl<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> MyApp<
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     //let my_app: MyApp<IntervalRawData, IntervalAggregateData> = MyApp::new(IntervalRawData::new(), IntervalAggregateData::new());
-    let my_app: MyApp<AdwinRawData, AdwinAggregateData> = MyApp::new(AdwinRawData::new(), AdwinAggregateData::new());
+    //let my_app: MyApp<AdwinRawData, AdwinAggregateData> = MyApp::new(AdwinRawData::new(), AdwinAggregateData::new());
+    let my_app: MyApp<CountRawData, CountAggregateData> = MyApp::new(CountRawData::new(), CountAggregateData::new());
 
     let (rd_sender, hd_receiver) = channel::unbounded();
     let (timer_sender, mut raw_data_receiver) = mpsc::unbounded_channel::<&str>();

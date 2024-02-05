@@ -8,10 +8,12 @@ pub struct StdinData {
 
 impl StdinData {
     pub fn new() -> Self {
-        Self { points: Vec::default(),}
+        //Self { points: Vec::default(),}
+        Self { points: vec![[0.0, 0.0]],}
     }
 
     pub fn append_points(&mut self, points: [f64; 2]) {
+        //println!("{} {}", points[0], points[1]);
         self.points.push([points[0], points[1]]);
         }
 
@@ -22,17 +24,19 @@ impl StdinData {
     }
 
     pub fn get_length(&self) -> usize {
-        self.points.len()
+        self.points.len() - 1
     }
 
     pub fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-        self.points[0..count].to_vec()
+        self.points[1..count+1].to_vec()
     }
 
     /*So use into_iter if you want to consume the entire collection, and use drain if you only want to consume part of the collection or if you want to reuse the emptied collection later. */
     pub fn remove_chunk(&mut self, count:usize, point_means: (f64, f64)) {
+        //println!("\nPre remove chunk {:?}", self.points);
         self.points[0] = [point_means.0, point_means.1];
-        self.points.drain(1..count);
+        self.points.drain(1..count+1);
+        //println!("Post remove chunk {:?}\n", self.points);
     }
 
     pub fn get_values(&self) -> Vec<[f64; 2]> {
@@ -63,12 +67,13 @@ pub struct DownsampledData {
 impl DownsampledData {
     pub fn new() -> Self {
         Self { 
-            x_stats: vec![statistic { ..Default::default() }],
-            y_stats: vec![statistic { ..Default::default() }],
+            x_stats: Vec::new(),
+            y_stats: Vec::new(),
         }
     }
 
     pub fn append_statistics(&mut self, chunk: Vec<[f64;2]>, point_count:usize) -> (f64, f64) {
+        //println!("\nAggregating this chunk {:?}", chunk);
         let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip(); //refactor, calculate mean while iterating over             
         
         
@@ -85,7 +90,7 @@ impl DownsampledData {
 
         self.x_stats.push(statistic { mean: x_mean, sum: x_sum, min: x.min(), max: x.max(), count: point_count });
         self.y_stats.push(statistic { mean: y_mean, sum: y_sum, min: y.min(), max: y.max(), count: point_count });
-        println!("The sum is: {} The lenght is: {}, The y mean is {}", y_sum, y.len(), y_mean);
+        println!("The sum is: {} The lenght is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
         (x_mean, y_mean) //returned as replace aggregated chunk with with the average value, fills gap between two plots
     }
