@@ -46,4 +46,12 @@ impl DataStrategy for IntervalRawData {
         self.points[0] = [point_means.0, point_means.1];
         self.points.drain(1..count+1);
     }
+
+    fn check_cut(&self) -> Option<usize> {
+        unreachable!();
+    }
+
+    fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
+        self.points.clone().into_iter().collect()
+    }
 }

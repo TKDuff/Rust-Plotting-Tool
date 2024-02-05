@@ -16,6 +16,9 @@ use aggregation_strategy::AggregationStrategy;
 mod interval_aggregation;
 use interval_aggregation::IntervalAggregateData;
 
+mod adwin_aggregation;
+use adwin_aggregation::AdwinAggregateData;
+
 
 use std::thread;
 use eframe::{egui, NativeOptions, App}; 
@@ -47,9 +50,8 @@ impl<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> MyApp<
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let my_app = MyApp::new(IntervalRawData::new(), IntervalAggregateData::new());
-    //let my_app: MyApp<AdwinRawData> = MyApp::new(AdwinRawData::new());
-
+    let my_app: MyApp<IntervalRawData, IntervalAggregateData> = MyApp::new(IntervalRawData::new(), IntervalAggregateData::new());
+    //let my_app: MyApp<AdwinRawData, AdwinAggregateData> = MyApp::new(AdwinRawData::new(), AdwinAggregateData::new());
 
     let (rd_sender, hd_receiver) = channel::unbounded();
     let (timer_sender, mut raw_data_receiver) = mpsc::unbounded_channel::<&str>();
@@ -57,7 +59,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     let rt = Runtime::new().unwrap();
+
     let raw_data_thread = my_app.raw_data.clone();
+    let require_external_trigger = raw_data_thread.read().unwrap().requires_external_trigger();
 
     rt.spawn(async move {
         let stdin = io::stdin();
@@ -69,14 +73,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
                         raw_data_thread.write().unwrap().append_str(line);
+                        /*
+                        if !require_external_trigger {
+                            if let Some(cut_index) = raw_data_thread.write().unwrap().check_cut() {
+                                rd_sender.send(cut_index).unwrap();
+                            }
+                        }*/
                     } else {
                         // End of input or an error. You can break or handle it as needed.
                         break;
                     }
                 }, 
-                aggregate_signal = raw_data_receiver.recv(), if raw_data_thread.read().unwrap().requires_external_trigger() => {
+                aggregate_signal = raw_data_receiver.recv(), if require_external_trigger => {
                     if let Some(signal) = aggregate_signal{
-                        rd_sender.send("msg").unwrap();
+                        //re.sender must send data of same type (see cut_index above), if needs be can create ENUM to enscapsulate different type of message, for now its okay since interval message type not important
+                        rd_sender.send(0).unwrap();
                     }
                 },
                 point_means_result = rd_receiver.recv() => {
@@ -110,6 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         
         for message in hd_receiver {
+            //chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_chunk(message);
             chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_values();
             hd_sender.send(aggregate_thread_aggregate_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk));
         }
