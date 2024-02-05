@@ -313,3 +313,12 @@ Both interval and adwin share add, check, aggregate remove methods, so can creat
 Contention lie in where to but check condition in loop to accomodate both. 
 Interval loop require seperate branch to receive interval tick message from channel
 Adwin/Count don't require seperate branch as add and check condition method combined, thus for every add the check condition is called. 
+
+## 05-01-23
+Weirdest bug, on the strategy pattern when running the interval strategy if you zoom out at the start of runnning the program the aggregation is different to if don't zoom out
+Basically, upon running the program if you zoom out straight away the interval still works but it is not the same as not zoom out
+
+The key thing is both the aggregation means, both length, x mean and y mean of chunk are the exact same, thus it is to do with EGUI. 
+When zoom out straight away the plot contains less detail
+
+This also happens for the Adwin strategy pattern, the exact same problem with zooming in/out

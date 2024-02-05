@@ -48,7 +48,7 @@ impl AggregationStrategy for AdwinAggregateData {
         self.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() });
         self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() });
 
-        println!("\nThe sum is: {} The lenght is: {}, The y mean is {}", y_sum, y.len(), y_mean);
+        println!("\nThe sum is: {} The lenght is: {}, The y mean is {}, Thw x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
         (x_mean, y_mean, x.len())
     }

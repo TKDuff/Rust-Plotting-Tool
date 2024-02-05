@@ -86,6 +86,6 @@ impl DataStrategy for AdwinRawData {
     }
 
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-        self.points.clone().into_iter().collect()
+        self.points.clone()[..count + 1].to_vec()
     }
 }

@@ -50,8 +50,8 @@ impl<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> MyApp<
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let my_app: MyApp<IntervalRawData, IntervalAggregateData> = MyApp::new(IntervalRawData::new(), IntervalAggregateData::new());
-    //let my_app: MyApp<AdwinRawData, AdwinAggregateData> = MyApp::new(AdwinRawData::new(), AdwinAggregateData::new());
+    //let my_app: MyApp<IntervalRawData, IntervalAggregateData> = MyApp::new(IntervalRawData::new(), IntervalAggregateData::new());
+    let my_app: MyApp<AdwinRawData, AdwinAggregateData> = MyApp::new(AdwinRawData::new(), AdwinAggregateData::new());
 
     let (rd_sender, hd_receiver) = channel::unbounded();
     let (timer_sender, mut raw_data_receiver) = mpsc::unbounded_channel::<&str>();
@@ -73,12 +73,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
                         raw_data_thread.write().unwrap().append_str(line);
-                        /*
                         if !require_external_trigger {
                             if let Some(cut_index) = raw_data_thread.write().unwrap().check_cut() {
                                 rd_sender.send(cut_index).unwrap();
                             }
-                        }*/
+                        }
                     } else {
                         // End of input or an error. You can break or handle it as needed.
                         break;
@@ -121,8 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         
         for message in hd_receiver {
-            //chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_chunk(message);
-            chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_values();
+            chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_chunk(message);
             hd_sender.send(aggregate_thread_aggregate_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk));
         }
 
