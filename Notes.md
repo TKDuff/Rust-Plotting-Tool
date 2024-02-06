@@ -322,3 +322,14 @@ The key thing is both the aggregation means, both length, x mean and y mean of c
 When zoom out straight away the plot contains less detail
 
 This also happens for the Adwin strategy pattern, the exact same problem with zooming in/out
+
+## 06-01-23
+Split in the road reached, when instatiating 'my_app' with two genetics, MyApp<T,U> 3 possible specific types for each. So for DataStrategy there exists Count, Interval and Adwin.
+Thus Rust cannot infer specific types for the genric parameters in MyApp<T, U>, since three possible combinations each
+
+So the problem is, the user agrument for the type of strategy to be used, "count", "interval" or "adwin", is known at runtime. This run-time input means rust does not know the type of the generics at compile time, thus dynamic distpatch must be used. Dynamic dispatch allows for code that can operate on different types that implement a particular trait without knowing their concrete types at compile time
+
+For now will use dynamic dispatch, later try implement static dispatch for time saving, if can't to that use **enum_dispatch** - https://crates.io/crates/enum_dispatch
+check **DynamicDispatchTalk**
+
+Now using dynamic dispatch, matches user input 'count','adwin','interval' and instantite appropritate 'MyApp' with correct concrete types. Have to wrap in RW-Lock, ensuring thread safety 

@@ -38,27 +38,43 @@ use tokio::io::{self, AsyncBufReadExt, BufReader};
 use tokio::time::{self, Duration, Interval};
 use tokio::fs::File;
 use tokio::sync::mpsc;
+use std::env;
 
-struct MyApp<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> {
-    raw_data: Arc<RwLock<T>>,
-    aggregate_data: Arc<RwLock<U>>,
-    // other fields...
+
+struct MyApp {
+    raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
+    aggregate_data: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
 }
 
-impl<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> MyApp<T, U> {
-    pub fn new(raw_data: T, aggregate_data: U) -> Self {
-        Self {
-            raw_data: Arc::new(RwLock::new(raw_data)),
-            aggregate_data: Arc::new(RwLock::new(aggregate_data)),
-        }
+impl MyApp {
+    pub fn new(
+        raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
+        aggregate_data: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>
+    ) -> Self {
+        Self { raw_data, aggregate_data }
     }
 }
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    //let my_app: MyApp<IntervalRawData, IntervalAggregateData> = MyApp::new(IntervalRawData::new(), IntervalAggregateData::new());
-    //let my_app: MyApp<AdwinRawData, AdwinAggregateData> = MyApp::new(AdwinRawData::new(), AdwinAggregateData::new());
-    let my_app: MyApp<CountRawData, CountAggregateData> = MyApp::new(CountRawData::new(), CountAggregateData::new());
+    let args: Vec<String> = env::args().collect();
+
+    let my_app = match args.get(1).map(String::as_str) {
+        Some("adwin") => MyApp::new(
+            Arc::new(RwLock::new(AdwinRawData::new())),
+        Arc::new(RwLock::new(AdwinAggregateData::new())),
+        ),
+        Some("count") => MyApp::new(
+            Arc::new(RwLock::new(CountRawData::new())),
+        Arc::new(RwLock::new(CountAggregateData::new())),
+        ),
+        Some("interval") => MyApp::new(
+            Arc::new(RwLock::new(IntervalRawData::new())),
+        Arc::new(RwLock::new(IntervalAggregateData::new())),
+        ),
+        // ... other cases ...
+        _ => panic!("Invalid argument"),
+    };
 
     let (rd_sender, hd_receiver) = channel::unbounded();
     let (timer_sender, mut raw_data_receiver) = mpsc::unbounded_channel::<&str>();
@@ -146,7 +162,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 
-impl<T: DataStrategy + Send + Sync, U: AggregationStrategy + Send + Sync> App for MyApp<T, U>  {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
+impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
             ctx.set_visuals(Visuals::light());

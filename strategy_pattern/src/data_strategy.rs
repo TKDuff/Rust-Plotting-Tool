@@ -1,4 +1,4 @@
-pub trait DataStrategy {
+pub trait DataStrategy: Send + Sync {
     fn append_str(&mut self, line:String);
     fn get_raw_data(&self) -> Vec<[f64; 2]>;
     fn append_point(&mut self, x_value: f64, y_value: f64);
