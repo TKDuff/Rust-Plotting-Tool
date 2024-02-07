@@ -41,6 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let my_app = MyApp::default();
     let raw_data_thread = my_app.raw_data.clone();
 
+    
     rt.spawn(async move {
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
@@ -84,6 +85,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let downsampler_raw_data_thread = my_app.raw_data.clone();
     let downsampler_thread = my_app.historic_data.clone();
 
+
+    //- When bin combining works be sure to use seperate thread to make use of Rayon/SIMD
+
     let historic_data_handle = thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
@@ -107,7 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         time::sleep(Duration::from_secs(3600)).await; // Placeholder for long-running main task
     });
 
-    historic_data_handle.join().unwrap();
+    //historic_data_handle.join().unwrap();
 
     Ok(())
 }

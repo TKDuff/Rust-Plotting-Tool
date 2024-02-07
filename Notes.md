@@ -341,3 +341,6 @@ Started on looking into parsing command line arguments, will leave it until have
 
 
 
+See, I have an async task above that reads in the data stream and appends each point to the 'points' vector (remember the live un-aggregated data). It is async since when each point is added the length condition is checked and also if it receives aggregated point means from the aggregation thread it has to append them to the 'points' vector and remove the now aggregate chunk (drain the aggregated chunk from 'points'). So there are three things this thread does, append new values, check condition and drain the vector. Since reading/checking/removing are not CPU bound, make sense use async. For CPU bound tasks, would need dedicated thread
+
+Rayon is for crunching data in parallel. Tokio is for doing work concurrently - from Reddit
