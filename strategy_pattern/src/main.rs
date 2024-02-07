@@ -106,6 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         break;
                     }
                 }, 
+                //Look into removing this if adwin or count strategies are selected, leaving in for now to make progress
                 aggregate_signal = raw_data_receiver.recv(), if require_external_trigger => {
                     if let Some(signal) = aggregate_signal{
                         //re.sender must send data of same type (see cut_index above), if needs be can create ENUM to enscapsulate different type of message, for now its okay since interval message type not important

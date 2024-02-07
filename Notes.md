@@ -333,3 +333,6 @@ For now will use dynamic dispatch, later try implement static dispatch for time 
 check **DynamicDispatchTalk**
 
 Now using dynamic dispatch, matches user input 'count','adwin','interval' and instantite appropritate 'MyApp' with correct concrete types. Have to wrap in RW-Lock, ensuring thread safety 
+
+## 07-01-23
+Started on looking into parsing command line arguments, will leave it until have working bin combining. Use **clap**, see this https://github.com/clap-rs/clap
