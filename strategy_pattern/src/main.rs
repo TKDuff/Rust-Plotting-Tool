@@ -127,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         loop {
             interval.tick().await;
-            timer_sender.send("test");
+            timer_sender.send("should put something here");
         }
     });
 

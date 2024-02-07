@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
-
+//
 
 //cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/buffer_lttb/ && cargo run --bin buffer_lttb)
 //cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/buffer_test/ && cargo run --bin buffer_test)
