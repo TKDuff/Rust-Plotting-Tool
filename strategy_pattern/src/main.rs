@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Arc::new(RwLock::new(IntervalAggregateData::new())),
         ),
         // ... other cases ...
-        _ => panic!("Invalid argument"),
+        _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
     };
 
     let (rd_sender, hd_receiver) = channel::unbounded();
