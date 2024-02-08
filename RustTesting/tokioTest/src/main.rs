@@ -106,11 +106,6 @@ fn main() -> Result<(), eframe::Error> {
             let(raw_data_length, point_count) = message;
             chunk = downsampler_raw_data_thread.read().unwrap().get_chunk(point_count);
             hd_sender.send(downsampler_thread.write().unwrap().append_statistics(chunk, point_count));
-            /*
-            objective_length += 1;
-            if objective_length % 4 == 0 {
-                downsampler_thread.write().unwrap().combineBins();
-            }*/
         }
     });
 

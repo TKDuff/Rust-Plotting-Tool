@@ -126,12 +126,6 @@ impl AggregateData {
             let chunk_mean = chunk_sum / chunk_count as f64;
             tempBin.push( Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count, sum_square: chunk_sum_square } );
 
-            /*
-            println!("\n");
-            for bin in chunk {
-                print!("{},", bin.get_mean());
-            }*/
-
             //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
         });
 
