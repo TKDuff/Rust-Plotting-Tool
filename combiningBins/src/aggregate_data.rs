@@ -81,17 +81,12 @@ impl AggregateData {
             let mut merged_y_stats = self.merge_vector_bins(&self.y_stats[0..aggregate_count], 3, 0);
             self.y_stats.drain(0..aggregate_count);
 
-            println!("\nVector passed to merge function");
-            /*
-            for i in 0..self.x_stats[0..aggregate_count].len() {
-                print!("{}, ", self.x_stats[i].mean);
-            }
-            print!("\n");*/
+
 
             let mut merged_x_stats = self.merge_vector_bins(&self.x_stats[0..aggregate_count], 3, 1);
             self.x_stats.drain(0..aggregate_count);
 
-            println!("Merged Stats:\n");
+            println!("Merged Stats:");
             for i in 0..merged_x_stats.len() {
                 print!("{} ", merged_x_stats[i].get_mean());
             }
@@ -99,7 +94,7 @@ impl AggregateData {
             self.x_stats.splice(0..0, merged_x_stats);
             self.y_stats.splice(0..0, merged_y_stats);
             
-            println!("\nPost Drain");
+            println!("\nPost Drain: ");
             for i in 0..self.x_stats.len() {
                 print!("{}, ", self.x_stats[i].mean);
             }
@@ -131,10 +126,11 @@ impl AggregateData {
             let chunk_mean = chunk_sum / chunk_count as f64;
             tempBin.push( Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count, sum_square: chunk_sum_square } );
 
+            /*
             println!("\n");
             for bin in chunk {
                 print!("{},", bin.get_mean());
-            }
+            }*/
 
             //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
         });
