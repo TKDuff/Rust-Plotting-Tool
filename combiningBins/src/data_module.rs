@@ -17,7 +17,7 @@ impl StdinData {
 
         match values_result {
             Ok(values) => {
-                println!("{}", values[1]);
+                //println!("{}", values[1]);
                 self.append_points(values[0], values[1]);
             }
             Err(err) => {
