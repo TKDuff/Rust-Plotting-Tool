@@ -98,8 +98,8 @@ impl DownsampledData {
         self.y_stats.push(Bin { mean: y_mean, sum: y_sum, min: y.min(), max: y.max(), count: point_count });
         //println!("The sum is: {} The lenght is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
-        if(self.y_stats.len() % 10 == 0) {
-
+        if(self.y_stats.len() % 21 == 0) {
+            println!("Length {}", self.y_stats.len());
             print!("Pre drain/slice: ");
             for i in 0..self.x_stats.len() {
                 print!("{}, ", self.x_stats[i].mean);
@@ -107,8 +107,8 @@ impl DownsampledData {
             println!("\n");
 
 
-            let mut merged_y_stats = self.merge_vector_bins(&self.y_stats[0..aggregate_count], 3, 0);
-            let mut merged_x_stats = self.merge_vector_bins(&self.x_stats[0..aggregate_count], 3, 1);
+            let mut merged_y_stats = self.merge_vector_bins(&self.y_stats[0..aggregate_count], 2);
+            let mut merged_x_stats = self.merge_vector_bins(&self.x_stats[0..aggregate_count], 2);
 
             println!("Merged x Stats:");
             for i in 0..merged_x_stats.len() {
@@ -139,7 +139,7 @@ impl DownsampledData {
     }
 
 
-    pub fn merge_vector_bins(&self, bins: &[Bin], y: usize, cc: i32) -> Vec<Bin> {
+    pub fn merge_vector_bins(&self, bins: &[Bin], y: usize) -> Vec<Bin> {
         let mut tempBin: Vec<Bin> = Vec::new();
 
         

@@ -344,3 +344,21 @@ Started on looking into parsing command line arguments, will leave it until have
 See, I have an async task above that reads in the data stream and appends each point to the 'points' vector (remember the live un-aggregated data). It is async since when each point is added the length condition is checked and also if it receives aggregated point means from the aggregation thread it has to append them to the 'points' vector and remove the now aggregate chunk (drain the aggregated chunk from 'points'). So there are three things this thread does, append new values, check condition and drain the vector. Since reading/checking/removing are not CPU bound, make sense use async. For CPU bound tasks, would need dedicated thread
 
 Rayon is for crunching data in parallel. Tokio is for doing work concurrently - from Reddit
+
+Made some progress, got stuck on trying to debug via printing
+
+## 08-01-23
+Got basic bucketing working, basically "For every X-1 bins, combine every Y adjacent bins". The reason X-1 is that the last point is excluded in order to keep the plot consistent.
+I.E For every 10 (There are 11 bins in total) bins combine every 2 adjacent bins
+
+This is example output...
+" Pre drain/slice: 4.5, 14.5, 24.5, 34.5, 44.5, 54.5, 64.5, 74.5, 84.5, 94.5, 104.5, 
+Merged x Stats: 9.5 29.5 49.5 69.5 89.5 
+Post Drain: 9.5, 29.5, 49.5, 69.5, 89.5, 104.5"
+
+So went from 10 -> 5
+
+Problem is this process creates a **cyclical effect**, every time X bins added reduced then more Bins added until reach X and reduced again...
+10 -> 5 -> 10 ->5 -> 10....
+
+Done using Rust chunking, splits vector into chunks
