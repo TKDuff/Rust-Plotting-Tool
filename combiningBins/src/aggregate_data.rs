@@ -78,13 +78,15 @@ impl AggregateData {
             }
             println!("\n");
 
-            let merged_y_stats = self.merge_vector_bins(&self.y_stats[0..aggregate_count], 3, 0);
+            let mut merged_y_stats = self.merge_vector_bins(&self.y_stats[0..aggregate_count], 3, 0);
+            self.y_stats.drain(0..aggregate_count);
 
             println!("\nVector passed to merge function");
+            /*
             for i in 0..self.x_stats[0..aggregate_count].len() {
                 print!("{}, ", self.x_stats[i].mean);
             }
-            print!("\n");
+            print!("\n");*/
 
             let mut merged_x_stats = self.merge_vector_bins(&self.x_stats[0..aggregate_count], 3, 1);
             self.x_stats.drain(0..aggregate_count);
@@ -95,6 +97,7 @@ impl AggregateData {
             }
             
             self.x_stats.splice(0..0, merged_x_stats);
+            self.y_stats.splice(0..0, merged_y_stats);
             
             println!("\nPost Drain");
             for i in 0..self.x_stats.len() {
