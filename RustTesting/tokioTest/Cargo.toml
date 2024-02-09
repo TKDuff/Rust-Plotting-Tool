@@ -10,4 +10,4 @@ crossbeam = "0.8.2"
 eframe = "0.24.1"
 egui_plot = "0.24.1"
 statrs = "0.16.0"
-tokio = {versoin = "1.35.0", features = ["full"]}
+tokio = {version = "1.35.0", features = ["full"]}
