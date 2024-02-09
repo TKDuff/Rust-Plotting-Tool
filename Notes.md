@@ -361,4 +361,17 @@ So went from 10 -> 5
 Problem is this process creates a **cyclical effect**, every time X bins added reduced then more Bins added until reach X and reduced again...
 10 -> 5 -> 10 ->5 -> 10....
 
-Done using Rust chunking, splits vector into chunks
+
+Is not really 'for every X' more so 'every time N new points are added to reach X' since draining makes it cyclical, I.E X = 10, Y = 2 when 10 bins are added the total is reduced to 5, thus when 5 Bins are added it is reduced again. So instead of for every 10 it is 'every 5 Bins added to reach 10'
+
+**Aggregation Methods**
+* Fixed interval - you've mentioned - can be count or cyclical 
+* Time based - each bin timestamp, merge based on age threshold. bins older than a day could be merged into hourly summaries,bins older than a month into daily summaries.
+* Variance - lower variance bins can be merged more 'aggressively'.
+* Density - bins containing fewer data ponts get merged more aggressively.
+
+
+You just found out about dynamic binning, see this paper, **https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9671917**, seems more useful than ADWIN. However since you have interface won't be to hard to 
+implement, just have to create Data/Aggregation strategy conrete methods. Can do later, on the 17th of Feb
+
+Going to mock downsampling in python

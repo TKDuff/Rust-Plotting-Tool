@@ -67,12 +67,14 @@ impl Bin {
 pub struct DownsampledData {
     pub x_stats: Vec<Bin>,
     pub y_stats: Vec<Bin>,
+    pub objective_bin_count: usize,
 }
 impl DownsampledData {
     pub fn new() -> Self {
         Self { 
             x_stats: Vec::new(),
             y_stats: Vec::new(),
+            objective_bin_count: 0,
         }
     }
 
@@ -96,9 +98,10 @@ impl DownsampledData {
 
         self.x_stats.push(Bin { mean: x_mean, sum: x_sum, min: x.min(), max: x.max(), count: point_count });
         self.y_stats.push(Bin { mean: y_mean, sum: y_sum, min: y.min(), max: y.max(), count: point_count });
+        self.objective_bin_count+=1;
         //println!("The sum is: {} The lenght is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
-        if(self.y_stats.len() % 21 == 0) {
+        if(self.objective_bin_count % 11 == 0) {
             println!("Length {}", self.y_stats.len());
             print!("Pre drain/slice: ");
             for i in 0..self.x_stats.len() {
@@ -126,6 +129,8 @@ impl DownsampledData {
                 print!("{}, ", self.x_stats[i].mean);
             }
             println!("\n");
+
+            self.objective_bin_count= 0;
         }
 
         (x_mean, y_mean) //returned as replace aggregated chunk with with the average value, fills gap between two plots
