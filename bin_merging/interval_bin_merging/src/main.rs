@@ -11,6 +11,9 @@ use aggregation_strategy::AggregationStrategy;
 mod count_aggregation;
 use count_aggregation::CountAggregateData;
 
+mod bin;
+use bin::Bin;
+
 
 use std::thread;
 use eframe::{egui, NativeOptions, App}; 
@@ -104,12 +107,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     /*Asynchronous timer */
     rt.spawn(async move {
-        let Interval_duration = 5;
-        let mut interval = time::interval(Duration::from_secs(Interval_duration));
+        let interval_duration = 5;
+        let interval_duration_millis = interval_duration*1000;
+        let mut interval = time::interval(Duration::from_secs(interval_duration));
 
         loop {
             interval.tick().await;
-            async_interval_task_aggregate_accessor.read().unwrap().categorise_recent_bins(Interval_duration);
+            async_interval_task_aggregate_accessor.read().unwrap().categorise_recent_bins(interval_duration_millis as u128);
             //timer_sender.send("should put something here");
         }
     });
