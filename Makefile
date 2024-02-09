@@ -1,6 +1,9 @@
 cdirs = $(dir $(wildcard */Cargo.toml))
 
-all: $(cdirs)
+all: strategy_pattern/
+all: writer/
+
+allall: $(cdirs)
 
 $(cdirs):
 	cd $@ && cargo build
