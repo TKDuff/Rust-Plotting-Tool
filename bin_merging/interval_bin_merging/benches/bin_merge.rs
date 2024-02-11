@@ -9,7 +9,7 @@ fn benchmark_categorise_recent_bins(c: &mut Criterion) {
         let mut data = CountAggregateData::new();
         let mut rng = rand::thread_rng();
 
-        for i in 0..100 {
+        for i in 0..10000 {
             let random_mean: f64 = rng.gen();  
             data.x_stats.push( Bin {mean: random_mean , sum: 0.0 , min: 0.0, max: 0.0, count: 0, timestamp: 0 } );
             data.y_stats.push( Bin {mean: (random_mean*2.0) , sum: 0.0 , min: 0.0, max: 0.0, count: 0, timestamp: 0 } );

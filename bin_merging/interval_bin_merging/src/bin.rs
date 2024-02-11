@@ -16,4 +16,8 @@ impl Bin {
     pub fn get_timestamp(&self) -> u128{
         self.timestamp
     }
+
+    pub fn get_mean(&self) -> f64 {
+        self.mean
+    }
 }

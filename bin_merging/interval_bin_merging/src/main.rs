@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     /*Asynchronous timer */
     rt.spawn(async move {
-        let interval_duration = 1;
+        let interval_duration = 10;
         let interval_duration_millis = interval_duration*1000;
         let mut interval = time::interval(Duration::from_secs(interval_duration));
 

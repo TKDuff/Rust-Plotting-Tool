@@ -46,7 +46,7 @@ impl AggregationStrategy for CountAggregateData {
         self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len(), timestamp: timestamp });
 
         //println!("sum:{} length: {},y mean: {},x mean: {} timestamp: {}", y_sum, y.len(), y_mean, x_mean, timestamp);
-        println!("sum:{} length: {},y mean: {},x mean: {} timestamp: {}", x_sum, x.len(), x_mean, x_mean, timestamp);
+        println!("sum:{} length: {},mean_y: {}, mean_x:{} timestamp: {}", x_sum, x.len(), x_mean, x_mean, timestamp);
 
         (x_mean, y_mean, x.len())
     }
@@ -57,58 +57,74 @@ impl AggregationStrategy for CountAggregateData {
             .collect()
     }
 
-    /*
+    
     fn categorise_recent_bins(& mut self, seconds_interval: u128) {
+        if self.x_stats.is_empty() {
+            println!("x_stats is empty!");
+            return;
+        }
+           
 
         let length: usize = self.x_stats.len();
 
-        println!("The chunk length is :{}\n", (length - self.seconds_length));
-        self.seconds_length = length;
+        
+        let merged_x_stats = self.merge_vector_bins(&self.x_stats[self.seconds_length..length], 1);
+        let merged_y_stats = self.merge_vector_bins(&self.x_stats[self.seconds_length..length], 0);
 
-    }*/
 
-    fn categorise_recent_bins(& mut self, seconds_interval: u128) {
+        //self.x_stats.drain(self.seconds_length..length);
+        print!("\nPre drain: ");
+        for bin in &self.x_stats {
+            print!("{}, ", bin.get_mean());
+        }
 
-        let current_timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis();
-    
-    //println!("The current timestamp is: {}", current_timestamp);
+        self.x_stats.drain(self.seconds_length..length);
+        self.x_stats.splice(self.seconds_length..self.seconds_length, merged_x_stats);
 
-    let temp = self.x_stats.iter()
-        .filter(|bin| current_timestamp - bin.timestamp <= seconds_interval)
-        .cloned()
-        .collect::<Vec<Bin>>();
 
-    println!("Points collected to far {}", temp.len());
-    for bin in temp {
-        print!("{}, ", bin.get_timestamp());
+        print!("\nPost drain: ");
+        for bin in &self.x_stats {
+            print!("{}, ", bin.get_mean());
+        }
+        println!("\n");
+        println!("\nThe original length was {} the new lenght is {}", length, self.x_stats.len());
+        println!("\n");
+
+        self.seconds_length = self.x_stats.len();
     }
-    println!("\n");
-
-    }
     
 
-    
+    fn merge_vector_bins(&self, bins: &[Bin], c: i32) -> Vec<Bin> {
 
-    fn merge_vector_bins(&self, bins: &[Bin], y: usize) -> Vec<Bin> {
+        if( c== 1){   
+            print!("Pre merge:");
+            for bin in bins {
+                print!("{}, ", bin.get_mean());
+            }
+        }
+
         let mut tempBin: Vec<Bin> = Vec::new();
 
         
-        /*
-        bins.chunks(y).for_each(|chunk| {
+    
             // Calculate the sum and count for the current chunk
-            let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
-            let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
-            let chunk_min = chunk.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
-            let chunk_max = chunk.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
+            let chunk_count: usize = bins.iter().map(|bin| bin.count).sum();
+            let chunk_sum: f64 = bins.iter().map(|bin| bin.sum).sum();
+            let chunk_min = bins.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
+            let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
             let chunk_mean = chunk_sum / chunk_count as f64;
-            tempBin.push( Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count} );
+            tempBin.push( Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count, timestamp: 0} );
 
             //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
-        });
-        */
+
+            if( c== 1){   
+                print!("Post merge:");
+                for bin in &tempBin {
+                    print!("{}, ", bin.get_mean());
+                }
+            } 
+            println!("\n");
+        
         tempBin 
     }
 
