@@ -1,18 +1,6 @@
 #![allow(warnings)] //Remove warning, be sure to remove this
-mod data_strategy;
-use data_strategy::DataStrategy;
+use project_library::{CountAggregateData, CountRawData, AggregationStrategy, DataStrategy}; //no need import 'bin.rs' Bin struct as is not used directly by main
 
-mod count_data;
-use count_data::CountRawData;
-
-mod aggregation_strategy;
-use aggregation_strategy::AggregationStrategy;
-
-mod count_aggregation;
-use count_aggregation::CountAggregateData;
-
-mod bin;
-use bin::Bin;
 
 
 use std::thread;
@@ -82,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 rd_sender.send(cut_index).unwrap();
                             }
                         }
-                    } else {
+                    } else { 
                         // End of input or an error. You can break or handle it as needed.
                         break;
                     }
@@ -100,20 +88,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 },
             }
-        }
-    });
+        } 
+    }); 
 
     let async_interval_task_aggregate_accessor = my_app.aggregate_data.clone();
 
     /*Asynchronous timer */
     rt.spawn(async move {
-        let interval_duration = 5;
+        let interval_duration = 1;
         let interval_duration_millis = interval_duration*1000;
         let mut interval = time::interval(Duration::from_secs(interval_duration));
 
         loop {
             interval.tick().await;
-            async_interval_task_aggregate_accessor.read().unwrap().categorise_recent_bins(interval_duration_millis as u128);
+            async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins(interval_duration_millis as u128);
             //timer_sender.send("should put something here");
         }
     });

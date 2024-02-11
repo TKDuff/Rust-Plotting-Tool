@@ -91,7 +91,7 @@ fn main() -> Result<(), eframe::Error> {
                 },
             }
         }
-    });
+    }); 
 
     
     let downsampler_raw_data_thread = my_app.raw_data.clone();

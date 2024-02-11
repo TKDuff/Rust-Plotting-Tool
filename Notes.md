@@ -375,3 +375,58 @@ You just found out about dynamic binning, see this paper, **https://ieeexplore.i
 implement, just have to create Data/Aggregation strategy conrete methods. Can do later, on the 17th of Feb
 
 Going to mock downsampling in python
+
+## 09-01-23
+Implementing interval based bin merging. Command line argument is ./program S M H D, where each letter is a number corresponding to the # of bins merged in that interval. 
+So 2 4 6 would be merge 2 bins every second, merge 4 every minute and 6 every hour. 
+
+Now upon aggregation each bins is given unix timetstamp. Async timer ticks for interval. All bins whose unix time is within interval time merged. 
+So if tick every 5 seconds, for every bin if (current_TS - bin_TS <= 5) then merge the bins
+
+### Concurrency issue with overlapping timestamp...
+time interval for filtering includes bins that were processed at the boundary of this interval in both the current and the previous checks I.E
+
+```bash
+Bins in last 5 seconds = 1707488428, 1707488428, 1707488429, 1707488430, 1707488430, 1707488431, 1707488431, **1707488432**, 
+
+sum:3390 length: 20,y mean: 169.5,x mean: 169.5 timestamp: 1707488433
+sum:3790 length: 20,y mean: 189.5,x mean: 189.5 timestamp: 1707488433
+sum:4190 length: 20,y mean: 209.5,x mean: 209.5 timestamp: 1707488434
+sum:4590 length: 20,y mean: 229.5,x mean: 229.5 timestamp: 1707488434
+sum:4990 length: 20,y mean: 249.5,x mean: 249.5 timestamp: 1707488435
+sum:5390 length: 20,y mean: 269.5,x mean: 269.5 timestamp: 1707488436
+sum:5790 length: 20,y mean: 289.5,x mean: 289.5 timestamp: 1707488436
+sum:6190 length: 20,y mean: 309.5,x mean: 309.5 timestamp: 1707488437
+Points collected to far 9
+
+Bins in last 5 seconds = **1707488432**, 1707488433, 1707488433, 1707488434, 1707488434, 1707488435, 1707488436, 1707488436, 1707488437,
+```
+See how **1707488432** is included in both and also, **1707488434** appears twice
+
+If bins timestamp is exactly on the boundary 1707488432, it can be included in two back-to-back checks if no new bin has a timestamp to replace it in the interval.
+
+
+**Hack fix** exists by incresing the granularity of the interval, so instead of seconds do miliseconds. 
+**As program optmised**,will have to user better solution, for now sticking with to get mock up working
+One method is to give each bin a unique id, thus know when already processed bin included again
+
+
+## 11-01-23
+Monomorphization - look into that
+
+Looked into lib.rs and main.rs.
+
+Main.rs is for binary crates - project intended to compile into an executable program
+
+lib.rs serves as reference for traits/modules and enums you created used by main.rs. It does not contain executable code and is not a point of entry for the application to run.
+A project with only main.rs and lib.rs is a binary create, so just to execute not to be used by other developers
+A library crate is to be used by other devs, can be imported using cargo add, would be the crates you imported so far
+
+lib.rs keeps code organised with clear reference to what libraries used by main and is used for benchmarking with criterion. 
+Since you want to benchmark need to setup lib.rs
+
+You learned today that it is possible to have mutliple binary executbales in a rust project , can run different binaries based on command line arguments. You thought you could have a binary for each aggregation type, count, interval or adwin, but this means a different program for each type. 
+ **However** need single binary for full program to be ran in pipe with arguments, thus strategy pattern is still needed.
+
+Could have multiple binaries that the user runs, no argument needed to select aggregation type as it inherit in which binary is ran. This would be better in terms of performance, as can remove some redundant code.
+Not good approach for command line argumments

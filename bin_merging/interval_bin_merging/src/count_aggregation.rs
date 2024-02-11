@@ -7,6 +7,7 @@ use crate::bin::Bin;
 pub struct CountAggregateData {
     pub x_stats: Vec<Bin>,
     pub y_stats: Vec<Bin>,
+    pub seconds_length: usize,
 }
 
 impl CountAggregateData {
@@ -14,6 +15,7 @@ impl CountAggregateData {
         Self { 
             x_stats: Vec::new(),
             y_stats: Vec::new(),
+            seconds_length: 0,
         }
     }
 }
@@ -55,8 +57,19 @@ impl AggregationStrategy for CountAggregateData {
             .collect()
     }
 
-    fn categorise_recent_bins(&self, seconds_interval: u128) {
-    let current_timestamp = SystemTime::now()
+    /*
+    fn categorise_recent_bins(& mut self, seconds_interval: u128) {
+
+        let length: usize = self.x_stats.len();
+
+        println!("The chunk length is :{}\n", (length - self.seconds_length));
+        self.seconds_length = length;
+
+    }*/
+
+    fn categorise_recent_bins(& mut self, seconds_interval: u128) {
+
+        let current_timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_millis();
@@ -75,6 +88,9 @@ impl AggregationStrategy for CountAggregateData {
     println!("\n");
 
     }
+    
+
+    
 
     fn merge_vector_bins(&self, bins: &[Bin], y: usize) -> Vec<Bin> {
         let mut tempBin: Vec<Bin> = Vec::new();
