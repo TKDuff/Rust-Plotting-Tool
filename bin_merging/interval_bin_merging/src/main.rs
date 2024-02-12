@@ -92,9 +92,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } 
     }); 
 
-    let async_interval_task_aggregate_accessor = my_app.aggregate_data.clone();
+    let t1_async_interval_task_aggregate_accessor = my_app.aggregate_data.clone();
 
-    /*Asynchronous timer */
+    /*Asynchronous timers
+    For now using tokio async taks, will move to using full threads as vector merging is CPU bound, thus need threads. Async speed up development
+    First tier always decrement returned value by 1 for first tier of async task since wan't to keep first element to maintain plot consistency, from aggregate plot to raw data plot
+
+    Will have interval thread creation determined by user, for now hardcoded to get working. 
+    */
+    /*1st tier */
     rt.spawn(async move {
         let mut seconds_length = 0;
         let interval_duration = 1;
@@ -105,8 +111,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             interval.tick().await;
 
             //decrement returned value by 1 for first tier of async task since wan't to keep first element to maintain plot consistency, from aggregate plot to raw data plot
-            seconds_length = (async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins(interval_duration_millis as u128, seconds_length)) - 1;
-            
+            seconds_length = (t1_async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins(interval_duration_millis as u128, seconds_length)) - 1; 
+            println!("\n1 second tick");   
+        }
+    });
+
+    let t2_async_interval_task_aggregate_accessor = my_app.aggregate_data.clone();
+    /*2nd tier */
+    rt.spawn(async move {
+        let mut minute_length = 0;
+        let interval_duration = 10;
+        let interval_duration_millis = interval_duration*1000;
+        let mut interval = time::interval(Duration::from_secs(interval_duration));
+
+        loop {
+            interval.tick().await;
+            minute_length = t2_async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins_t2(interval_duration_millis as u128, minute_length);
         }
     });
 

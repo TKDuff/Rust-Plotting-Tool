@@ -44,7 +44,7 @@ impl AggregationStrategy for CountAggregateData {
         self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len(), timestamp: timestamp });
 
         //println!("sum:{} length: {},y mean: {},x mean: {} timestamp: {}", y_sum, y.len(), y_mean, x_mean, timestamp);
-        println!("sum:{} length: {},mean_y: {}, mean_x:{} timestamp: {}", x_sum, x.len(), x_mean, x_mean, timestamp);
+        //println!("sum:{} length: {},mean_y: {}, mean_x:{} timestamp: {}", x_sum, x.len(), x_mean, x_mean, timestamp);
 
         (x_mean, y_mean, x.len())
     }
@@ -87,11 +87,15 @@ impl AggregationStrategy for CountAggregateData {
         for bin in &self.x_stats {
             print!("{}, ", bin.get_mean());
         }
-        println!("\nThe original length was {} the new lenght is {}", length, self.x_stats.len());
-        println!("\n");
+        //println!("\nThe original length was {} the new lenght is {}", length, self.x_stats.len());
+        //println!("\n");
 
         //seconds_length = self.x_stats.len() - 1;
         self.x_stats.len() 
+    }
+
+    fn categorise_recent_bins_t2(& mut self, seconds_interval: u128, seconds_length: usize) -> usize {
+        return 0;
     }
     
 
