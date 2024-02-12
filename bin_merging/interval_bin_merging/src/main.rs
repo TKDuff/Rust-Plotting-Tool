@@ -1,4 +1,5 @@
 #![allow(warnings)] //Remove warning, be sure to remove this
+#![allow(dead_code, unused_variables)]
 use project_library::{CountAggregateData, CountRawData, AggregationStrategy, DataStrategy}; //no need import 'bin.rs' Bin struct as is not used directly by main
 
 
@@ -95,14 +96,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     /*Asynchronous timer */
     rt.spawn(async move {
-        let interval_duration = 10;
+        let mut seconds_length = 0;
+        let interval_duration = 1;
         let interval_duration_millis = interval_duration*1000;
         let mut interval = time::interval(Duration::from_secs(interval_duration));
 
         loop {
             interval.tick().await;
-            async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins(interval_duration_millis as u128);
-            //timer_sender.send("should put something here");
+
+            //decrement returned value by 1 for first tier of async task since wan't to keep first element to maintain plot consistency, from aggregate plot to raw data plot
+            seconds_length = (async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins(interval_duration_millis as u128, seconds_length)) - 1;
+            
         }
     });
 

@@ -7,7 +7,6 @@ use crate::bin::Bin;
 pub struct CountAggregateData {
     pub x_stats: Vec<Bin>,
     pub y_stats: Vec<Bin>,
-    pub seconds_length: usize,
 }
 
 impl CountAggregateData {
@@ -15,7 +14,6 @@ impl CountAggregateData {
         Self { 
             x_stats: Vec::new(),
             y_stats: Vec::new(),
-            seconds_length: 0,
         }
     }
 }
@@ -58,18 +56,18 @@ impl AggregationStrategy for CountAggregateData {
     }
 
     
-    fn categorise_recent_bins(& mut self, seconds_interval: u128) {
-        if self.x_stats.is_empty() {
+    fn categorise_recent_bins(& mut self, seconds_interval: u128, seconds_length: usize) -> usize {
+        /*You subtract 1 from the length of the bins vector to merge since you want to keep the final point in the plot consistent with the raw data*/
+        if self.x_stats.is_empty() || (self.x_stats.len() == 1) {
             println!("x_stats is empty!");
-            return;
+            return 1;
         }
            
-
         let length: usize = self.x_stats.len();
 
         
-        let merged_x_stats = self.merge_vector_bins(&self.x_stats[self.seconds_length..length], 1);
-        let merged_y_stats = self.merge_vector_bins(&self.x_stats[self.seconds_length..length], 0);
+        let merged_x_stats = self.merge_vector_bins(&self.x_stats[seconds_length..length - 1], 1);
+        let merged_y_stats = self.merge_vector_bins(&self.y_stats[seconds_length..length - 1], 0);
 
 
         //self.x_stats.drain(self.seconds_length..length);
@@ -78,19 +76,22 @@ impl AggregationStrategy for CountAggregateData {
             print!("{}, ", bin.get_mean());
         }
 
-        self.x_stats.drain(self.seconds_length..length);
-        self.x_stats.splice(self.seconds_length..self.seconds_length, merged_x_stats);
+        self.x_stats.drain(seconds_length..length - 1);
+        self.x_stats.splice(seconds_length..seconds_length, merged_x_stats);
+
+        self.y_stats.drain(seconds_length..length - 1);
+        self.y_stats.splice(seconds_length..seconds_length, merged_y_stats);
 
 
         print!("\nPost drain: ");
         for bin in &self.x_stats {
             print!("{}, ", bin.get_mean());
         }
-        println!("\n");
         println!("\nThe original length was {} the new lenght is {}", length, self.x_stats.len());
         println!("\n");
 
-        self.seconds_length = self.x_stats.len();
+        //seconds_length = self.x_stats.len() - 1;
+        self.x_stats.len() 
     }
     
 
@@ -123,7 +124,6 @@ impl AggregationStrategy for CountAggregateData {
                     print!("{}, ", bin.get_mean());
                 }
             } 
-            println!("\n");
         
         tempBin 
     }
