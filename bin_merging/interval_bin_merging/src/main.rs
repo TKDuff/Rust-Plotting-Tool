@@ -1,6 +1,7 @@
 #![allow(warnings)] //Remove warning, be sure to remove this
 #![allow(dead_code, unused_variables)]
-use project_library::{CountAggregateData, CountRawData, AggregationStrategy, DataStrategy}; //no need import 'bin.rs' Bin struct as is not used directly by main
+use eframe::epaint::Color32;
+use project_library::{AggregationStrategy, CountInitialAggregateTier, CountRawData, DataStrategy, TierData}; //no need import 'bin.rs' Bin struct as is not used directly by main
 
 
 
@@ -22,14 +23,16 @@ use std::env;
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     aggregate_data: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
+    second_tier_data: Arc<RwLock<TierData>>,
 }
 
 impl MyApp {
     pub fn new(
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
-        aggregate_data: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>
+        aggregate_data: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
+        second_tier_data: Arc<RwLock<TierData>>,
     ) -> Self {
-        Self { raw_data, aggregate_data }
+        Self { raw_data, aggregate_data, second_tier_data }
     }
 }
 
@@ -40,7 +43,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let my_app = match args.get(1).map(String::as_str) {
         Some("count") => MyApp::new(
             Arc::new(RwLock::new(CountRawData::new())),
-        Arc::new(RwLock::new(CountAggregateData::new())),
+            Arc::new(RwLock::new(CountInitialAggregateTier::new())),
+            Arc::new(RwLock::new(TierData::new())),
         ),
         // ... other cases ...
         _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
@@ -93,6 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }); 
 
     let t1_async_interval_task_aggregate_accessor = my_app.aggregate_data.clone();
+    let t2_async_interval_task_aggregate_accessor = my_app.second_tier_data.clone();
 
     /*Asynchronous timers
     For now using tokio async taks, will move to using full threads as vector merging is CPU bound, thus need threads. Async speed up development
@@ -102,31 +107,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     */
     /*1st tier */
     rt.spawn(async move {
+        let tickCount = 0;
         let mut seconds_length = 0;
-        let interval_duration = 1;
+        let interval_duration = 5;
         let interval_duration_millis = interval_duration*1000;
         let mut interval = time::interval(Duration::from_secs(interval_duration));
 
         loop {
             interval.tick().await;
 
-            //decrement returned value by 1 for first tier of async task since wan't to keep first element to maintain plot consistency, from aggregate plot to raw data plot
-            seconds_length = (t1_async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins(interval_duration_millis as u128, seconds_length)) - 1; 
-            println!("\n1 second tick");   
-        }
-    });
+            let x_merged_bin = t1_async_interval_task_aggregate_accessor.write().unwrap().merge_x();
+            let y_merged_bin = t1_async_interval_task_aggregate_accessor.write().unwrap().merge_y();
 
-    let t2_async_interval_task_aggregate_accessor = my_app.aggregate_data.clone();
-    /*2nd tier */
-    rt.spawn(async move {
-        let mut minute_length = 0;
-        let interval_duration = 10;
-        let interval_duration_millis = interval_duration*1000;
-        let mut interval = time::interval(Duration::from_secs(interval_duration));
+            t2_async_interval_task_aggregate_accessor.write().unwrap().push_x_bin_vec(x_merged_bin);
+            t2_async_interval_task_aggregate_accessor.write().unwrap().push_y_bin_vec(y_merged_bin);
 
-        loop {
-            interval.tick().await;
-            minute_length = t2_async_interval_task_aggregate_accessor.write().unwrap().categorise_recent_bins_t2(interval_duration_millis as u128, minute_length);
+            t1_async_interval_task_aggregate_accessor.write().unwrap().drain_x();
+
+            t2_async_interval_task_aggregate_accessor.read().unwrap().print_x_means();
+            println!("");
+            t2_async_interval_task_aggregate_accessor.read().unwrap().print_y_means();
+            println!("\nTick No. {}\n", tickCount);   
         }
     });
 
@@ -168,6 +169,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0);
             let historic_plot_line = Line::new(self.aggregate_data.read().unwrap().get_means()).width(2.0);
+            //let tierTwo = Line::new(self.second_tier_data.read().unwrap().get_means()).width(2.0).color(Color32::YELLOW);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
@@ -175,6 +177,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             plot.show(ui, |plot_ui| {
                 plot_ui.line(historic_plot_line);
                 plot_ui.line(raw_plot_line);
+                //plot_ui.line(tierTwo);
             });
 
         });
