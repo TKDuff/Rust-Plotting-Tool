@@ -22,7 +22,7 @@ impl Tier {
     }
 
     pub fn calculate_average(&self,  values: &[[f64;2]]) -> [f64; 2] {
-        println!("Getting avg of : {:?}", values);
+        //println!("Getting avg of : {:?}", values);
 
         let mut sum_x: f64 = 0.0;
         let mut sum_y: f64 = 0.0;
