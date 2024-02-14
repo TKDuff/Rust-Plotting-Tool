@@ -120,7 +120,7 @@ fn main() {
                 }
 
 
-                thread::sleep(Duration::from_millis(2000));
+                thread::sleep(Duration::from_millis(250));
 
             }
             
