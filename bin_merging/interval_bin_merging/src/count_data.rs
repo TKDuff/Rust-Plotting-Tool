@@ -50,6 +50,16 @@ impl DataStrategy for CountRawData {
     }
 
     fn remove_chunk(&mut self, count:usize, point_means: (f64, f64)) {
+        /*
+        As reminder, the raw data vector keeps reference as the calculated mean as the first element
+        - Done since maintain plot continuity from tier 1 vector to raw data 'points' vector
+        - I.E points = [A,B,C,D,E,F] then on merge points = [AE, F] and tier 1 = [AE]
+        - As plot, distinct where aggregate plot is, AE, and where new plot begins F. 
+        - To ensure conncted this creates a line from AE to F, think of as [AE -> AE -> F]
+        - Tier 1 only contains mean, no raw data, thus distinct in its purpose and last point in its plot is seen as mean
+        - More clarity than if Tier 1 was [AE, F] upon merge, that means second last element of vector is the actual mean
+        */
+        println!("Points mean x:{} y:{}", point_means.0, point_means.1);
         self.points[0] = [point_means.0, point_means.1];
         self.points.drain(1..count+1);
     }

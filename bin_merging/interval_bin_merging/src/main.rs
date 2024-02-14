@@ -116,6 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             interval.tick().await;
 
+            /*
             let x_merged_bin = t1_async_interval_task_aggregate_accessor.write().unwrap().merge_x();
             let y_merged_bin = t1_async_interval_task_aggregate_accessor.write().unwrap().merge_y();
 
@@ -127,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             t2_async_interval_task_aggregate_accessor.read().unwrap().print_x_means();
             println!("");
             t2_async_interval_task_aggregate_accessor.read().unwrap().print_y_means();
-            println!("\nTick No. {}\n", tickCount);   
+            println!("\nTick No. {}\n", tickCount);   */
         }
     });
 
@@ -169,7 +170,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0);
             let historic_plot_line = Line::new(self.aggregate_data.read().unwrap().get_means()).width(2.0);
-            //let tierTwo = Line::new(self.second_tier_data.read().unwrap().get_means()).width(2.0).color(Color32::YELLOW);
+            let tierTwo = Line::new(self.second_tier_data.read().unwrap().get_means()).width(2.0).color(Color32::YELLOW);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
@@ -177,7 +178,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             plot.show(ui, |plot_ui| {
                 plot_ui.line(historic_plot_line);
                 plot_ui.line(raw_plot_line);
-                //plot_ui.line(tierTwo);
+                plot_ui.line(tierTwo);
             });
 
         });
