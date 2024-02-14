@@ -36,6 +36,8 @@ fn main() {
     let t2_access = my_app.t2.clone();
     let t3_access = my_app.t3.clone();
 
+    t2_access.write().vec.push([0.0, 0.0]);
+    t1_access.write().vec.drain(0..1);
 
     let historic_data_handle = thread::spawn(move || {
         let mut x_increment = 1.0;
@@ -52,19 +54,21 @@ fn main() {
             73.0, 75.0, 79.0, 
             81.0, 83.0, 85.0, 
             88.0, 92.0, 95.0,
-            99.0, 102.0, 105.0,];
+            99.0, 102.0, 105.0,
+            ];
             
             for &num in nums.iter() {
                 x_increment = t1_access.write().push_float(num, x_increment);
 
-                if t1_access.read().get_length() == 5 {
+                if t1_access.read().get_length() == 4 {
                     println!("\nTIER 1 start");
                     let mut vec_len;
                     let t1_average;
+                    let t1_last_elem;
 
                     {
                         let t1_lock = t1_access.read();
-                        let vec_slice = &t1_lock.vec[1..t1_lock.vec.len() - 1];
+                        let vec_slice = &t1_lock.vec[0..t1_lock.vec.len() - 1];
                         t1_average = t1_lock.calculate_average(vec_slice);
                         vec_len = t1_lock.vec.len();
                     }
@@ -72,26 +76,33 @@ fn main() {
 
                     {
                         let mut t1_write = t1_access.write();
-                        t1_write.vec[0] = t1_average;
-                        t1_write.vec.drain(1..vec_len - 1);
+                        t1_write.vec.drain(0..vec_len - 1);
+                        t1_last_elem = t1_write.vec[0];
                     }
 
-                    t2_access.write().vec.push(t1_average);
+                    {
+                        let mut t2_write = t2_access.write();
+                        let length = t2_write.vec.len() - 1;
+                        t2_write.vec[length] = t1_average;
+                        t2_write.vec.push(t1_last_elem);
+                    }
+
                     println!("Tier 1 drain\nt1: {:?}\nt2: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y());
+                    
 
 
                 }
 
                 /*Keep in mind length first element of t2 is previous element of t3, thus subtract 1 from condition. I.E if merging when length 7, means every six bins added merge
-                When plotting it appears as every 5 bins then on the sixth bin the merge occurs*/ 
-                if t2_access.read().vec.len() == 4 {
+                When plotting it appears as every 5 bins then on the sixth bin the merge occurs*/
+                if t2_access.read().vec.len() == 5 {
                     println!("\nTIER 2 start");
                     let mut vec_len;
                     let t2_average;
 
                     {
                         let t2_lock = t2_access.read();
-                        let vec_slice = &t2_lock.vec[1..t2_lock.vec.len()];
+                        let vec_slice = &t2_lock.vec[1..t2_lock.vec.len()-1];
                         t2_average = t2_lock.calculate_average(vec_slice);
                         vec_len = t2_lock.vec.len();
                     }
@@ -106,13 +117,7 @@ fn main() {
                         let mut t2_write = t2_access.write();
                         t2_write.vec[0] = t2_average;
                         
-                        t2_write.vec.drain(1..vec_len);
-                    }
-
-
-                    {
-                        let mut t1_write = t1_access.write();
-                        t1_write.vec[0] = t2_average;
+                        t2_write.vec.drain(1..vec_len -1 );
                     }
 
 
@@ -120,7 +125,7 @@ fn main() {
                 }
 
 
-                thread::sleep(Duration::from_millis(2000));
+                thread::sleep(Duration::from_millis(500));
 
             }
             
