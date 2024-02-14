@@ -82,6 +82,8 @@ fn main() {
 
                 }
 
+                /*Keep in mind length first element of t2 is previous element of t3, thus subtract 1 from condition. I.E if merging when length 7, means every six bins added merge
+                When plotting it appears as every 5 bins then on the sixth bin the merge occurs*/ 
                 if t2_access.read().vec.len() == 4 {
                     println!("\nTIER 2 start");
                     let mut vec_len;
@@ -118,7 +120,7 @@ fn main() {
                 }
 
 
-                thread::sleep(Duration::from_millis(500));
+                thread::sleep(Duration::from_millis(2000));
 
             }
             
