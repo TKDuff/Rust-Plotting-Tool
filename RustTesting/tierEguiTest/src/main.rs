@@ -422,7 +422,7 @@ fn main() {
                 x_increment = t1_access.write().push_float(num, x_increment);
                 
                 
-                if t1_access.read().get_length() == 4 && t2_access.read().vec.is_empty() {
+                if t1_access.read().get_length() == 8 && t2_access.read().vec.is_empty() {
                     println!("Do an empty fill");
 
                     let mut vec_len;
@@ -454,7 +454,7 @@ fn main() {
                     }
                     println!("Tier 1 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y());
 
-                } else if t1_access.read().get_length() == 4 {
+                } else if t1_access.read().get_length() == 8 {
                     //println!("TIER 1 start {}", t1_count);
                     //t1_count +=1;
                     let mut vec_len;
@@ -487,7 +487,7 @@ fn main() {
 
                 /*Keep in mind length first element of t2 is previous element of t3, thus subtract 1 from condition. I.E if merging when length 7, means every six bins added merge
                 When plotting it appears as every 5 bins then on the sixth bin the merge occurs*/
-                if t2_access.read().vec.len() == 5 {
+                if t2_access.read().vec.len() == 8 {
                     //println!("TIER 2 start {}", t2_count);
                     //t2_count +=1;
                     let mut vec_len;
@@ -512,7 +512,37 @@ fn main() {
                 }
              
 
-                thread::sleep(Duration::from_millis(250));
+                if t3_access.read().vec.len() == 12 {
+                    println!("\nTIER 3 start {}", t3_count);
+                    t3_count +=1;
+                    let mut vec_len;
+                    let t3_average;
+
+                    {
+                        let t3_lock = t3_access.read();
+                        let vec_slice = &t3_lock.vec[1..t3_lock.vec.len()-1];
+                        t3_average = t3_lock.calculate_average(vec_slice);
+                        vec_len = t3_lock.vec.len();
+                    }
+                    //println!("Avg: {}", t3_average[1]);
+
+                    {
+                        let mut t4_write = t4_access.write();
+                        t4_write.vec.push(t3_average);
+                    }
+
+                    {
+                        let mut t3_write = t3_access.write();
+                        t3_write.vec[0] = t3_average;
+                        
+                        t3_write.vec.drain(1..vec_len -1 );
+                    }
+
+
+                    //println!("Tier 3 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
+                }                
+
+                thread::sleep(Duration::from_millis(500));
 
             }
             
