@@ -439,7 +439,7 @@ fn main() {
                         t2_write.vec.push(t1_last_elem);
                     }
 
-                    //println!("Tier 1 drain\nt1: {:?}\nt2: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y());
+                    println!("Tier 1 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(),t3_access.read().get_y());
                     
 
 
@@ -447,7 +447,7 @@ fn main() {
 
                 /*Keep in mind length first element of t2 is previous element of t3, thus subtract 1 from condition. I.E if merging when length 7, means every six bins added merge
                 When plotting it appears as every 5 bins then on the sixth bin the merge occurs*/
-                if t2_access.read().vec.len() == 8 {
+                if t2_access.read().vec.len() == 5 {
                     println!("TIER 2 start {}", t2_count);
                     t2_count +=1;
                     let mut vec_len;
@@ -474,9 +474,9 @@ fn main() {
                     }
 
 
-                    //println!("Tier 2 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y());
+                    println!("Tier 2 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y());
                 }
-
+                
                 if t3_access.read().vec.len() == 12 {
                     println!("\nTIER 3 start {}", t3_count);
                     t3_count +=1;
@@ -504,10 +504,10 @@ fn main() {
                     }
 
 
-                    //println!("Tier 3 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
-                }                
+                    println!("Tier 3 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
+                }               
 
-                thread::sleep(Duration::from_millis(50));
+                thread::sleep(Duration::from_millis(350));
 
             }
             
@@ -532,10 +532,17 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
     egui::CentralPanel::default().show(ctx, |ui| { 
         ctx.set_visuals(Visuals::light());
+
+        /*
+        let t2_line_co = if self.t2.read().vec.len() == 2 {
+            egui::Color32::GREEN
+        } else {
+            egui::Color32::BLUE
+        };*/
         
-        let t1_line = Line::new( self.t1.read().get_points()).width(2.0);
-        let t2_line = Line::new(self.t2.read().get_points()).width(2.0);
-        let t3_line = Line::new(self.t3.read().get_points()).width(2.0);
+        let t1_line = Line::new( self.t1.read().get_points()).width(2.0).color(egui::Color32::RED);
+        let t2_line = Line::new(self.t2.read().get_points()).width(2.0).color(egui::Color32::BLUE);
+        let t3_line = Line::new(self.t3.read().get_points()).width(2.0).color(egui::Color32::GREEN);
         let t4_line = Line::new(self.t4.read().get_points()).width(2.0);
 
         let plot = Plot::new("plot")
