@@ -20,6 +20,7 @@ struct MyApp {
     t2: Arc<RwLock<Tier>>,
     t3: Arc<RwLock<Tier>>,
     t4: Arc<RwLock<Tier>>,
+    t5: Arc<RwLock<Tier>>,
 }
 
 impl Default for MyApp {
@@ -29,6 +30,7 @@ impl Default for MyApp {
             t2: Arc::new(RwLock::new(Tier::new())),
             t3: Arc::new(RwLock::new(Tier::new())),
             t4: Arc::new(RwLock::new(Tier::new())),
+            t5: Arc::new(RwLock::new(Tier::new())),
 
         }
     }
@@ -41,11 +43,12 @@ fn main() {
     let t2_access = my_app.t2.clone();
     let t3_access = my_app.t3.clone();
     let t4_access = my_app.t4.clone();
+    let t5_access = my_app.t5.clone();
 
     //t3_access.write().vec.push([0.0, 0.0]);
     t2_access.write().vec.push([0.0, 0.0]);
     t1_access.write().vec.drain(0..1);
-    t4_access.write().vec.drain(0..1);
+    t5_access.write().vec.drain(0..1);
 
     let mut t1_count = 0;
     let mut t2_count = 0;
@@ -71,7 +74,7 @@ fn main() {
             for &num in nums.iter() {
                 x_increment = t1_access.write().push_float(num, x_increment);
                 println!("{}", num);
-                if t1_access.read().get_length() == 30 {
+                if t1_access.read().get_length() == 3 {
                     //println!("TIER 1 start {}", t1_count);
                     t1_count +=1;
 
@@ -100,29 +103,38 @@ fn main() {
                         t2_write.vec[length] = t1_average;
                         t2_write.vec.push(t1_last_elem);
                     }
-                    println!("Tier 1 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(),t3_access.read().get_y(), t4_access.read().get_y());        
+                    //println!("Tier 1 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(),t3_access.read().get_y(), t4_access.read().get_y());        
 
                 }
 
                 /*Keep in mind length first element of t2 is previous element of t3, thus subtract 1 from condition. I.E if merging when length 7, means every six bins added merge
                 When plotting it appears as every 5 bins then on the sixth bin the merge occurs*/
-                if t2_access.read().vec.len() == 10 {
+                if t2_access.read().vec.len() == 5 {
                     //println!("TIER 2 {}", t2_count);
                     process_tier(&t2_access, &t3_access);
-                    println!("Tier 2 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
+                    //println!("Tier 2 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
                 }
 
-                if t3_access.read().vec.len() == 6 {
+                if t3_access.read().vec.len() == 5 {
+                    println!("Pre Tier 3 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\nt5: {:?}\n\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y(), t5_access.read().get_y());
                     process_tier(&t3_access, &t4_access);
-                    println!("Tier 3 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
+                    println!("Tier 3 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\nt5: {:?}\n\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y(), t5_access.read().get_y());
                 }
 
-                if t4_access.read().vec.len() == 9 {
-                    let merged_t4_last_element = t4_access.write().merge_final_tier_vector_bins(3);
-                    println!("Got the point {:?}", merged_t4_last_element);
-                    println!("The first elem of t3 was {:?}", t3_access.read().vec[0]);
-                    t3_access.write().vec[0] = merged_t4_last_element;
-                    println!("Now the first elem of t3 is {:?}", t3_access.read().vec[0]);
+                
+                if t4_access.read().vec.len() == 5 {
+                    println!("Pre Tier 4 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\nt5: {:?}\n\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y(), t5_access.read().get_y());
+                    process_tier(&t4_access, &t5_access);
+                    println!("Tier 4 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\nt5: {:?}\n\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y(), t5_access.read().get_y());
+                }
+
+                
+                if t5_access.read().vec.len() == 9 {
+                    let merged_t5_last_element = t5_access.write().merge_final_tier_vector_bins(3);
+                    println!("Got the point {:?}", merged_t5_last_element);
+                    println!("The first elem of t4 was {:?}", t4_access.read().vec[0]);
+                    t4_access.write().vec[0] = merged_t5_last_element;
+                    println!("Now the first elem of t4 is {:?}", t4_access.read().vec[0]);
                 }
 
 
@@ -146,7 +158,7 @@ fn main() {
                     }
                 }           
 
-                thread::sleep(Duration::from_millis(1));
+                thread::sleep(Duration::from_millis(10));
 
             }
             
@@ -175,6 +187,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
             let t2_line = Line::new(self.t2.read().get_points()).width(2.0).color(egui::Color32::BLUE);
             let t3_line = Line::new(self.t3.read().get_points()).width(2.0).color(egui::Color32::GREEN);
             let t4_line = Line::new(self.t4.read().get_points()).width(2.0).color(egui::Color32::BROWN);
+            let t5_line = Line::new(self.t5.read().get_points()).width(2.0).color(egui::Color32::BLACK);
             
             
             let plot = Plot::new("plot")
@@ -185,6 +198,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
             plot_ui.line(t2_line);
             plot_ui.line(t3_line);
             plot_ui.line(t4_line);
+            plot_ui.line(t5_line);
         });
     });
     ctx.request_repaint();
