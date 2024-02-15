@@ -5018,31 +5018,6 @@ fn main() {
                 if t2_access.read().vec.len() == 10 {
                     //println!("TIER 2 {}", t2_count);
                     process_tier(&t2_access, &t3_access);
-                    /*
-                    t2_count +=1;
-                    let mut vec_len;
-                    let t2_average;
-
-                    {
-                        let t2_lock = t2_access.read();
-                        let vec_slice = &t2_lock.vec[1..t2_lock.vec.len()-1];
-                        t2_average = t2_lock.calculate_average(vec_slice);
-                        vec_len = t2_lock.vec.len();
-                    }
-                    //println!("Avg: {}", t2_average[1]);
-
-                    {
-                        let mut t3_write = t3_access.write();
-                        t3_write.vec.push(t2_average);
-                    }
-
-                    {
-                        let mut t2_write = t2_access.write();
-                        t2_write.vec[0] = t2_average;
-                        
-                        t2_write.vec.drain(1..vec_len -1 );
-                    }
-                    */
                     println!("Tier 2 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
                 }
 
@@ -5111,7 +5086,7 @@ fn main() {
                     println!("Tier 3 drain\nt1: {:?}\nt2: {:?}\nt3: {:?}\nt4: {:?}\n", t1_access.read().get_y(), t2_access.read().get_y(), t3_access.read().get_y(), t4_access.read().get_y());
                 } */             
 
-                thread::sleep(Duration::from_millis(50));
+                thread::sleep(Duration::from_millis(10));
 
             }
             

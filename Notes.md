@@ -430,3 +430,9 @@ You learned today that it is possible to have mutliple binary executbales in a r
 
 Could have multiple binaries that the user runs, no argument needed to select aggregation type as it inherit in which binary is ran. This would be better in terms of performance, as can remove some redundant code.
 Not good approach for command line argumments
+
+## 15-01-23
+Going to put tier merged value move outisde the tier.rs struct since 
+* single responsabilityprinciple say 'struct should have only one reason to change'. If tier changing its own vector along with other tiers vectors, it is taking on multiple responsabilies.
+* Keep them lously coupled, if one tier instance modifies another tier then they are tightly coupled. 
+* Moving value from one tier to another is dealing with data outside the tear ( data from higher and lowe tier) thus keep it outide the struct. 
