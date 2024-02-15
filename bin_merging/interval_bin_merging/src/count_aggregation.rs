@@ -2,23 +2,22 @@ use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
 use crate::aggregation_strategy::AggregationStrategy;
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::bin::Bin;
+use crate::tier::TierData;
 
 
-pub struct CountAggregateData {
-    pub x_stats: Vec<Bin>,
-    pub y_stats: Vec<Bin>,
+pub struct CountInitialAggregateTier {
+    pub data: TierData,
 }
 
-impl CountAggregateData {
+impl CountInitialAggregateTier {
     pub fn new() -> Self {
         Self { 
-            x_stats: Vec::new(),
-            y_stats: Vec::new(),
+            data: TierData::new(),
         }
     }
 }
 
-impl AggregationStrategy for CountAggregateData {
+impl AggregationStrategy for CountInitialAggregateTier {
 
     fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (f64, f64, usize) {
         //println!("\nAggregating this chunk {:?}", chunk);
@@ -40,8 +39,8 @@ impl AggregationStrategy for CountAggregateData {
             .as_millis();
         
 
-        self.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), timestamp: timestamp });
-        self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len(), timestamp: timestamp });
+        self.data.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), timestamp: timestamp });
+        self.data.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len(), timestamp: timestamp });
 
         //println!("sum:{} length: {},y mean: {},x mean: {} timestamp: {}", y_sum, y.len(), y_mean, x_mean, timestamp);
         //println!("sum:{} length: {},mean_y: {}, mean_x:{} timestamp: {}", x_sum, x.len(), x_mean, x_mean, timestamp);
@@ -49,6 +48,38 @@ impl AggregationStrategy for CountAggregateData {
         (x_mean, y_mean, x.len())
     }
 
+    fn get_means(&self) -> Vec<[f64; 2]> {
+        self.data.get_means()
+    }
+
+    fn merge_x(&self) -> Vec<Bin> {
+        if self.data.x_stats.is_empty() {
+            println!("Empty");
+            Vec::new() 
+        } else {
+        return self.data.merge_vector_bins(&self.data.x_stats[0..&self.data.x_stats.len()-1], 1);
+        }
+    }
+
+    fn merge_y(&self) -> Vec<Bin> {
+        if self.data.y_stats.is_empty() {
+            println!("Empty");
+            Vec::new() 
+        } else {
+        return self.data.merge_vector_bins(&self.data.y_stats[0..&self.data.y_stats.len()-1], 0);
+        }
+    }
+
+    fn drain_x(&mut self) {
+        if self.data.y_stats.is_empty() {
+            println!("Empty");
+        } else {
+            self.data.drain_x_vector(&self.data.x_stats.len()-1);
+        }
+    }
+
+
+    /*
     fn get_means(&self) -> Vec<[f64; 2]> {
         self.x_stats.iter().zip(self.y_stats.iter())
             .map(|(x, y)| [x.mean, y.mean]) // Assuming index 5 is the mean
@@ -130,7 +161,7 @@ impl AggregationStrategy for CountAggregateData {
             } 
         
         tempBin 
-    }
+    }*/
 
 
 }
