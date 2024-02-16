@@ -29,6 +29,10 @@ impl IntervalAggregateData {
             y_stats: Vec::new(),
         }
     }
+
+    pub fn get_x_stats_means(&self) -> Vec<f64> {
+        self.x_stats.iter().map(|bin| bin.mean).collect()
+    }
 }
 
 impl AggregationStrategy for IntervalAggregateData {
@@ -49,8 +53,10 @@ impl AggregationStrategy for IntervalAggregateData {
         self.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() });
         self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() });
 
-        println!("\nThe sum is: {} The lenght is: {}, The y mean is {}, Thw x mean is {}", y_sum, y.len(), y_mean, x_mean);
+        //println!("\nThe sum is: {} The lenght is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
+        println!("Thw x mean is {}", x_mean);
 
+        println!("tier 1: {:?}", self.get_x_stats_means());
         (x_mean, y_mean, x.len())
     }
 

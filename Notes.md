@@ -432,7 +432,23 @@ Could have multiple binaries that the user runs, no argument needed to select ag
 Not good approach for command line argumments
 
 ## 15-01-23
+Between tiers upon merging being empty (middle empty) or containing a reference to the last element of the previous tier and the first of the next tier (middle not empty) you choose the second option,
+**middle not empty** for three reasons
+1) Simpler to implement. **middle empty** had a two approaches for filling a tier, one method for if it is empty, another if it is not empty. This niche conditional merge fill would be cumbersome to implement, would need to to exist for every tier. **Middle non-empty** did not have the empty tier fill condition
+2) Since can merge in chunks can exist scenario where remainder bin after merging chunks. Say user wants to merge every 3 seconds in chunks of 2. If 9 bins occur in 3 seconds will have remainder of 1 bin, thus won't have an empty tier. This re-inforces that the empty bin is an edge case thus no point having the extra logic to support it.
+3) Visual purposes, with **middle empty** upon merging a tier the previous tier seems to 'subsume' the next tier i.e merged tier line replaced by previous tier. For the attached image imaging the green line (**t3**) consume to the blue line (**t2**)to reach the red line (**t1**). 
+
+![Alt text](Option2-t2NeverSingleValue.png)
+
+However plan to leave empty tier line, as is in image where t2 remaines even if it is empty. Done for visual clarity, know where t3 ends and t1 begins. 
+**Will have to look into this more**
+
+
+Today got working version of multiple tiers 
+
+
 Going to put tier merged value move outisde the tier.rs struct since 
 * single responsabilityprinciple say 'struct should have only one reason to change'. If tier changing its own vector along with other tiers vectors, it is taking on multiple responsabilies.
 * Keep them lously coupled, if one tier instance modifies another tier then they are tightly coupled. 
 * Moving value from one tier to another is dealing with data outside the tear ( data from higher and lowe tier) thus keep it outide the struct. 
+

@@ -8,6 +8,10 @@ impl IntervalRawData {
     pub fn new() -> Self {
         Self { points: vec![[0.0, 0.0]] }
     }
+
+    pub fn get_x(&self) -> Vec<f64> {
+        self.points.iter().map(|&arr| arr[0]).collect()
+    }
 }
 
 impl DataStrategy for IntervalRawData {
@@ -45,6 +49,7 @@ impl DataStrategy for IntervalRawData {
     fn remove_chunk(&mut self, count:usize, point_means: (f64, f64)) {
         self.points[0] = [point_means.0, point_means.1];
         self.points.drain(1..count+1);
+        println!("Raw data t0: {:?}\n",self.get_x());
     }
 
     fn check_cut(&self) -> Option<usize> {

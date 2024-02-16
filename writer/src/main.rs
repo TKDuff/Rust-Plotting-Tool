@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for result in rdr.deserialize() {
         let record: Record = result?;
         println!("{} {}", record.x_col, record.y_col);
-        thread::sleep(Duration::from_millis(300));
+        thread::sleep(Duration::from_millis(600));
     }
 
     Ok(())

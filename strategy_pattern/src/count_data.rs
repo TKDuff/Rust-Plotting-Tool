@@ -8,7 +8,7 @@ pub struct CountRawData {
 impl CountRawData {
     pub fn new() -> Self {
         Self { 
-            points_count: 20,
+            points_count: 1,
             points: vec![[0.0, 0.0]]
         }
     }
