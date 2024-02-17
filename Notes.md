@@ -435,7 +435,7 @@ Not good approach for command line argumments
 Between tiers upon merging being empty (middle empty) or containing a reference to the last element of the previous tier and the first of the next tier (middle not empty) you choose the second option,
 **middle not empty** for three reasons
 1) Simpler to implement. **middle empty** had a two approaches for filling a tier, one method for if it is empty, another if it is not empty. This niche conditional merge fill would be cumbersome to implement, would need to to exist for every tier. **Middle non-empty** did not have the empty tier fill condition
-2) Since can merge in chunks can exist scenario where remainder bin after merging chunks. Say user wants to merge every 3 seconds in chunks of 2. If 9 bins occur in 3 seconds will have remainder of 1 bin, thus won't have an empty tier. This re-inforces that the empty bin is an edge case thus no point having the extra logic to support it.
+2) Since can merge in chunks can exist scenario where remainder bin after merging chunks. Say user wants to merge every 3 seconds in chunks of 2. If 9 bins occur in 3 seconds will have remainder of 1 bin, thus won't have an empty tier. This re-inforces that the empty bin is an edge case thus no point having the extra logic to support it
 3) Visual purposes, with **middle empty** upon merging a tier the previous tier seems to 'subsume' the next tier i.e merged tier line replaced by previous tier. For the attached image imaging the green line (**t3**) consume to the blue line (**t2**)to reach the red line (**t1**). 
 
 ![Alt text](Option2-t2NeverSingleValue.png)
@@ -452,3 +452,52 @@ Going to put tier merged value move outisde the tier.rs struct since
 * Keep them lously coupled, if one tier instance modifies another tier then they are tightly coupled. 
 * Moving value from one tier to another is dealing with data outside the tear ( data from higher and lowe tier) thus keep it outide the struct. 
 
+## 17-01-23
+As of now another fork in the road, when chunking do I include or exclude the remainder points?
+For **count** you have the logic "for every X elements added merged in chunks of Y",so in the case when X = 8, Y = 3 there is a remainder of 2
+I.E  vec =[1, 2, 3, 4, 5, 6, 7, 8] and the chunk_size = 3 results in ...
+[1, 2, 3]
+[4, 5, 6]
+[7, 8]
+
+For **interval** it is less specific, 'for every X unit time, merge Y chunks', however scenario above still exists
+
+Should I include [7,8] in the chunked vector? So merge [7,8] or should I move it back to the raw data vector
+Two merging approaches have different options:
+* **Count** : User explicity states the length for merging, they know that there is a remainder of 2 but still decide to chunk in that manner, so **should chunk remainder even if not chunk size**
+* **Interval**: User doesn't say length, only resulting chunks size. If user makes Y = 3 and at unit second X = 8, remainder 2 is not user specified size of 3, **thus should move it back to R.D**
+
+~~### Solution - Move remainder back to R.D in both scenarios ~~
+When the user says 'for every X elements, merge in chunks of Y' they explicity want chunks of 'Y'. If Y =3  they don't want a chunk of 2, they stated they want chunks of 3 only, thus it makes sense to push the remaining 2 to the R.D vector
+
+### Chane of mind - Don't move remainder back
+Logically for interval merging does not make sense to move remainder elements to higher tier they came from. 
+As in, if moving all raw elements from R.D to catch all chunk every 5 seconds, that means all the elements in C.A vector older than 5 seconds and elements in R.D younger than 5 second
+
+If at unit time 5 the R.D vector is [1,2,3,4,5,6,7,8] then all the points in R.D are older than 5 seconds, thus it makes sense to move them to the C.A vector.
+Now if Y = 3, the remaining points of CA are [7,8]. If I move them back to R.D then R.D would contain points older than 5 seconds, thus **breaking its rule that it contains points collected in the last 5 seconds**. Hence it makes sense for interval to contain the remaining chunk
+
+What about count? When the user says 'for every X elements, merge in chunks of Y' they explicity want chunks of 'Y'. If Y =3  they don't want a chunk of 2, they stated they want chunks of 3 only, thus it makes sense to push the remaining 2 to the R.D vector. 
+### Solution for now is to include remainder chunk, the user knows there will be a remainder when they specified the treshold and size, thus they should prepare for that. 
+
+Main goal is to keep interval and count logic the same. So will merge reaminder values and keep it in chunk
+
+### Look into 
+1) **fixed size chunks** 'For every X bins added merge into chunk of Y bins' &#x2611; 
+2) **fixed number of resulting chunks** 'For every X points added merge elements into chunks resulting in Y bins'
+
+OPtion 2 more user friendly, user knows number of resutling bins upon each merge, even if they have a varied number of points. In fact, only last bin will have varied number of bins, rest will have same number. 
+Say X = 15 and Y = 4, so for every 15 bins merge them in a way to result in 4 bins, that means the first 3 bins are made up of 4 bins and the last contains only 3. So the uniformity still exists
+Option 2. 
+* for count intuitive that for every X points I want Y points as a result, users knows clearly there will be a remainder
+* for interval since user never knows the number of bins, so X of a vector, counter-productive to make them specify the chunk size. It is impossible for them to know the right chunk size to divide evenly
+.Specifying the resulting bins every interval gives them more control, they are gauranteed the number of bins
+
+Since the rate at which data comes in varies, is better to go with option 1. Say in minute t2 obtains 1240 points then in next minute t2 only obtains 50. If both 1450 and 50 both represented by 4 points, then it is not consistent. **However if in both cases if chunks of 5 are used, then can see varying lengths of each t2 scaled down**, 1240 => 248 and 50 => 10
+
+### Make fixed size resulting bins an option later, useful when rate at which data comes in is fixed.  
+Fixed resulting bins makes more sense for count, since size of X does not vary. In order to code and commandline consistency will go with fixed size chunks for now
+
+So have decied
+- Chunk size is fixed, thus number of resutling chunks varies. Done to maintain plot consistency when number of bins per interval varies. Can look into fixed resulting bins later
+- Going to keep final merged chunk even if not specified chunk size. So if Y = 4 and X = 15 going to just merge last 3 bins

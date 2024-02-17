@@ -1,4 +1,6 @@
 use std::mem;
+use eframe::epaint::mutex::RwLock;
+use std::sync::Arc;
 
 pub struct Tier {
     pub vec: Vec<[f64;2]>,
@@ -44,7 +46,9 @@ impl Tier {
         self.vec.iter().map(|&arr| arr[1]).collect()
     }
 
+    /*
     pub fn merge_final_tier_vector_bins(&mut self, y: usize) -> [f64; 2] {
+        println!("For the chunk {:?}", self.get_points());
         let mut tempBin: Vec<[f64; 2]> = Vec::new();
     
         // Iterate over the vector in chunks
@@ -69,6 +73,43 @@ impl Tier {
         self.vec[self.vec.len()-1]
     
         // You can now use tempBin for further processing
+    }*/
+
+
+    pub fn merge_final_tier_vector_bins_edge(&mut self, y: usize, length: usize, catch_all: &Arc<RwLock<Tier>>,)/* -> [f64; 2]*/ {
+
+        let mut tempBin: Vec<[f64; 2]> = Vec::new();
+        
+        let selfVec = &self.vec;
+        catch_all.write().vec.extend(selfVec);
+        self.vec.drain(..length-1);
+        let catch_all_length = catch_all.read().vec.len() - 1; //remember we exclude the final point of the catch all, it is the first element in the raw data vector
+
+        println!("Catch all: {:?}", catch_all.read().get_y());
+        println!("Catch all length: {:?}", catch_all.read().get_y().len());
+        println!("R.D {:?}", self.get_y());
+
+        
+        catch_all.read().vec[0..catch_all_length].chunks(y).for_each(|chunk| {
+            let (sum_x, sum_y, count) = chunk.iter().fold((0.0, 0.0, 0), |(acc_x, acc_y, acc_count), &elem| {
+                (acc_x + elem[0], acc_y + elem[1], acc_count + 1)
+            });
+    
+            // Calculate the mean for x and y
+            let mean_x = sum_x / count as f64;
+            let mean_y = sum_y / count as f64;
+    
+            // Push the mean values to tempBin
+            tempBin.push([mean_x, mean_y]);
+
+            println!("Chunk mean: y = {}", mean_y);
+        });
+
+        catch_all.write().vec.drain(0..catch_all_length);
+        catch_all.write().vec.splice(0..0, tempBin);
+
+
+
     }
 
 } 
