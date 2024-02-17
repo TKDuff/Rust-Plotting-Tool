@@ -76,13 +76,14 @@ fn main() {
             if !should_halt_clone.load(Ordering::SeqCst) {
                 x_increment = rd_acess.write().push_float(num, x_increment);
                 
-
+                /*
+                If you just want R.D and catch all chunk, uncomment this, then comment from line 86 to 140. On tier.rs uncomment 'merge_final_tier_vector_bins_edge()'
                 if rd_acess.read().vec.len() == 100 {
                     rd_acess.write().merge_final_tier_vector_bins_edge(10, 100, &t3_access);
                     println!("\n");
-                }
+                }*/
 
-                /*
+                
                 if rd_acess.read().get_length() == 5 {
                     //println!("TIER 1 start {}", rd_count);
 
@@ -113,10 +114,10 @@ fn main() {
                     }
                     println!("Raw data Merge\nrd: {:?}\nt1: {:?}\nt2: {:?}\nt3: {:?}\n", rd_acess.read().get_y(), t1_access.read().get_y(),t2_access.read().get_y(), t3_access.read().get_y());        
 
-                }*/
+                }
 
                 /*Keep in mind length first element of t1 is previous element of t2, thus subtract 1 from condition. I.E if merging when length 7, means every six bins added merge
-                When plotting it appears as every 5 bins then on the sixth bin the merge occurs
+                When plotting it appears as every 5 bins then on the sixth bin the merge occurs*/
                 if t1_access.read().vec.len() == 5 {
                     //println!("TIER 2 {}", t1_count);
                     process_tier(&t1_access, &t2_access);
@@ -135,7 +136,7 @@ fn main() {
                     println!("The first elem of t2 was {:?}", t2_access.read().vec[0]);
                     t2_access.write().vec[0] = merged_t3_last_element;
                     println!("Now the first elem of t2 is {:?}", t2_access.read().vec[0]);
-                }*/
+                }
 
 
                 pub fn process_tier(current_tier: &Arc<RwLock<Tier>>, previous_tier: &Arc<RwLock<Tier>>) {

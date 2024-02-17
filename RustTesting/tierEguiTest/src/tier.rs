@@ -46,7 +46,7 @@ impl Tier {
         self.vec.iter().map(|&arr| arr[1]).collect()
     }
 
-    /*
+    
     pub fn merge_final_tier_vector_bins(&mut self, y: usize) -> [f64; 2] {
         println!("For the chunk {:?}", self.get_points());
         let mut tempBin: Vec<[f64; 2]> = Vec::new();
@@ -73,9 +73,9 @@ impl Tier {
         self.vec[self.vec.len()-1]
     
         // You can now use tempBin for further processing
-    }*/
+    }
 
-
+    /*
     pub fn merge_final_tier_vector_bins_edge(&mut self, y: usize, length: usize, catch_all: &Arc<RwLock<Tier>>,)/* -> [f64; 2]*/ {
 
         let mut tempBin: Vec<[f64; 2]> = Vec::new();
@@ -110,6 +110,6 @@ impl Tier {
 
 
 
-    }
+    }*/
 
 } 
