@@ -1,20 +1,6 @@
 use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
 use crate::aggregation_strategy::AggregationStrategy;
-
-#[derive(Clone, Default)] //allow deriving clones
-pub struct Bin {
-    pub mean: f64,
-    pub sum: f64,
-    pub min: f64,
-    pub max: f64,
-    pub count: usize,
-}
-
-impl Bin {
-    fn print(&self) {
-        println!("Mean {}\nSum {}\n Min {}\nMax {}\nCount {}",self.mean, self.sum, self.min, self.max, self.count);
-    }
-}
+use crate::bin::Bin;
 
 pub struct CountAggregateData {
     pub x_stats: Vec<Bin>,
@@ -37,8 +23,8 @@ impl AggregationStrategy for CountAggregateData {
         let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
 
 
-        let mut x = Data::new(x_vec.clone());   
-        let mut y = Data::new(y_vec.clone());
+        let x = Data::new(x_vec.clone());   
+        let y = Data::new(y_vec.clone());
 
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
@@ -49,7 +35,7 @@ impl AggregationStrategy for CountAggregateData {
         self.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() });
         self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() });
 
-        println!("The sum is: {} The lenght is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
+        println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
         (x_mean, y_mean, x.len())
     }

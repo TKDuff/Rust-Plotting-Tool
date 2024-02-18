@@ -1,16 +1,6 @@
 
 #![allow(warnings)] //Remove warning, be sure to remove this
-mod data_strategy;
-use data_strategy::DataStrategy;
-
-mod count_data;
-use count_data::CountRawData;
-
-mod aggregation_strategy;
-use aggregation_strategy::AggregationStrategy;
-
-mod count_aggregation;
-use count_aggregation::CountAggregateData;
+use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData}; //no need import 'bin.rs' Bin struct as is not used directly by main
 
 
 use std::thread;
@@ -27,18 +17,21 @@ use tokio::fs::File;
 use tokio::sync::mpsc;
 use std::env;
 
+use std::time::{ Instant};
+
 
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
-    aggregate_data: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
+    aggregate_data_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
 }
 
 impl MyApp {
+
     pub fn new(
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
-        aggregate_data: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>
+        aggregate_data_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>
     ) -> Self {
-        Self { raw_data, aggregate_data }
+        Self { raw_data, aggregate_data_tier }
     }
 }
 
@@ -55,6 +48,78 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
     };
 
+    let rt = Runtime::new().unwrap();
+    let raw_data_thread = my_app.raw_data.clone();
+
+    rt.spawn(async move {
+        let stdin = io::stdin();
+        let reader = BufReader::new(stdin);
+        let mut lines = reader.lines();
+        
+        loop {
+            tokio::select! {
+                line = lines.next_line() => {
+                    if let Ok(Some(line)) = line {
+                        raw_data_thread.write().unwrap().append_str(line);
+                        //println!("Line");
+                    } else {
+                        break;
+                    }
+                }, 
+            }
+        }
+    });
+    
+    let raw_data_check_thread = my_app.raw_data.clone();
+    
+    let t = thread::spawn(move || {
+        let mut last_call_time = Instant::now();
+        let mut interval_count = 0;
+        let mut test = false;
+        
+        loop {
+            // Check if a new second has passed
+            let second_passed = last_call_time.elapsed().as_secs() == 1;
+            let chunk_ready = raw_data_check_thread.write().unwrap().check_cut(); // Poll check_cut
+
+            if second_passed {
+                last_call_time = Instant::now();
+                test = false;
+                interval_count += 1;
+            }
+
+            //if a second has passed or if have to cut the raw data vector
+            if (second_passed || chunk_ready.is_some()) && !test{
+                priority_merge_dispatcher(interval_count, chunk_ready);  
+                test = true;
+            }
+
+        }
+    });
+
+
+    pub fn priority_merge_dispatcher(elapsed: u64, index: Option<usize>) {
+        if elapsed % 1 == 0 {
+            println!("Merging for Tier 1 {}", elapsed);
+        }
+
+         if elapsed % 4 == 0 {
+            println!("Merging for Tier 2 {}", elapsed);
+        }
+    }
+
+    
+    let native_options = NativeOptions{
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "My egui App",native_options,Box::new(move |_|{Box::new(my_app)}),
+    );
+
+
+
+    /*
     let (rd_sender, hd_receiver) = channel::unbounded();
     let (timer_sender, mut raw_data_receiver) = mpsc::unbounded_channel::<&str>();
     let (hd_sender, mut rd_receiver) = tokio::sync::mpsc::unbounded_channel::<(f64, f64, usize)>();
@@ -89,19 +154,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 aggregate_signal = raw_data_receiver.recv(), if require_external_trigger => {
                     if let Some(signal) = aggregate_signal{
                         //re.sender must send data of same type (see cut_index above), if needs be can create ENUM to enscapsulate different type of message, for now its okay since interval message type not important
-                        rd_sender.send(0).unwrap();
+                        //rd_sender.send(0).unwrap();
                     }
                 },
+                /*May not need this anymore...
+                - With tiered approach initial aggregation tier keeps reference to first element of raw data vector
                 point_means_result = rd_receiver.recv() => {
                     if let Some((x_mean, y_mean, len)) = point_means_result {
                         raw_data_thread.write().unwrap().remove_chunk(len, (x_mean, y_mean));
                     }
-                },
+                },*/
             }
         }
     });
 
-    /*Asynchronous timer */
+    /*Asynchronous timer
+    - Nessecary as the tokio loop reads from standard input, which is a blocking task
+    - Upon checking, may not be necessary, thus don't need 'aggregate_signal'*/
     rt.spawn(async move {
         let mut interval = time::interval(Duration::from_secs(1));
 
@@ -113,31 +182,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
-    let aggregate_thread_aggregate_data_accessor = my_app.aggregate_data.clone();
+    let aggregate_thread_aggregate_data_accessor = my_app.aggregate_data_tier.clone();
 
     
     //Aggregate points thread
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
-
         
-        for message in hd_receiver {
-            chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_chunk(message);
-            hd_sender.send(aggregate_thread_aggregate_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk));
+        for chunk in hd_receiver {
+            //chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_chunk(message);
+            println!("Processing the chunk: {:?}\n", chunk);
+            aggregate_thread_aggregate_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk);
+            //hd_sender.send(aggregate_thread_aggregate_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk));
         }
 
     });
 
-
+    /*
     let native_options = NativeOptions{
         ..Default::default()
     };
 
     eframe::run_native(
         "My egui App",native_options,Box::new(move |_|{Box::new(my_app)}),
-    );
+    );*/
 
+    Ok(())*/
     Ok(())
 }
 
@@ -148,7 +219,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             ctx.set_visuals(Visuals::light());
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0);
-            let historic_plot_line = Line::new(self.aggregate_data.read().unwrap().get_means()).width(2.0);
+            let historic_plot_line = Line::new(self.aggregate_data_tier.read().unwrap().get_means()).width(2.0);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
@@ -162,8 +233,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
         ctx.request_repaint();
     }
 }
-
-//cargo run --bin writer | (cd /home/thomas/FinalYearProject/online-graph/strategy_pattern/ && cargo run --bin strategy_pattern)
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window

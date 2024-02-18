@@ -7,9 +7,11 @@ pub struct CountRawData {
 
 impl CountRawData {
     pub fn new() -> Self {
-        Self { 
-            points_count: 1,
-            points: vec![[0.0, 0.0]]
+        Self {
+
+            //When set to 10 ecluding the last point, as that is kept for plot consistency
+            points_count: 1000,
+            points: Vec::new(),//vec![[0.0, 0.0]]
         }
     }
 
@@ -55,7 +57,7 @@ impl DataStrategy for CountRawData {
     }
 
     fn check_cut(&self) -> Option<usize> {
-        if (self.points.len() - 1) % self.points_count == 0 {
+        if self.points.len() != 0 && (self.points.len() - 1) % self.points_count == 0 {
             return Some(self.points.len() -1 )
         } else {
             None
