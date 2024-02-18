@@ -10,7 +10,7 @@ impl CountRawData {
         Self {
 
             //When set to 10 ecluding the last point, as that is kept for plot consistency
-            points_count: 1000,
+            points_count: 5,
             points: Vec::new(),//vec![[0.0, 0.0]]
         }
     }
@@ -56,15 +56,17 @@ impl DataStrategy for CountRawData {
         self.points.drain(1..count+1);
     }
 
-    fn check_cut(&self) -> Option<usize> {
+    fn check_cut(&self) -> Option<Vec<[f64;2]>> {
         if self.points.len() != 0 && (self.points.len() - 1) % self.points_count == 0 {
-            return Some(self.points.len() -1 )
+            //return Some(self.points.len() -1 )
+            return Some(self.points[1..self.points.len()].to_vec())
         } else {
             None
         }
     }
 
-    fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-        self.points[1..count+1].to_vec()
-    }
+    
+    // fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
+    //     self.points[1..count+1].to_vec()
+    // }
 }

@@ -16,9 +16,8 @@ use tokio::time::{self, Duration, Interval};
 use tokio::fs::File;
 use tokio::sync::mpsc;
 use std::env;
-
 use std::time::{ Instant};
-
+use rayon::{prelude::*, ThreadPool};
 
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
@@ -48,6 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
     };
 
+    
     let rt = Runtime::new().unwrap();
     let raw_data_thread = my_app.raw_data.clone();
 
@@ -69,10 +69,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     });
-    
+
+    rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
     let raw_data_check_thread = my_app.raw_data.clone();
+    let agg_data_access = my_app.aggregate_data_tier.clone();
     
     let t = thread::spawn(move || {
+        
         let mut last_call_time = Instant::now();
         let mut interval_count = 0;
         let mut test = false;
@@ -97,8 +100,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    
 
-    pub fn priority_merge_dispatcher(elapsed: u64, index: Option<usize>) {
+    pub fn priority_merge_dispatcher(elapsed: u64, chunk: Option<Vec<[f64;2]>>/*, tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>*/) {
+        if chunk.is_some() {
+            rayon::spawn(move || {
+                example(chunk);
+               // tier.write().unwrap().append_chunk_aggregate_statistics(chunk;)
+            }); 
+        }
+
         if elapsed % 1 == 0 {
             println!("Merging for Tier 1 {}", elapsed);
         }
@@ -106,6 +117,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
          if elapsed % 4 == 0 {
             println!("Merging for Tier 2 {}", elapsed);
         }
+    }
+
+    fn example(chunk:Option<Vec<[f64;2]>>) {
+        // Process the chunk data
+        println!("Processing chunk in thread pool: {:?}", chunk);
     }
 
     
