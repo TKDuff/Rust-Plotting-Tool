@@ -501,3 +501,35 @@ Fixed resulting bins makes more sense for count, since size of X does not vary. 
 So have decied
 - Chunk size is fixed, thus number of resutling chunks varies. Done to maintain plot consistency when number of bins per interval varies. Can look into fixed resulting bins later
 - Going to keep final merged chunk even if not specified chunk size. So if Y = 4 and X = 15 going to just merge last 3 bins
+
+## 18-01-23
+### Problem with tokio async based interval based tier merging 
+The problem with async tier unit time ticks is they allow for other tiers to merge concurrently, this means there is no priority. As in, if at a tick both t2 and t3 need to be merged, there is no priority to merge t2 first, the async will just run whichever tier it decides first by chance. **No guaranteed order**
+
+Solved problem of prioritising merges when intervals overlap. 
+Say Say t1 = 10s, t2 = 30s and t3 = 60s. When the current time is 60 seconds, all three are to be merged at the same time. 
+However, does not make sense to merge out of order, if t2 is merged before t1, the bin t1 produces on the 60th seconds is not included in t2 merge. 
+This is where the aysnc tick intervals fall apart
+
+Solution is to ensure merges occur in tier order.\
+plan to keep track of current time, every second divide each tiers interval by the current time. \n
+if tiers interval divsible by tier interval call it, if two are, call the highest tier in order, so in the example above would call as..\
+merge(t1)\
+merge(t2)\
+merge(t3)
+
+Main contenetion now is if the thread for keeping track of time can keep track of the rate at which points are added to the raw data vector. 
+
+
+Solved the overlapping merge problem today, as mentioned have the approach above, call it **priority_merge_dispatcher()**\
+* So have an async thread that reads from standard input, appends to the raw data vector. Use an async thread as it is non-blocking. Could change this to be a dedicated thread
+* Have a dedicated dispather thread, it polls (loop over) the current time and the check_cut() method. Current time is used for interval R.D aggregation, check_cut for Adwin and Count R.D aggregation
+* Exist a **thread pool** - big change. This is the best way to approach each tier having a dedicated thread. 
+* If each tier was given a dedicated thread it would use to much resources, have lots of overhead. 
+* Each tier is not always merging, lower tiers merged less frequently than higher tiers, thus don't need a dedicated idle thread
+
+When priority_merge_dispatcher decides with tiers to merge, executes the merge for the tiers in order.\
+Merging itself is a CPU bound task, thus Rayon thread (Rayon pool threads can parralelise) will merge the tiers vector
+
+Altough merging is sequential, needs to be done for ordering of tiers.
+Can look into better approaches, maybe buffering/queing for OoO execution, however to make progress going with this approach.

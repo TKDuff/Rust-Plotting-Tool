@@ -1,13 +1,10 @@
 [package]
-name = "count_bin_merging"
+name = "IntervalTierEguiTest"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossbeam = "0.8.4"
-eframe = "0.25.0"
-egui_plot = "0.25.0"
-statrs = "0.16.0"
-tokio = {version = "1.35.0", features = ["full"]}
+eframe = "0.26.2"
+egui_plot = "0.26.2"
