@@ -1,6 +1,7 @@
 
 #![allow(warnings)] //Remove warning, be sure to remove this
-use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData}; //no need import 'bin.rs' Bin struct as is not used directly by main
+use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData};
+use tokio::task::spawn_blocking; //no need import 'bin.rs' Bin struct as is not used directly by main
 
 
 use std::thread;
@@ -22,26 +23,30 @@ use rayon::{prelude::*, ThreadPool};
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     aggregate_data_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
+    tier2: Arc<RwLock<TierData>>
 }
 
 impl MyApp {
 
     pub fn new(
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
-        aggregate_data_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>
+        aggregate_data_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
+        tier2: Arc<RwLock<TierData>>
     ) -> Self {
-        Self { raw_data, aggregate_data_tier }
+        Self { raw_data, aggregate_data_tier, tier2 }
     }
 }
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let (rd_sender, hd_receiver) = channel::unbounded();
     let args: Vec<String> = env::args().collect();
 
     let my_app = match args.get(1).map(String::as_str) {
         Some("count") => MyApp::new(
             Arc::new(RwLock::new(CountRawData::new())),
         Arc::new(RwLock::new(CountAggregateData::new())),
+        Arc::new(RwLock::new(TierData::new())),
         ),
         // ... other cases ...
         _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
@@ -60,9 +65,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        /*For now have check cut here and appending to initial tier 1 due to complext concurrency issue */
                         raw_data_thread.write().unwrap().append_str(line);
-                        //println!("Line");
+                        if let Some(cut_index) = raw_data_thread.write().unwrap().check_cut() {
+                            rd_sender.send(cut_index).unwrap();
+                        }
+
                     } else {
                         break;
                     }
@@ -71,51 +78,71 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
-    let raw_data_aggregation = my_app.raw_data.clone();
-    let agg_data_access = my_app.aggregate_data_tier.clone();
+    let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
+    let aggregate_thread_his_data_accessor = my_app.aggregate_data_tier.clone();
+
+
+    thread::spawn(move || {
+        let mut chunk: Vec<[f64;2]>;
+        let mut objective_length = 0;
+        let average = 0;        
+        for message in hd_receiver {
+            chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_chunk(message);
+            aggregate_thread_his_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk);
+            aggregate_thread_raw_data_accessor.write().unwrap().remove_chunk(7);
+        }   
+    });
+
     
-    let t = thread::spawn(move || {
-        
-        let mut last_call_time = Instant::now();
-        let mut interval_count = 0;
-        let mut test = false;
-        
+    rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
+    let agg_data_access = my_app.aggregate_data_tier.clone();
+
+    
+    let t = thread::spawn(move || { 
+        let mut agg_data_length = 0;    
         loop {
-            let chunk_ready = raw_data_aggregation.write().unwrap().check_cut(); // Poll check_cut
-            /*
-            // Check if a new second has passed
-            let second_passed = last_call_time.elapsed().as_secs() == 1;
-            
-
-            if second_passed {
-                last_call_time = Instant::now();
-                test = false;
-                interval_count += 1;
-            }*/
- 
-            //if a second has passed or if have to cut the raw data vector
-            if (/*second_passed ||*/ chunk_ready.is_some()) && !test{
-                println!("Length {}", raw_data_aggregation.read().unwrap().get_length());
-                priority_merge_dispatcher(interval_count, chunk_ready, raw_data_aggregation.clone() , agg_data_access.clone());  
-                test = true;
+            agg_data_length = agg_data_access.read().unwrap().get_length();
+            //println!("test {}", agg_data_length);
+            if agg_data_length == 5 {
+                //x_bin = agg_data_access.write().unwrap().merge_vector_bins_x();
+                //y_bin = agg_data_access.write().unwrap().merge_vector_bins_y();
             }
-
         }
     });
+
+    /*
+    pub fn process_tier(current_tier:  Arc<RwLock<dyn AggregationStrategy + Send + Sync>> , lower_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>, cut_length: usize) {
+        let mut vec_len: usize;
+        let current_tier_x_average;
+        let current_tier_y_average;
+
+        {
+            let mut current_tier_lock = current_tier.write().unwrap();
+            let vec_slice = current_tier_lock.get_slices(cut_length);
+            current_tier_x_average = current_tier_lock.merge_vector_bins(vec_slice.0);
+            current_tier_y_average = current_tier_lock.merge_vector_bins(vec_slice.1);
+            vec_len = current_tier_lock.get_length();
+
+            current_tier_lock.misc_x(current_tier_x_average, vec_len);
+            current_tier_lock.misc_y(current_tier_y_average, vec_len);
+        }
+    }*/
 
     
 
     pub fn priority_merge_dispatcher(elapsed: u64, chunk: Option<Vec<[f64;2]>>, raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>) {
 
+        println!("{:?}", chunk);
 
         if let Some(actual_chunk) = chunk {
+            println!("test");
+            /*
             rayon::spawn(move || {
 
             let rd_average = tier.write().unwrap().append_chunk_aggregate_statistics(actual_chunk);
             //let last_elment = raw_data.write().unwrap().remove_chunk(5);
 
-            });
+            });*/
         }
 
         /*
