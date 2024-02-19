@@ -51,7 +51,6 @@ impl DataStrategy for CountRawData {
         let agg_y_bin = Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() };
 
         //println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
-        println!("The x mean is {}",x_mean);
         let last_elem_x_bin = Bin {
             mean: chunk[chunk_len-1][0],
             sum: 0.0,
@@ -68,7 +67,7 @@ impl DataStrategy for CountRawData {
             count: 0,
         };
 
-        println!("The last r.d element is {}", last_elem_x_bin.mean);
+        //println!("The last r.d element is {}", last_elem_x_bin.mean);
         
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
 
@@ -83,7 +82,7 @@ impl DataStrategy for CountRawData {
 
         match values_result {
             Ok(values) => {
-                println!("{}", values[0]);
+                //println!("{}", values[0]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {

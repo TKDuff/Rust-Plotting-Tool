@@ -23,7 +23,8 @@ use rayon::{prelude::*, ThreadPool};
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     initial_tier: Arc<RwLock<TierData>>,
-    tier2: Arc<RwLock<TierData>>
+    tier2: Arc<RwLock<TierData>>,
+    tier3: Arc<RwLock<TierData>>,
 }
 
 impl MyApp {
@@ -31,9 +32,10 @@ impl MyApp {
     pub fn new(
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
         initial_tier: Arc<RwLock<TierData>>,
-        tier2: Arc<RwLock<TierData>>
+        tier2: Arc<RwLock<TierData>>,
+        tier3: Arc<RwLock<TierData>>
     ) -> Self {
-        Self { raw_data, initial_tier, tier2 }
+        Self { raw_data, initial_tier, tier2, tier3 }
     }
 }
 
@@ -45,6 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let my_app = match args.get(1).map(String::as_str) {
         Some("count") => MyApp::new(
             Arc::new(RwLock::new(CountRawData::new())),
+        Arc::new(RwLock::new(TierData::new())),
         Arc::new(RwLock::new(TierData::new())),
         Arc::new(RwLock::new(TierData::new())),
         ),
@@ -106,46 +109,73 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 initial_tier_lock.x_stats.push(aggregated_raw_data.0);
                 initial_tier_lock.y_stats.push(aggregated_raw_data.1);
-
+                //println!("{:?}", initial_tier_lock.print_x_means());
             }
             
         }   
     });
 
-    /*
+    
     rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
-    let agg_data_access = my_app.aggregate_data_tier.clone();
+    let t1_access = my_app.initial_tier.clone();
+    let t2_access = my_app.tier2.clone();
+    let t3_access = my_app.tier3.clone();
 
     
     let t = thread::spawn(move || { 
-        let mut agg_data_length = 0;    
+        let mut t1_length = 0;
+        let mut t2_length = 0;  
         loop {
-            agg_data_length = agg_data_access.read().unwrap().get_length();
-            //println!("test {}", agg_data_length);
-            if agg_data_length == 5 {
-                //x_bin = agg_data_access.write().unwrap().merge_vector_bins_x();
-                //y_bin = agg_data_access.write().unwrap().merge_vector_bins_y();
+            t1_length = t1_access.read().unwrap().x_stats.len();
+            if t1_length == 7 {
+                process_tier(&t1_access, &t2_access, 7)
             }
-        }
-    });*/
 
-    /*
-    pub fn process_tier(current_tier:  Arc<RwLock<dyn AggregationStrategy + Send + Sync>> , lower_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>, cut_length: usize) {
+            t2_length = t2_access.read().unwrap().x_stats.len();
+
+            if t2_length == 7 {
+                process_tier(&t2_access, &t3_access, 7)
+            }
+
+
+
+
+            thread::sleep(Duration::from_millis(100));
+        }
+    });
+
+    
+    pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<RwLock<TierData>>, cut_length: usize) {
         let mut vec_len: usize;
         let current_tier_x_average;
         let current_tier_y_average;
-
         {
             let mut current_tier_lock = current_tier.write().unwrap();
             let vec_slice = current_tier_lock.get_slices(cut_length);
             current_tier_x_average = current_tier_lock.merge_vector_bins(vec_slice.0);
             current_tier_y_average = current_tier_lock.merge_vector_bins(vec_slice.1);
-            vec_len = current_tier_lock.get_length();
+            vec_len = current_tier_lock.x_stats.len();
 
-            current_tier_lock.misc_x(current_tier_x_average, vec_len);
-            current_tier_lock.misc_y(current_tier_y_average, vec_len);
+            current_tier_lock.x_stats[0] = current_tier_x_average;
+            current_tier_lock.x_stats.drain(1..vec_len-1);
+
+            current_tier_lock.y_stats[0] = current_tier_y_average;
+            current_tier_lock.y_stats.drain(1..vec_len-1);
+
+            //println!("{:?}", current_tier_lock.print_x_means());
         }
-    }*/
+
+        {
+            let mut previous_tier_lock = previous_tier.write().unwrap();
+            previous_tier_lock.x_stats.push(current_tier_x_average);
+            previous_tier_lock.y_stats.push(current_tier_y_average);  
+        }
+
+        //println!("\nTier 1 merge");
+        //println!("{:?}", current_tier.write().unwrap().print_x_means());
+        //println!("\n");
+
+    }
 
     
 
@@ -289,15 +319,19 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
         egui::CentralPanel::default().show(ctx, |ui| { 
             ctx.set_visuals(Visuals::light());
 
-            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0);
-            //let historic_plot_line = Line::new(self.aggregate_data_tier.read().unwrap().get_means()).width(2.0);
+            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
+            let initial_tier_plot_line = Line::new(self.initial_tier.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLUE);
+            let t2_plot_line = Line::new(self.tier2.read().unwrap().get_means()).width(2.0).color(egui::Color32::GREEN);
+            let t3_plot_line = Line::new(self.tier3.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLACK);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
 
             plot.show(ui, |plot_ui| {
-                //plot_ui.line(historic_plot_line);
                 plot_ui.line(raw_plot_line);
+                plot_ui.line(initial_tier_plot_line);
+                plot_ui.line(t2_plot_line);
+                plot_ui.line(t3_plot_line);
             });
 
         });

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Default)] //allow deriving clones
+#[derive(Debug, Clone, Default,Copy)] //allow deriving clones
 pub struct Bin {
     pub mean: f64,
     pub sum: f64,

@@ -14,29 +14,14 @@ impl TierData {
         }
     }
 
-    pub fn merge_vector_bins(&self, bins: &[Bin]/*, c: i32*/) -> Vec<Bin> {
+    pub fn merge_vector_bins(&self, bins: &[Bin]/*, c: i32*/) -> Bin {
 
-        if self.x_stats.is_empty() || (self.x_stats.len() == 1) {
-            println!("x_stats is empty!");
-        }
-        
-        
-        // if( c== 1){  
-        // print!("Pre merge Vector:");
-        //     for bin in &self.x_stats {
-        //         print!("{}, ", bin.get_mean());
-        //     }
+        // println!("Merging this bin {:?}", bins);
+        // if self.x_stats.is_empty() || (self.x_stats.len() == 1) {
+        //     println!("x_stats is empty!");
         // }
 
-        // println!("");
-        // if( c== 1){   
-        //     print!("Pre merge chunk: ");
-        //     for bin in bins {
-        //         print!("{}, ", bin.get_mean());
-        //     }
-        // }
-
-        let mut temp_bin: Vec<Bin> = Vec::new();
+        let mut temp_bin;// Vec<Bin> = Vec::new();
         
         // Calculate the sum and count for the current chunk
         let chunk_count: usize = bins.iter().map(|bin| bin.count).sum();
@@ -44,19 +29,11 @@ impl TierData {
         let chunk_min = bins.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
         let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
         let chunk_mean = chunk_sum / chunk_count as f64;
-        temp_bin.push( Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count} );
+        temp_bin =  Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count};
 
         //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
             
-        // println!("");
-        // if( c== 1){   
-        //     print!("Post merge chunk:");
-        //     for bin in &tempBin {
-        //         print!("{}, ", bin.get_mean());
-        //     }
-        // }
-
-        
+        // println!("");        
         temp_bin 
     }
 
@@ -77,7 +54,7 @@ impl TierData {
     pub fn print_x_means(&self) {
         print!("X Means:");
         for bin in &self.x_stats {
-            print!("{:.2}, ", bin.mean);
+            print!("{}, ", bin.mean);
         }
     }
 
@@ -94,7 +71,14 @@ impl TierData {
         print!("Post merge Vector:");
         for bin in &self.x_stats {
             print!("{}, ", bin.get_mean());
-        }
-        println!("");   
+        }  
     }
+
+    pub fn get_slices(&self, length: usize) -> (&[Bin], &[Bin])  {
+        let x_slice = &self.x_stats[1..std::cmp::min(length, self.x_stats.len() - 1)];
+        let y_slice = &self.y_stats[1..std::cmp::min(length, self.y_stats.len() - 1)];
+
+        (x_slice, y_slice)
+    }
+
 }
