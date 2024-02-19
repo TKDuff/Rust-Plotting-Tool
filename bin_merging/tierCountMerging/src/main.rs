@@ -123,18 +123,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
     let t = thread::spawn(move || { 
+        t3_access.write().unwrap().x_stats.drain(0..1);
+        t3_access.write().unwrap().y_stats.drain(0..1);
+
         let mut t1_length = 0;
         let mut t2_length = 0;  
+        let mut t3_length = 0;
+
+        let mut merged_t3_last_element;
         loop {
             t1_length = t1_access.read().unwrap().x_stats.len();
-            if t1_length == 7 {
+            if t1_length == 6 {
                 process_tier(&t1_access, &t2_access, 7)
             }
 
             t2_length = t2_access.read().unwrap().x_stats.len();
 
-            if t2_length == 7 {
+            if t2_length == 6 {
                 process_tier(&t2_access, &t3_access, 7)
+            }
+
+            t3_length = t3_access.read().unwrap().x_stats.len();
+
+            if t3_length == 6 {
+                merged_t3_last_element = t3_access.write().unwrap().merge_final_tier_vector_bins(3);
+                println!("Got the point {:?}", merged_t3_last_element);
+                println!("The first elem of t2 was {:?}", t2_access.read().unwrap().x_stats[0]);
+                t2_access.write().unwrap().x_stats[0] = merged_t3_last_element;
+                println!("Now the first elem of t2 is {:?}", t2_access.read().unwrap().x_stats[0]);
+
             }
 
 
