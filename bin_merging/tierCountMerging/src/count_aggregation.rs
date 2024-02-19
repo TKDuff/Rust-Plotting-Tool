@@ -23,60 +23,7 @@ impl CountAggregateData {
 
 impl AggregationStrategy for CountAggregateData {
 
-    fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) {
-        //let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
-        //println!("Aggregating this chunk {:?}\n", chunk); 
 
-        let chunk_len = chunk.len();
-        let stats_len = self.x_stats.len();
-        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter()
-                                                .take(chunk_len.saturating_sub(1)) //subtract sub excludes the final point, need to return final point as bin
-                                                .map(|&[x, y]| (x, y))
-                                                .unzip();
-
-        //println!("\nAggregating this chunk {:?}", x_vec);                            
-
-
-        let x = Data::new(x_vec.clone());   
-        let y = Data::new(y_vec.clone());
-
-        let x_mean =  x.mean().unwrap();
-        let y_mean = y.mean().unwrap();
-
-        let y_sum: f64 = y_vec.iter().sum();
-        
-
-        //self.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() });
-        //self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() });
-
-        self.x_stats[stats_len-1] = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() };
-        self.y_stats[stats_len-1] = Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() };
-
-        //println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
-        println!("The x mean is {}",x_mean);
-        let x_bin = Bin {
-            mean: chunk[chunk_len-1][0],
-            sum: 0.0,
-            min: 0.0,
-            max: 0.0,
-            count: 0,
-        };
-    
-        let y_bin = Bin {
-            mean: chunk[chunk_len-1][1],
-            sum: 0.0,
-            min: 0.0,
-            max: 0.0,
-            count: 0,
-        };
-
-        println!("The last r.d element is {}", x_bin.mean);
-        self.x_stats.push(x_bin);
-        self.y_stats.push(y_bin);
-
-        println!("X means {:?}", self.get_x_means());
-
-    }
 
     fn get_means(&self) -> Vec<[f64; 2]> {
         self.x_stats.iter().zip(self.y_stats.iter())

@@ -22,7 +22,7 @@ use rayon::{prelude::*, ThreadPool};
 
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
-    aggregate_data_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
+    initial_tier: Arc<RwLock<TierData>>,
     tier2: Arc<RwLock<TierData>>
 }
 
@@ -30,10 +30,10 @@ impl MyApp {
 
     pub fn new(
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
-        aggregate_data_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>,
+        initial_tier: Arc<RwLock<TierData>>,
         tier2: Arc<RwLock<TierData>>
     ) -> Self {
-        Self { raw_data, aggregate_data_tier, tier2 }
+        Self { raw_data, initial_tier, tier2 }
     }
 }
 
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let my_app = match args.get(1).map(String::as_str) {
         Some("count") => MyApp::new(
             Arc::new(RwLock::new(CountRawData::new())),
-        Arc::new(RwLock::new(CountAggregateData::new())),
+        Arc::new(RwLock::new(TierData::new())),
         Arc::new(RwLock::new(TierData::new())),
         ),
         // ... other cases ...
@@ -79,21 +79,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
-    let aggregate_thread_his_data_accessor = my_app.aggregate_data_tier.clone();
+    let initial_tier_accessor = my_app.initial_tier.clone();
+    //let aggregate_thread_his_data_accessor = my_app.aggregate_data_tier.clone();
 
 
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
-        let average = 0;        
+        let mut aggregated_raw_data ; 
+
+
         for message in hd_receiver {
-            chunk = aggregate_thread_raw_data_accessor.read().unwrap().get_chunk(message);
-            aggregate_thread_his_data_accessor.write().unwrap().append_chunk_aggregate_statistics(chunk);
-            aggregate_thread_raw_data_accessor.write().unwrap().remove_chunk(7);
+
+            {
+                let mut aggregate_thread_raw_data_accessor_lock = aggregate_thread_raw_data_accessor.write().unwrap();
+                chunk = aggregate_thread_raw_data_accessor_lock.get_chunk(message);
+                aggregated_raw_data = aggregate_thread_raw_data_accessor_lock.append_chunk_aggregate_statistics(chunk);
+                aggregate_thread_raw_data_accessor_lock.remove_chunk(7);
+            }
+
+            {
+                let mut initial_tier_lock = initial_tier_accessor.write().unwrap();
+                let length = initial_tier_lock.x_stats.len() -1 ;
+                initial_tier_lock.x_stats[length] = aggregated_raw_data.2;
+                initial_tier_lock.y_stats[length] = aggregated_raw_data.3;
+
+                initial_tier_lock.x_stats.push(aggregated_raw_data.0);
+                initial_tier_lock.y_stats.push(aggregated_raw_data.1);
+
+            }
+            
         }   
     });
 
-    
+    /*
     rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
     let agg_data_access = my_app.aggregate_data_tier.clone();
 
@@ -108,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 //y_bin = agg_data_access.write().unwrap().merge_vector_bins_y();
             }
         }
-    });
+    });*/
 
     /*
     pub fn process_tier(current_tier:  Arc<RwLock<dyn AggregationStrategy + Send + Sync>> , lower_tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>, cut_length: usize) {
@@ -271,13 +290,13 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             ctx.set_visuals(Visuals::light());
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0);
-            let historic_plot_line = Line::new(self.aggregate_data_tier.read().unwrap().get_means()).width(2.0);
+            //let historic_plot_line = Line::new(self.aggregate_data_tier.read().unwrap().get_means()).width(2.0);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
 
             plot.show(ui, |plot_ui| {
-                plot_ui.line(historic_plot_line);
+                //plot_ui.line(historic_plot_line);
                 plot_ui.line(raw_plot_line);
             });
 

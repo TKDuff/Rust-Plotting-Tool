@@ -9,8 +9,8 @@ pub struct TierData {
 impl TierData {
     pub fn new() -> Self {
         Self { 
-            x_stats: Vec::new(),
-            y_stats: Vec::new(),
+            x_stats: vec![Bin::default()],
+            y_stats: vec![Bin::default()],
         }
     }
 
