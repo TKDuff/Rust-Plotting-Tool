@@ -27,6 +27,7 @@ impl DataStrategy for CountRawData {
 
         match values_result {
             Ok(values) => {
+                println!("{}", values[0]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {
@@ -51,15 +52,19 @@ impl DataStrategy for CountRawData {
         self.points.clone().into_iter().collect()
     }
 
-    fn remove_chunk(&mut self, count:usize, point_means: (f64, f64)) {
-        self.points[0] = [point_means.0, point_means.1];
-        self.points.drain(1..count+1);
+    fn get_length(&self) -> usize {
+        self.points.len()
+    }
+
+    fn remove_chunk(&mut self, count:usize) {
+        //self.points[0] = [point_means.0, point_means.1];
+        self.points.drain(0..count-1);
     }
 
     fn check_cut(&self) -> Option<Vec<[f64;2]>> {
-        if self.points.len() != 0 && (self.points.len() - 1) % self.points_count == 0 {
+        if self.points.len() > 1 && (self.points.len()) % self.points_count == 0 {
             //return Some(self.points.len() -1 )
-            return Some(self.points[1..self.points.len()].to_vec())
+            return Some(self.points[0..self.points.len()].to_vec())
         } else {
             None
         }

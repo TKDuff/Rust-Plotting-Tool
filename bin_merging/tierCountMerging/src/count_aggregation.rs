@@ -18,9 +18,17 @@ impl CountAggregateData {
 
 impl AggregationStrategy for CountAggregateData {
 
-    fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (f64, f64, usize) {
-        //println!("\nAggregating this chunk {:?}", chunk);
-        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
+    fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (Bin, Bin) {
+        //let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
+        //println!("Aggregating this chunk {:?}\n", chunk); 
+
+        let chunk_len = chunk.len();
+        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter()
+                                                .take(chunk_len.saturating_sub(1)) //subtract sub excludes the final point, need to return final point as bin
+                                                .map(|&[x, y]| (x, y))
+                                                .unzip();
+
+        //println!("\nAggregating this chunk {:?}", x_vec);                            
 
 
         let x = Data::new(x_vec.clone());   
@@ -37,7 +45,26 @@ impl AggregationStrategy for CountAggregateData {
 
         println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
-        (x_mean, y_mean, x.len())
+
+        let x_bin = Bin {
+            mean: chunk[chunk_len-1][0],
+            sum: 0.0,
+            min: 0.0,
+            max: 0.0,
+            count: 0,
+        };
+    
+        let y_bin = Bin {
+            mean: chunk[chunk_len-1][1],
+            sum: 0.0,
+            min: 0.0,
+            max: 0.0,
+            count: 0,
+        };
+
+        println!("X: {:?}, Y: {:?}", x_bin, y_bin);
+
+        (x_bin, y_bin)
     }
 
     fn get_means(&self) -> Vec<[f64; 2]> {

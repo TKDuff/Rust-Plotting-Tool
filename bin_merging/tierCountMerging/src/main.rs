@@ -60,6 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
+                        /*For now have check cut here and appending to initial tier 1 due to complext concurrency issue */
                         raw_data_thread.write().unwrap().append_str(line);
                         //println!("Line");
                     } else {
@@ -71,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
-    let raw_data_check_thread = my_app.raw_data.clone();
+    let raw_data_aggregation = my_app.raw_data.clone();
     let agg_data_access = my_app.aggregate_data_tier.clone();
     
     let t = thread::spawn(move || {
@@ -81,19 +82,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut test = false;
         
         loop {
+            let chunk_ready = raw_data_aggregation.write().unwrap().check_cut(); // Poll check_cut
+            /*
             // Check if a new second has passed
             let second_passed = last_call_time.elapsed().as_secs() == 1;
-            let chunk_ready = raw_data_check_thread.write().unwrap().check_cut(); // Poll check_cut
+            
 
             if second_passed {
                 last_call_time = Instant::now();
                 test = false;
                 interval_count += 1;
-            }
-
+            }*/
+ 
             //if a second has passed or if have to cut the raw data vector
-            if (second_passed || chunk_ready.is_some()) && !test{
-                priority_merge_dispatcher(interval_count, chunk_ready);  
+            if (/*second_passed ||*/ chunk_ready.is_some()) && !test{
+                println!("Length {}", raw_data_aggregation.read().unwrap().get_length());
+                priority_merge_dispatcher(interval_count, chunk_ready, raw_data_aggregation.clone() , agg_data_access.clone());  
                 test = true;
             }
 
@@ -102,24 +106,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
 
-    pub fn priority_merge_dispatcher(elapsed: u64, chunk: Option<Vec<[f64;2]>>/*, tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>*/) {
-        if chunk.is_some() {
+    pub fn priority_merge_dispatcher(elapsed: u64, chunk: Option<Vec<[f64;2]>>, raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>) {
+
+
+        if let Some(actual_chunk) = chunk {
             rayon::spawn(move || {
-                example(chunk);
-               // tier.write().unwrap().append_chunk_aggregate_statistics(chunk;)
-            }); 
+
+            let rd_average = tier.write().unwrap().append_chunk_aggregate_statistics(actual_chunk);
+            //let last_elment = raw_data.write().unwrap().remove_chunk(5);
+
+            });
         }
 
+        /*
         if elapsed % 1 == 0 {
             println!("Merging for Tier 1 {}", elapsed);
         }
 
          if elapsed % 4 == 0 {
             println!("Merging for Tier 2 {}", elapsed);
-        }
+        }*/
     }
 
-    fn example(chunk:Option<Vec<[f64;2]>>) {
+    fn example(chunk: Vec<[f64;2]>) {
         // Process the chunk data
         println!("Processing chunk in thread pool: {:?}", chunk);
     }
