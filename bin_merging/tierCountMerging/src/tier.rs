@@ -94,7 +94,7 @@ impl TierData {
 
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize, x: bool) -> Bin {
 
-        println!("C.A of {:?}", self.print_x_means("Final tier"));
+        println!("{:?}", self.print_x_means("Final tier"));
 
         let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
 

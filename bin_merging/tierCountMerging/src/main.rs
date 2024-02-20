@@ -140,6 +140,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let t3_access = my_app.tier3.clone();
     let tier_vector = my_app.tiers.clone();
     let catch_all_tier = tier_vector[num_tiers-1].clone();
+
+    //always have to drain final catch all vector
+    catch_all_tier.write().unwrap().x_stats.drain(0..1);
+    catch_all_tier.write().unwrap().y_stats.drain(0..1);
     
     let t = thread::spawn(move || { 
         // t3_access.write().unwrap().x_stats.drain(0..1); use 'tier_vector_lenght' to get last tier index, then drain
