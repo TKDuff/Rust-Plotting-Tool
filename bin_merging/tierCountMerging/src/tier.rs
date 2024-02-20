@@ -87,11 +87,15 @@ impl TierData {
         }
         println!("\n");
     }
-    pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize ) -> Bin {
+
+
+    pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize, x: bool) -> Bin {
 
         println!("C.A of {:?}", self.print_x_means());
 
-        let temp_bins = self.x_stats.chunks(chunk_size).map(|chunk| {
+        let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
+
+        let temp_bins = to_merge.chunks(chunk_size).map(|chunk| {
             let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
             let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
             let chunk_min = chunk.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
@@ -103,31 +107,8 @@ impl TierData {
 
 
         //self.print_means_of_bin(temp_bins);
-        mem::replace(&mut self.x_stats, temp_bins);
-        self.x_stats[self.x_stats.len()-1]
-        
-        /*
-        self.x_stats.chunks(y).for_each(|chunk| {
-            let (sum_x, sum_y, count) = chunk.iter().fold((0.0, 0.0, 0), |(acc_x, acc_y, acc_count), &elem| {
-                (acc_x + elem[0], acc_y + elem[1], acc_count + 1)
-            });
-    
-            // Calculate the mean for x and y
-            let mean_x = sum_x / count as f64;
-            let mean_y = sum_y / count as f64;
-    
-            // Push the mean values to tempBin
-            tempBin.push([mean_x, mean_y]);
-    
-            // Uncomment the println to log the details for each chunk
-            println!("Chunk mean: x = {}, y = {}", mean_x, mean_y);
-        });*/
-        
-
-        
-        // mem::replace(&mut self.vec, tempBin);
-        // self.vec[self.vec.len()-1]
-    
+        mem::replace(to_merge, temp_bins);
+        to_merge[to_merge.len()-1]        
     }
 
 }

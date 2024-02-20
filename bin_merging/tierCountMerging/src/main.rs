@@ -154,7 +154,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut t3_length = 0;
         let mut t4_length = 0;
 
-        let mut merged_t4_last_element;
+        let mut merged_t4_last_x_element;
+        let mut merged_t4_last_y_element;
         loop {
             t1_length = t1_access.read().unwrap().x_stats.len();
             if t1_length == 4 {
@@ -177,10 +178,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             t4_length = t4_access.read().unwrap().x_stats.len();
 
             if t4_length == 6 {
-                merged_t4_last_element = t4_access.write().unwrap().merge_final_tier_vector_bins(3);
-                println!("Got the point {:?}", merged_t4_last_element);
+                merged_t4_last_x_element = t4_access.write().unwrap().merge_final_tier_vector_bins(3, true);
+                merged_t4_last_y_element = t4_access.write().unwrap().merge_final_tier_vector_bins(3, false);
+                println!("Got the point {:?}", merged_t4_last_x_element);
                 println!("The first elem of t3 was {:?}", t3_access.read().unwrap().x_stats[0]);
-                t2_access.write().unwrap().x_stats[0] = merged_t4_last_element;
+                t3_access.write().unwrap().x_stats[0] = merged_t4_last_x_element;
+                t3_access.write().unwrap().y_stats[0] = merged_t4_last_y_element;
                 println!("Now the first elem of t3 is {:?}", t3_access.read().unwrap().x_stats[0]);
 
             }
