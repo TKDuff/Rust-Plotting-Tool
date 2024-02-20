@@ -4,6 +4,7 @@ use std::mem;
 pub struct TierData {
     pub x_stats: Vec<Bin>,
     pub y_stats: Vec<Bin>,
+    pub conditoin: i32,
 }
 
 impl TierData {
@@ -11,6 +12,7 @@ impl TierData {
         Self { 
             x_stats: vec![Bin::default()],
             y_stats: vec![Bin::default()],
+            conditoin: 0,
         }
     }
 
@@ -51,10 +53,10 @@ impl TierData {
     }
 
     pub fn print_x_means(&self) {
-        print!("X Means:");
         for bin in &self.x_stats {
             print!("{}, ", bin.mean);
         }
+        println!("\n");
     }
 
     pub fn print_y_means(&self) {

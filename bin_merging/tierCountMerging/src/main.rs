@@ -4,7 +4,7 @@ use project_library::{AggregationStrategy, CountAggregateData, CountRawData, Dat
 use tokio::task::spawn_blocking; //no need import 'bin.rs' Bin struct as is not used directly by main
 
 
-use std::thread;
+use std::{num, thread};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals};
 use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
@@ -24,10 +24,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
-    initial_tier: Arc<RwLock<TierData>>,
-    tier2: Arc<RwLock<TierData>>,
-    tier3: Arc<RwLock<TierData>>,
-    tier4: Arc<RwLock<TierData>>,
+    tiers: Vec<Arc<RwLock<TierData>>>,
     should_halt: Arc<AtomicBool>,
 }
 
@@ -35,40 +32,41 @@ impl MyApp {
 
     pub fn new(
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
-        initial_tier: Arc<RwLock<TierData>>,
-        tier2: Arc<RwLock<TierData>>,
-        tier3: Arc<RwLock<TierData>>,
-        tier4: Arc<RwLock<TierData>>,
+        tiers: Vec<Arc<RwLock<TierData>>>,
         should_halt: Arc<AtomicBool>,
         
     ) -> Self {
-        Self { raw_data, initial_tier, tier2, tier3, tier4, should_halt }
+        Self { raw_data, tiers ,should_halt }
     }
 }
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    //let should_halt = Arc::new(AtomicBool::new(false));
-
-    
-
+    let args: Vec<String> = env::args().collect();
+    let mut num_tiers = 0;
 
     let (rd_sender, hd_receiver) = channel::unbounded();
     let args: Vec<String> = env::args().collect();
 
-    let my_app = match args.get(1).map(String::as_str) {
-        Some("count") => MyApp::new(
+    let data_strategy = args[1].as_str();
+    let num_tiers = args[2].parse::<usize>().unwrap_or_default();
+
+    println!("{} {}", data_strategy, num_tiers);  
+
+    let my_app = match data_strategy {
+        "count" => MyApp::new(
             Arc::new(RwLock::new(CountRawData::new())),
-        Arc::new(RwLock::new(TierData::new())),
-        Arc::new(RwLock::new(TierData::new())),
-        Arc::new(RwLock::new(TierData::new())),
-        Arc::new(RwLock::new(TierData::new())),
+            create_tiers(num_tiers),
         Arc::new(AtomicBool::new(false)),
         ),
         // ... other cases ...
         _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
     };
+
+    fn create_tiers(num_tiers: usize) -> Vec<Arc<RwLock<TierData>>> {
+        (0..num_tiers).map(|_| Arc::new(RwLock::new(TierData::new()))).collect()
+    }
 
     
     let rt = Runtime::new().unwrap();
@@ -76,6 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread = my_app.raw_data.clone();
 
+    
     rt.spawn(async move {
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
@@ -104,10 +103,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
-    let initial_tier_accessor = my_app.initial_tier.clone();
+    let initial_tier_accessor = my_app.tiers[0].clone();
     //let aggregate_thread_his_data_accessor = my_app.aggregate_data_tier.clone();
 
-
+    
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
@@ -139,24 +138,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
     rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
-    let t1_access = my_app.initial_tier.clone();
-    let t2_access = my_app.tier2.clone();
-    let t3_access = my_app.tier3.clone();
-    let t4_access = my_app.tier4.clone();
-
+    // let t1_access = my_app.initial_tier.clone(); ####
+    // let t2_access = my_app.tier2.clone();
+    // let t3_access = my_app.tier3.clone();
+    let tier_vector = my_app.tiers.clone();
+    let tier_vector_length = num_tiers;     //this can be passed or known, don't need to check len
     
     let t = thread::spawn(move || { 
-        t4_access.write().unwrap().x_stats.drain(0..1);
-        t4_access.write().unwrap().y_stats.drain(0..1);
+        // t3_access.write().unwrap().x_stats.drain(0..1); use 'tier_vector_lenght' to get last tier index, then drain
+        // t3_access.write().unwrap().y_stats.drain(0..1);
 
-        let mut t1_length = 0;
-        let mut t2_length = 0;  
-        let mut t3_length = 0;
-        let mut t4_length = 0;
+        // let mut t1_length = 0;
+        // let mut t2_length = 0;  
+        // let mut t3_length = 0;
 
-        let mut merged_t4_last_x_element;
-        let mut merged_t4_last_y_element;
+        // let mut merged_t3_last_x_element;
+        // let mut merged_t3_last_y_element;
+
         loop {
+            for tier in 0..1 {  //only testing on first tier, initial tier, for now
+                // let current_tier = tier_vector[tier];
+                // let lower_tier = tier_vector[tier+1];
+
+                if tier_vector[tier].read().unwrap().x_stats.len() == 6 {
+                    println!("\nBefore {} {:?}", tier, tier_vector[tier].read().unwrap().print_x_means());
+                    process_tier(&tier_vector[tier], &tier_vector[tier+1], 4);
+                    println!("After {} {:?}", tier, tier_vector[tier].read().unwrap().print_x_means());
+                }
+            }
+
+            /*
             t1_length = t1_access.read().unwrap().x_stats.len();
             if t1_length == 4 {
                 process_tier(&t1_access, &t2_access, 7)
@@ -169,29 +180,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             t3_length = t3_access.read().unwrap().x_stats.len();
-            
-            if t3_length == 4 {
-                process_tier(&t3_access, &t4_access, 7)
-            }
 
-            
-            t4_length = t4_access.read().unwrap().x_stats.len();
+            if t3_length == 6 {
+                merged_t3_last_x_element = t3_access.write().unwrap().merge_final_tier_vector_bins(3, true);
+                merged_t3_last_y_element = t3_access.write().unwrap().merge_final_tier_vector_bins(3, false);
+                println!("Got the point {:?}", merged_t3_last_x_element);
+                println!("The first elem of t3 was {:?}", t2_access.read().unwrap().x_stats[0]);
+                t2_access.write().unwrap().x_stats[0] = merged_t3_last_x_element;
+                t2_access.write().unwrap().y_stats[0] = merged_t3_last_y_element;
+                println!("Now the first elem of t3 is {:?}", t2_access.read().unwrap().x_stats[0]);
 
-            if t4_length == 6 {
-                merged_t4_last_x_element = t4_access.write().unwrap().merge_final_tier_vector_bins(3, true);
-                merged_t4_last_y_element = t4_access.write().unwrap().merge_final_tier_vector_bins(3, false);
-                println!("Got the point {:?}", merged_t4_last_x_element);
-                println!("The first elem of t3 was {:?}", t3_access.read().unwrap().x_stats[0]);
-                t3_access.write().unwrap().x_stats[0] = merged_t4_last_x_element;
-                t3_access.write().unwrap().y_stats[0] = merged_t4_last_y_element;
-                println!("Now the first elem of t3 is {:?}", t3_access.read().unwrap().x_stats[0]);
-
-            }
-
-
-
-
-            //thread::sleep(Duration::from_millis(100));
+            }*/
         }
     });
 
@@ -226,38 +225,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         //println!("{:?}", current_tier.write().unwrap().print_x_means());
         //println!("\n");
 
-    }
-
-    
-
-    pub fn priority_merge_dispatcher(elapsed: u64, chunk: Option<Vec<[f64;2]>>, raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  tier: Arc<RwLock<dyn AggregationStrategy + Send + Sync>>) {
-
-        println!("{:?}", chunk);
-
-        if let Some(actual_chunk) = chunk {
-            println!("test");
-            /*
-            rayon::spawn(move || {
-
-            let rd_average = tier.write().unwrap().append_chunk_aggregate_statistics(actual_chunk);
-            //let last_elment = raw_data.write().unwrap().remove_chunk(5);
-
-            });*/
-        }
-
-        /*
-        if elapsed % 1 == 0 {
-            println!("Merging for Tier 1 {}", elapsed);
-        }
-
-         if elapsed % 4 == 0 {
-            println!("Merging for Tier 2 {}", elapsed);
-        }*/
-    }
-
-    fn example(chunk: Vec<[f64;2]>) {
-        // Process the chunk data
-        println!("Processing chunk in thread pool: {:?}", chunk);
     }
 
     
@@ -370,11 +337,26 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
         egui::CentralPanel::default().show(ctx, |ui| { 
             ctx.set_visuals(Visuals::light());
 
+
+            let mut tier_plot_lines = Vec::new();
+            let colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN];
+
+
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
-            let initial_tier_plot_line = Line::new(self.initial_tier.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLUE);
-            let t2_plot_line = Line::new(self.tier2.read().unwrap().get_means()).width(2.0).color(egui::Color32::GREEN);
-            let t3_plot_line = Line::new(self.tier3.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLACK);
-            let t4_plot_line = Line::new(self.tier4.read().unwrap().get_means()).width(2.0).color(egui::Color32::BROWN);
+            // let initial_tier_plot_line = Line::new(self.initial_tier.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLUE);
+            // let t2_plot_line = Line::new(self.tier2.read().unwrap().get_means()).width(2.0).color(egui::Color32::GREEN);
+            // let t3_plot_line = Line::new(self.tier3.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLACK);
+            //let t4_plot_line = Line::new(self.tier4.read().unwrap().get_means()).width(2.0).color(egui::Color32::BROWN);
+
+
+            for (i, tier) in self.tiers.iter().enumerate() {
+                let color = colors[i];
+                let line = Line::new(tier.read().unwrap().get_means())
+                .width(2.0)
+                .color(color);
+
+            tier_plot_lines.push(line);
+            }
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
@@ -384,11 +366,17 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             }
 
             plot.show(ui, |plot_ui| {
-                plot_ui.line(raw_plot_line);
-                plot_ui.line(initial_tier_plot_line);
-                plot_ui.line(t2_plot_line);
-                plot_ui.line(t3_plot_line);
-                plot_ui.line(t4_plot_line);
+                 plot_ui.line(raw_plot_line);
+
+                 for line in tier_plot_lines {
+                    plot_ui.line(line);
+                 }
+
+                 
+            //     plot_ui.line(initial_tier_plot_line);
+            //     plot_ui.line(t2_plot_line);
+            //     plot_ui.line(t3_plot_line);
+            //     //plot_ui.line(t4_plot_line);
             });
 
         });

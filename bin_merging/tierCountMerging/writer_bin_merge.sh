@@ -1,4 +1,4 @@
 #!/bin/bash
 
 
-(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" )
+(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "3" )
