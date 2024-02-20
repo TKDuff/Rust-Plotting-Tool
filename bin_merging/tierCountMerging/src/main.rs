@@ -156,14 +156,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // let mut merged_t3_last_y_element;
 
         loop {
-            for tier in 0..1 {  //only testing on first tier, initial tier, for now
+            for tier in 0..2 {  //only testing on first tier, initial tier, for now
                 // let current_tier = tier_vector[tier];
                 // let lower_tier = tier_vector[tier+1];
 
                 if tier_vector[tier].read().unwrap().x_stats.len() == 6 {
-                    println!("\nBefore {} {:?}", tier, tier_vector[tier].read().unwrap().print_x_means());
-                    process_tier(&tier_vector[tier], &tier_vector[tier+1], 4);
-                    println!("After {} {:?}", tier, tier_vector[tier].read().unwrap().print_x_means());
+                    println!("\n{}", tier);
+                    print!("{:?}", tier_vector[tier].read().unwrap().print_x_means("Before"));
+                    process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
+                    print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
                 }
             }
 

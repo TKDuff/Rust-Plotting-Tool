@@ -52,11 +52,12 @@ impl TierData {
             .collect()
     }
 
-    pub fn print_x_means(&self) {
+    pub fn print_x_means(&self, word: &str) {
+        print!("{}", word);
         for bin in &self.x_stats {
             print!("{}, ", bin.mean);
         }
-        println!("\n");
+        println!("");
     }
 
     pub fn print_y_means(&self) {
@@ -93,7 +94,7 @@ impl TierData {
 
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize, x: bool) -> Bin {
 
-        println!("C.A of {:?}", self.print_x_means());
+        println!("C.A of {:?}", self.print_x_means("Final tier"));
 
         let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
 
