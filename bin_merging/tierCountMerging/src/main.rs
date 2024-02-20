@@ -19,12 +19,16 @@ use tokio::sync::mpsc;
 use std::env;
 use std::time::{ Instant};
 use rayon::{prelude::*, ThreadPool};
+use std::sync::atomic::{AtomicBool, Ordering};
+
 
 struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     initial_tier: Arc<RwLock<TierData>>,
     tier2: Arc<RwLock<TierData>>,
     tier3: Arc<RwLock<TierData>>,
+    tier4: Arc<RwLock<TierData>>,
+    should_halt: Arc<AtomicBool>,
 }
 
 impl MyApp {
@@ -33,14 +37,23 @@ impl MyApp {
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
         initial_tier: Arc<RwLock<TierData>>,
         tier2: Arc<RwLock<TierData>>,
-        tier3: Arc<RwLock<TierData>>
+        tier3: Arc<RwLock<TierData>>,
+        tier4: Arc<RwLock<TierData>>,
+        should_halt: Arc<AtomicBool>,
+        
     ) -> Self {
-        Self { raw_data, initial_tier, tier2, tier3 }
+        Self { raw_data, initial_tier, tier2, tier3, tier4, should_halt }
     }
 }
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    //let should_halt = Arc::new(AtomicBool::new(false));
+
+    
+
+
     let (rd_sender, hd_receiver) = channel::unbounded();
     let args: Vec<String> = env::args().collect();
 
@@ -50,6 +63,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Arc::new(RwLock::new(TierData::new())),
         Arc::new(RwLock::new(TierData::new())),
         Arc::new(RwLock::new(TierData::new())),
+        Arc::new(RwLock::new(TierData::new())),
+        Arc::new(AtomicBool::new(false)),
         ),
         // ... other cases ...
         _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
@@ -57,6 +72,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
     let rt = Runtime::new().unwrap();
+
+    let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread = my_app.raw_data.clone();
 
     rt.spawn(async move {
@@ -65,6 +82,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut lines = reader.lines();
         
         loop {
+
+            if should_halt_clone.load(Ordering::SeqCst) {
+                break; // Exit the loop if the atomic bool is true
+            }
+
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
@@ -120,44 +142,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let t1_access = my_app.initial_tier.clone();
     let t2_access = my_app.tier2.clone();
     let t3_access = my_app.tier3.clone();
+    let t4_access = my_app.tier4.clone();
 
     
     let t = thread::spawn(move || { 
-        t3_access.write().unwrap().x_stats.drain(0..1);
-        t3_access.write().unwrap().y_stats.drain(0..1);
+        t4_access.write().unwrap().x_stats.drain(0..1);
+        t4_access.write().unwrap().y_stats.drain(0..1);
 
         let mut t1_length = 0;
         let mut t2_length = 0;  
         let mut t3_length = 0;
+        let mut t4_length = 0;
 
-        let mut merged_t3_last_element;
+        let mut merged_t4_last_element;
         loop {
             t1_length = t1_access.read().unwrap().x_stats.len();
-            if t1_length == 6 {
+            if t1_length == 4 {
                 process_tier(&t1_access, &t2_access, 7)
             }
 
             t2_length = t2_access.read().unwrap().x_stats.len();
 
-            if t2_length == 6 {
+            if t2_length == 4 {
                 process_tier(&t2_access, &t3_access, 7)
             }
 
             t3_length = t3_access.read().unwrap().x_stats.len();
+            
+            if t3_length == 4 {
+                process_tier(&t3_access, &t4_access, 7)
+            }
 
-            if t3_length == 6 {
-                merged_t3_last_element = t3_access.write().unwrap().merge_final_tier_vector_bins(3);
-                println!("Got the point {:?}", merged_t3_last_element);
-                println!("The first elem of t2 was {:?}", t2_access.read().unwrap().x_stats[0]);
-                t2_access.write().unwrap().x_stats[0] = merged_t3_last_element;
-                println!("Now the first elem of t2 is {:?}", t2_access.read().unwrap().x_stats[0]);
+            
+            t4_length = t4_access.read().unwrap().x_stats.len();
+
+            if t4_length == 6 {
+                merged_t4_last_element = t4_access.write().unwrap().merge_final_tier_vector_bins(3);
+                println!("Got the point {:?}", merged_t4_last_element);
+                println!("The first elem of t3 was {:?}", t3_access.read().unwrap().x_stats[0]);
+                t2_access.write().unwrap().x_stats[0] = merged_t4_last_element;
+                println!("Now the first elem of t3 is {:?}", t3_access.read().unwrap().x_stats[0]);
 
             }
 
 
 
 
-            thread::sleep(Duration::from_millis(100));
+            //thread::sleep(Duration::from_millis(100));
         }
     });
 
@@ -340,15 +371,21 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let initial_tier_plot_line = Line::new(self.initial_tier.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLUE);
             let t2_plot_line = Line::new(self.tier2.read().unwrap().get_means()).width(2.0).color(egui::Color32::GREEN);
             let t3_plot_line = Line::new(self.tier3.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLACK);
+            let t4_plot_line = Line::new(self.tier4.read().unwrap().get_means()).width(2.0).color(egui::Color32::BROWN);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
+
+            if ui.button("Halt Processing").clicked() {
+                self.should_halt.store(true, Ordering::SeqCst);
+            }
 
             plot.show(ui, |plot_ui| {
                 plot_ui.line(raw_plot_line);
                 plot_ui.line(initial_tier_plot_line);
                 plot_ui.line(t2_plot_line);
                 plot_ui.line(t3_plot_line);
+                plot_ui.line(t4_plot_line);
             });
 
         });
