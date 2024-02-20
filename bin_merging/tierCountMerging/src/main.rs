@@ -175,8 +175,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 merged_CA_last_x_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, true);
                 merged_CA_last_y_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, false);
                 println!("Got the point {:?}", merged_CA_last_x_element);
+                println!("The first elem of t2 was {:?}", tier_vector[num_tiers-2].read().unwrap().x_stats[0]);
                 tier_vector[num_tiers-2].write().unwrap().x_stats[0] = merged_CA_last_x_element;
                 tier_vector[num_tiers-2].write().unwrap().y_stats[0] = merged_CA_last_y_element;
+                println!("Now the first elem of t2 is {:?}", tier_vector[num_tiers-2].read().unwrap().x_stats[0]);
 
             }
 
