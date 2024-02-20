@@ -2,8 +2,6 @@
 #![allow(warnings)] //Remove warning, be sure to remove this
 use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData};
 use tokio::task::spawn_blocking; //no need import 'bin.rs' Bin struct as is not used directly by main
-
-
 use std::{num, thread};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals};
@@ -20,6 +18,7 @@ use std::env;
 use std::time::{ Instant};
 use rayon::{prelude::*, ThreadPool};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::error::Error;
 
 
 struct MyApp {
@@ -42,17 +41,22 @@ impl MyApp {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-
-    let args: Vec<String> = env::args().collect();
-    let mut num_tiers = 0;
-
     let (rd_sender, hd_receiver) = channel::unbounded();
-    let args: Vec<String> = env::args().collect();
 
+    let (my_app,num_tiers)  = match setup_my_app() {
+        Ok((app, tiers)) => (app, tiers),
+        Err(e) => {
+            eprintln!("{}", e);
+            //return Err(Box::new(e));  // Early return for error case
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)));
+        }
+    };
+
+    /*
+    let args: Vec<String> = env::args().collect();
     let data_strategy = args[1].as_str();
     let num_tiers = args[2].parse::<usize>().unwrap_or_default();
 
-    println!("{} {}", data_strategy, num_tiers);  
 
     let my_app = match data_strategy {
         "count" => MyApp::new(
@@ -62,7 +66,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
         // ... other cases ...
         _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
-    };
+    };*/
+
+
+    pub fn setup_my_app() -> Result<(MyApp, usize), String> {
+        let args: Vec<String> = env::args().collect();
+        let data_strategy = args[1].as_str();
+        let num_tiers = args[2].parse::<usize>().unwrap_or_default();
+
+        let my_app = match data_strategy {
+            "count" => MyApp::new(
+                Arc::new(RwLock::new(CountRawData::new())),
+                create_tiers(num_tiers),
+                Arc::new(AtomicBool::new(false)),
+            ),
+            // ... other cases ...
+            _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
+        };
+    
+        Ok((my_app, num_tiers))
+    }
 
     fn create_tiers(num_tiers: usize) -> Vec<Arc<RwLock<TierData>>> {
         (0..num_tiers).map(|_| Arc::new(RwLock::new(TierData::new()))).collect()
@@ -70,7 +93,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
     let rt = Runtime::new().unwrap();
-
     let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread = my_app.raw_data.clone();
 
@@ -79,7 +101,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
-        
         loop {
 
             if should_halt_clone.load(Ordering::SeqCst) {
@@ -144,20 +165,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     catch_all_tier.write().unwrap().y_stats.drain(0..1);
     
     let t = thread::spawn(move || { 
-        // t3_access.write().unwrap().x_stats.drain(0..1); use 'tier_vector_lenght' to get last tier index, then drain
-        // t3_access.write().unwrap().y_stats.drain(0..1);
-
-        // let mut t1_length = 0;
-        // let mut t2_length = 0;  
-        // let mut t3_length = 0;
-
         let mut merged_CA_last_x_element;
         let mut merged_CA_last_y_element;
 
         loop {
             for tier in 0..(num_tiers-1) {  //only testing on first tier, initial tier, for now
-                // let current_tier = tier_vector[tier];
-                // let lower_tier = tier_vector[tier+1];
 
                 if tier_vector[tier].read().unwrap().x_stats.len() == 6 {
                     println!("\nTier {}", tier);
@@ -182,7 +194,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         }
     });
-
     
     pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<RwLock<TierData>>, cut_length: usize) {
         let mut vec_len: usize;
