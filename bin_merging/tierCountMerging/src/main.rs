@@ -135,9 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
     rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
-    // let t1_access = my_app.initial_tier.clone(); ####
-    // let t2_access = my_app.tier2.clone();
-    // let t3_access = my_app.tier3.clone();
+
     let tier_vector = my_app.tiers.clone();
     let catch_all_tier = tier_vector[num_tiers-1].clone();
 
@@ -167,9 +165,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
                     print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
                 }
-            }
+            } 
 
-
+            
             if catch_all_tier.write().unwrap().x_stats.len() == 6 {
                 println!("\nCA Tier");
                 merged_CA_last_x_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, true);
