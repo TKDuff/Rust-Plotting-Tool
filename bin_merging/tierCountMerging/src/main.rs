@@ -104,8 +104,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
     let initial_tier_accessor = my_app.tiers[0].clone();
-    //let aggregate_thread_his_data_accessor = my_app.aggregate_data_tier.clone();
-
     
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
@@ -130,7 +128,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 initial_tier_lock.x_stats.push(aggregated_raw_data.0);
                 initial_tier_lock.y_stats.push(aggregated_raw_data.1);
-                //println!("{:?}", initial_tier_lock.print_x_means());
             }
             
         }   
@@ -142,7 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let t2_access = my_app.tier2.clone();
     // let t3_access = my_app.tier3.clone();
     let tier_vector = my_app.tiers.clone();
-    let tier_vector_length = num_tiers;     //this can be passed or known, don't need to check len
+    let catch_all_tier = tier_vector[num_tiers-1].clone();
     
     let t = thread::spawn(move || { 
         // t3_access.write().unwrap().x_stats.drain(0..1); use 'tier_vector_lenght' to get last tier index, then drain
@@ -152,8 +149,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // let mut t2_length = 0;  
         // let mut t3_length = 0;
 
-        // let mut merged_t3_last_x_element;
-        // let mut merged_t3_last_y_element;
+        let mut merged_CA_last_x_element;
+        let mut merged_CA_last_y_element;
 
         loop {
             for tier in 0..2 {  //only testing on first tier, initial tier, for now
@@ -161,11 +158,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // let lower_tier = tier_vector[tier+1];
 
                 if tier_vector[tier].read().unwrap().x_stats.len() == 6 {
-                    println!("\n{}", tier);
+                    println!("\nTier {}", tier);
                     print!("{:?}", tier_vector[tier].read().unwrap().print_x_means("Before"));
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
                     print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
                 }
+            }
+
+
+            if catch_all_tier.write().unwrap().x_stats.len() == 6 {
+                println!("\nCA Tier");
+                merged_CA_last_x_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, true);
+                merged_CA_last_y_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, false);
+                println!("Got the point {:?}", merged_CA_last_x_element);
+                tier_vector[num_tiers-2].write().unwrap().x_stats[0] = merged_CA_last_x_element;
+                tier_vector[num_tiers-2].write().unwrap().y_stats[0] = merged_CA_last_y_element;
+
             }
 
             /*
@@ -212,8 +220,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             current_tier_lock.y_stats[0] = current_tier_y_average;
             current_tier_lock.y_stats.drain(1..vec_len-1);
-
-            //println!("{:?}", current_tier_lock.print_x_means());
         }
 
         {
@@ -221,10 +227,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             previous_tier_lock.x_stats.push(current_tier_x_average);
             previous_tier_lock.y_stats.push(current_tier_y_average);  
         }
-
-        //println!("\nTier 1 merge");
-        //println!("{:?}", current_tier.write().unwrap().print_x_means());
-        //println!("\n");
 
     }
 
@@ -344,12 +346,10 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
-            // let initial_tier_plot_line = Line::new(self.initial_tier.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLUE);
-            // let t2_plot_line = Line::new(self.tier2.read().unwrap().get_means()).width(2.0).color(egui::Color32::GREEN);
-            // let t3_plot_line = Line::new(self.tier3.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLACK);
-            //let t4_plot_line = Line::new(self.tier4.read().unwrap().get_means()).width(2.0).color(egui::Color32::BROWN);
 
 
+
+            //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
                 let color = colors[i];
                 let line = Line::new(tier.read().unwrap().get_means())
