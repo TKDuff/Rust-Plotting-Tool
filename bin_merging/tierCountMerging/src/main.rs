@@ -139,16 +139,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 //println!("For tier {} the condition is {}", tier, tier_vector[tier].read().unwrap().condition);
                 
+                
                 if tier_vector[tier].read().unwrap().x_stats.len() == tier_vector[tier].read().unwrap().condition {
                     println!("\nTier {}", tier);
                     print!("{:?}", tier_vector[tier].read().unwrap().print_x_means("Before"));
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
                     print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
                 }
+                
             } 
-            //thread::sleep(Duration::from_millis(40));
+            thread::sleep(Duration::from_millis(1));
             //println!("catch all {}", catch_all_tier.read().unwrap().condition);
-
+            catch_all_tier.read().unwrap().len();
 
             /*
             if catch_all_tier.write().unwrap().x_stats.len() == 6 {
