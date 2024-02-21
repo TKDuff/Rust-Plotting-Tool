@@ -1,8 +1,8 @@
 
-#![allow(warnings)] //Remove warning, be sure to remove this
+#![allow(warnings)] use nix::libc::ARPD_FLUSH;
+//Remove warning, be sure to remove this
 use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData};
-use tokio::task::spawn_blocking; //no need import 'bin.rs' Bin struct as is not used directly by main
-use std::{num, thread};
+use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals};
 use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
@@ -51,46 +51,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)));
         }
     };
-
-    /*
-    let args: Vec<String> = env::args().collect();
-    let data_strategy = args[1].as_str();
-    let num_tiers = args[2].parse::<usize>().unwrap_or_default();
-
-
-    let my_app = match data_strategy {
-        "count" => MyApp::new(
-            Arc::new(RwLock::new(CountRawData::new())),
-            create_tiers(num_tiers),
-        Arc::new(AtomicBool::new(false)),
-        ),
-        // ... other cases ...
-        _ => panic!("Invalid argument, please give an argument of one of the following\nadwin\ncount\ninterval"),
-    };*/
-
-
-    pub fn setup_my_app() -> Result<(MyApp, usize), String> {
-        let args: Vec<String> = env::args().collect();
-        let data_strategy = args[1].as_str();
-        let num_tiers = args[2].parse::<usize>().unwrap_or_default();
-
-        let my_app = match data_strategy {
-            "count" => MyApp::new(
-                Arc::new(RwLock::new(CountRawData::new())),
-                create_tiers(num_tiers),
-                Arc::new(AtomicBool::new(false)),
-            ),
-            // ... other cases ...
-            _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
-        };
-    
-        Ok((my_app, num_tiers))
-    }
-
-    fn create_tiers(num_tiers: usize) -> Vec<Arc<RwLock<TierData>>> {
-        (0..num_tiers).map(|_| Arc::new(RwLock::new(TierData::new()))).collect()
-    }
-
     
     let rt = Runtime::new().unwrap();
     let should_halt_clone = my_app.should_halt.clone();
@@ -102,11 +62,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
         loop {
-
             if should_halt_clone.load(Ordering::SeqCst) {
                 break; // Exit the loop if the atomic bool is true
             }
-
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
@@ -130,8 +88,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
         let mut aggregated_raw_data ; 
-
-
         for message in hd_receiver {
 
             {
@@ -155,31 +111,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     
-    rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
+    //rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
 
     let tier_vector = my_app.tiers.clone();
-    let catch_all_tier = tier_vector[num_tiers-1].clone();
+    let num_tiers = tier_vector.len();
+    let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
 
     //always have to drain final catch all vector
     catch_all_tier.write().unwrap().x_stats.drain(0..1);
     catch_all_tier.write().unwrap().y_stats.drain(0..1);
     
+    // println!("Number args {}", num_tiers);
+    // println!(" {}", tier_vector[0].read().unwrap().condition);
+    // println!(" {}", tier_vector[1].read().unwrap().condition);
+    // println!(" {}", tier_vector[2].read().unwrap().condition);
+    // println!("catch all {}", catch_all_tier.read().unwrap().condition);
+    
     let t = thread::spawn(move || { 
-        let mut merged_CA_last_x_element;
-        let mut merged_CA_last_y_element;
+        // let mut merged_CA_last_x_element;
+        // let mut merged_CA_last_y_element;
 
+        
         loop {
-            for tier in 0..(num_tiers-1) {  //only testing on first tier, initial tier, for now
+            //will break when only one tier, however this is an edge case, the Catch All only edge case
+            for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now
 
-                if tier_vector[tier].read().unwrap().x_stats.len() == 6 {
+
+                //println!("For tier {} the condition is {}", tier, tier_vector[tier].read().unwrap().condition);
+                
+                if tier_vector[tier].read().unwrap().x_stats.len() == tier_vector[tier].read().unwrap().condition {
                     println!("\nTier {}", tier);
                     print!("{:?}", tier_vector[tier].read().unwrap().print_x_means("Before"));
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
                     print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
                 }
             } 
+            //thread::sleep(Duration::from_millis(40));
+            //println!("catch all {}", catch_all_tier.read().unwrap().condition);
 
-            
+
+            /*
             if catch_all_tier.write().unwrap().x_stats.len() == 6 {
                 println!("\nCA Tier");
                 merged_CA_last_x_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, true);
@@ -190,7 +161,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 tier_vector[num_tiers-2].write().unwrap().y_stats[0] = merged_CA_last_y_element;
                 println!("Now the first elem of t2 is {:?}", tier_vector[num_tiers-2].read().unwrap().x_stats[0]);
 
-            }
+            }*/
 
         }
     });
@@ -220,6 +191,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
     }
+
+
+    pub fn setup_my_app() -> Result<(MyApp, usize), String> {
+        let args: Vec<String> = env::args().collect();
+        let data_strategy = args[1].as_str();
+
+        let num_tiers = args.len(); //= args[2].parse::<usize>().unwrap_or_default();
+
+        let my_app = match data_strategy {
+            "count" => MyApp::new(
+                Arc::new(RwLock::new(CountRawData::new())),
+                create_tiers(num_tiers, args),
+                Arc::new(AtomicBool::new(false)),
+            ),
+            // ... other cases ...
+            _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
+        };
+
+        Ok((my_app, num_tiers))
+    }
+
+    fn create_tiers(num_tiers: usize, args: Vec<String>) -> Vec<Arc<RwLock<TierData>>> {
+        let mut tiers = Vec::new();
+        println!("{:?}", args);
+
+        for i in 2..num_tiers {
+            let tier = Arc::new(RwLock::new(TierData::new(args.get(i).map_or(0, |arg| arg.parse::<usize>().unwrap_or_default())    )));
+            //println!("Tier {} initial cond {}", i-2,args[i] /*,tier.read().unwrap().condition*/);
+            tiers.push(tier);
+        }
+
+        tiers
+    }
+
+
 
     
     let native_options = NativeOptions{

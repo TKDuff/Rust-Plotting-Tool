@@ -4,24 +4,19 @@ use std::mem;
 pub struct TierData {
     pub x_stats: Vec<Bin>,
     pub y_stats: Vec<Bin>,
-    pub conditoin: i32,
+    pub condition: usize,
 }
 
 impl TierData {
-    pub fn new() -> Self {
+    pub fn new(condition: usize) -> Self {
         Self { 
             x_stats: vec![Bin::default()],
             y_stats: vec![Bin::default()],
-            conditoin: 0,
+            condition: condition,
         }
     }
 
     pub fn merge_vector_bins(&self, bins: &[Bin]/*, c: i32*/) -> Bin {
-
-        // println!("Merging this bin {:?}", bins);
-        // if self.x_stats.is_empty() || (self.x_stats.len() == 1) {
-        //     println!("x_stats is empty!");
-        // }
 
         let mut temp_bin;// Vec<Bin> = Vec::new();
         
