@@ -1,5 +1,6 @@
 use crate::bin::Bin;
 use std::mem;
+use std::sync::{Arc, RwLock};
 
 pub struct TierData {
     pub x_stats: Vec<Bin>,
@@ -87,9 +88,9 @@ impl TierData {
     }
 
 
-    pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize, x: bool) -> Bin {
+    pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
 
-        println!("{:?}", self.print_x_means("Final tier"));
+        //println!("Before {:?}\n", self.x_stats);
 
         let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
 
@@ -104,9 +105,12 @@ impl TierData {
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
 
 
-        //self.print_means_of_bin(temp_bins);
-        mem::replace(to_merge, temp_bins);
+        //println!("After {:?}\n", temp_bins);
+        //mem::replace(to_merge, temp_bins);
+        to_merge.drain(0..length);
+        to_merge.splice(0..0, temp_bins);
         to_merge[to_merge.len()-1]        
     }
+
 
 }

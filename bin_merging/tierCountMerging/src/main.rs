@@ -1,7 +1,7 @@
 
 #![allow(warnings)] use nix::libc::ARPD_FLUSH;
 //Remove warning, be sure to remove this
-use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData, process_tier, setup_my_app};
+use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData, process_tier, setup_my_app, Bin};
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals};
@@ -57,8 +57,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rt = Runtime::new().unwrap();
     let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread = my_app.raw_data.clone();
-
     
+    println!("The number of tiers is {}", num_tiers);
+
     rt.spawn(async move {
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
@@ -85,7 +86,59 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
     let initial_tier_accessor = my_app.tiers[0].clone();
-    
+
+    /*Special condition when only raw data being read in and catch all tier. So go straight from raw data to catch all */
+    if num_tiers == 3 {
+        thread::spawn(move || {
+            let mut chunk: Vec<[f64;2]>;
+            let mut new_bin_x: Vec<Bin>;
+            let mut new_bin_y: Vec<Bin>;
+            for message in hd_receiver {
+                {
+                    let mut aggregate_thread_raw_data_accessor_lock = aggregate_thread_raw_data_accessor.write().unwrap();
+                    chunk = aggregate_thread_raw_data_accessor_lock.get_chunk(message);
+
+
+                    new_bin_x = chunk.iter()
+                    .map(|&[x_mean, _]| Bin {
+                        mean: x_mean,
+                        sum: x_mean,
+                        min: x_mean,
+                        max: x_mean,
+                        count: 1,
+                    }).collect();
+
+                    new_bin_y = chunk.iter()
+                    .map(|&[_, y_mean]| Bin {
+                        mean: y_mean,
+                        sum: y_mean,
+                        min: y_mean,
+                        max: y_mean,
+                        count: 1,
+                    }).collect();
+                }
+
+                {
+                    let mut initial_tier_accessor_lock = initial_tier_accessor.write().unwrap();
+                    initial_tier_accessor_lock.x_stats.extend(new_bin_x);
+                    initial_tier_accessor_lock.y_stats.extend(new_bin_y);
+
+                    let length = initial_tier_accessor_lock.x_stats.len();
+                
+                    initial_tier_accessor_lock.merge_final_tier_vector_bins(2, length-1,true);
+                    initial_tier_accessor_lock.merge_final_tier_vector_bins(2, length-1,false);
+                    
+                }
+
+                {
+                    let mut aggregate_thread_raw_data_accessor_lock = aggregate_thread_raw_data_accessor.write().unwrap();
+                    aggregate_thread_raw_data_accessor_lock.remove_chunk(message);
+                }
+            }
+        });
+    }
+
+    /*
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
@@ -110,7 +163,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             
         }   
-    });
+    });*/
 
     
     //rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
@@ -125,6 +178,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     catch_all_tier.write().unwrap().x_stats.drain(0..1);
     catch_all_tier.write().unwrap().y_stats.drain(0..1);
     
+
+    /*
     let tier_check_cut_loop = thread::spawn(move || { 
         let mut merged_CA_last_x_element;
         let mut merged_CA_last_y_element;
@@ -132,11 +187,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         loop {
             //will break when only one tier, however this is an edge case, the Catch All only edge case
-            for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now
-
-                //println!("For tier {} the condition is {}", tier, tier_vector[tier].read().unwrap().condition);
-                
-                
+            for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now 
                 if tier_vector[tier].read().unwrap().x_stats.len() == tier_vector[tier].read().unwrap().condition {
                     //println!("\nTier {}", tier);
                     print!("{:?}", tier_vector[tier].read().unwrap().print_x_means("Before"));
@@ -166,7 +217,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
         }
-    });
+    });*/
     
     let native_options = NativeOptions{
         ..Default::default()

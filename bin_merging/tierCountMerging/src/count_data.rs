@@ -12,7 +12,7 @@ impl CountRawData {
         Self {
 
             //When set to 10 ecluding the last point, as that is kept for plot consistency
-            points_count: 7,
+            points_count: 10,
             points: Vec::new(),//vec![[0.0, 0.0]]
         }
     }
@@ -82,7 +82,7 @@ impl DataStrategy for CountRawData {
 
         match values_result {
             Ok(values) => {
-                println!("{}", values[0]);
+                //println!("{}", values[0]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {
@@ -112,6 +112,7 @@ impl DataStrategy for CountRawData {
     }
 
     fn remove_chunk(&mut self, count:usize) {
+        //println!("Before removing {:?}", self.points);
         self.points.drain(..count);
         //println!("After removing {:?}", self.points);
     }
