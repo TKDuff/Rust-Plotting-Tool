@@ -121,49 +121,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     catch_all_tier.write().unwrap().x_stats.drain(0..1);
     catch_all_tier.write().unwrap().y_stats.drain(0..1);
     
-    // println!("Number args {}", num_tiers);
-    // println!(" {}", tier_vector[0].read().unwrap().condition);
-    // println!(" {}", tier_vector[1].read().unwrap().condition);
-    // println!(" {}", tier_vector[2].read().unwrap().condition);
-    // println!("catch all {}", catch_all_tier.read().unwrap().condition);
-    
-    let t = thread::spawn(move || { 
-        // let mut merged_CA_last_x_element;
-        // let mut merged_CA_last_y_element;
+    let tier_check_cut_loop = thread::spawn(move || { 
+        let mut merged_CA_last_x_element;
+        let mut merged_CA_last_y_element;
 
         
         loop {
             //will break when only one tier, however this is an edge case, the Catch All only edge case
             for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now
 
-
-                println!("For tier {} the condition is {}", tier, tier_vector[tier].read().unwrap().condition);
+                //println!("For tier {} the condition is {}", tier, tier_vector[tier].read().unwrap().condition);
                 
                 
                 if tier_vector[tier].read().unwrap().x_stats.len() == tier_vector[tier].read().unwrap().condition {
-                    println!("\nTier {}", tier);
+                    //println!("\nTier {}", tier);
                     print!("{:?}", tier_vector[tier].read().unwrap().print_x_means("Before"));
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
-                    print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
+                    //print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
                 }
                 
             } 
             thread::sleep(Duration::from_millis(1));
-            //println!("catch all {}", catch_all_tier.read().unwrap().condition);
+
+            let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();
 
 
-            /*
-            if catch_all_tier.write().unwrap().x_stats.len() == 6 {
-                println!("\nCA Tier");
-                merged_CA_last_x_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, true);
-                merged_CA_last_y_element = catch_all_tier.write().unwrap().merge_final_tier_vector_bins(3, false);
+            if catch_all_tier_write_lock.x_stats.len() == catch_all_tier_write_lock.condition {
+                
+                merged_CA_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, true);
+                merged_CA_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, false);
                 println!("Got the point {:?}", merged_CA_last_x_element);
-                println!("The first elem of t2 was {:?}", tier_vector[num_tiers-2].read().unwrap().x_stats[0]);
-                tier_vector[num_tiers-2].write().unwrap().x_stats[0] = merged_CA_last_x_element;
-                tier_vector[num_tiers-2].write().unwrap().y_stats[0] = merged_CA_last_y_element;
-                println!("Now the first elem of t2 is {:?}", tier_vector[num_tiers-2].read().unwrap().x_stats[0]);
 
-            }*/
+                let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();
+
+                println!("The first elem of t2 was {:?}", tier_vector_write_lock.x_stats[0]);
+                tier_vector_write_lock.x_stats[0] = merged_CA_last_x_element;
+                tier_vector_write_lock.y_stats[0] = merged_CA_last_y_element;
+                println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.x_stats[0]);
+
+            }
 
         }
     });
