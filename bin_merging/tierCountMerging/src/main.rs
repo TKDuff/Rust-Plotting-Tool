@@ -1,7 +1,7 @@
 
 #![allow(warnings)] use nix::libc::ARPD_FLUSH;
 //Remove warning, be sure to remove this
-use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData};
+use project_library::{AggregationStrategy, CountAggregateData, CountRawData, DataStrategy, TierData, process_tier, setup_my_app};
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals};
@@ -43,14 +43,16 @@ impl MyApp {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
 
-    let (my_app,num_tiers)  = match setup_my_app() {
-        Ok((app, tiers)) => (app, tiers),
+    let (raw_data, tiers, should_halt, num_tiers)  = match setup_my_app() {
+        Ok((raw_data, tiers, should_halt, num_tiers)) => (raw_data, tiers, should_halt, num_tiers),
         Err(e) => {
             eprintln!("{}", e);
             //return Err(Box::new(e));  // Early return for error case
             return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)));
         }
     };
+
+    let my_app = MyApp::new(raw_data, tiers, should_halt);
     
     let rt = Runtime::new().unwrap();
     let should_halt_clone = my_app.should_halt.clone();
@@ -113,6 +115,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     //rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
 
+
+
     let tier_vector = my_app.tiers.clone();
     let num_tiers = tier_vector.len();
     let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
@@ -163,68 +167,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         }
     });
-    
-    pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<RwLock<TierData>>, cut_length: usize) {
-        let mut vec_len: usize;
-        let current_tier_x_average;
-        let current_tier_y_average;
-        {
-            let mut current_tier_lock = current_tier.write().unwrap();
-            let vec_slice = current_tier_lock.get_slices(cut_length);
-            current_tier_x_average = current_tier_lock.merge_vector_bins(vec_slice.0);
-            current_tier_y_average = current_tier_lock.merge_vector_bins(vec_slice.1);
-            vec_len = current_tier_lock.x_stats.len();
-
-            current_tier_lock.x_stats[0] = current_tier_x_average;
-            current_tier_lock.x_stats.drain(1..vec_len-1);
-
-            current_tier_lock.y_stats[0] = current_tier_y_average;
-            current_tier_lock.y_stats.drain(1..vec_len-1);
-        }
-
-        {
-            let mut previous_tier_lock = previous_tier.write().unwrap();
-            previous_tier_lock.x_stats.push(current_tier_x_average);
-            previous_tier_lock.y_stats.push(current_tier_y_average);  
-        }
-
-    }
-
-
-    pub fn setup_my_app() -> Result<(MyApp, usize), String> {
-        let args: Vec<String> = env::args().collect();
-        let data_strategy = args[1].as_str();
-
-        let num_tiers = args.len(); //= args[2].parse::<usize>().unwrap_or_default();
-
-        let my_app = match data_strategy {
-            "count" => MyApp::new(
-                Arc::new(RwLock::new(CountRawData::new())),
-                create_tiers(num_tiers, args),
-                Arc::new(AtomicBool::new(false)),
-            ),
-            // ... other cases ...
-            _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
-        };
-
-        Ok((my_app, num_tiers))
-    }
-
-    fn create_tiers(num_tiers: usize, args: Vec<String>) -> Vec<Arc<RwLock<TierData>>> {
-        let mut tiers = Vec::new();
-        println!("{:?}", args);
-
-        for i in 2..num_tiers {
-            let tier = Arc::new(RwLock::new(TierData::new(args.get(i).map_or(0, |arg| arg.parse::<usize>().unwrap_or_default())    )));
-            //println!("Tier {} initial cond {}", i-2,args[i] /*,tier.read().unwrap().condition*/);
-            tiers.push(tier);
-        }
-
-        tiers
-    }
-
-
-
     
     let native_options = NativeOptions{
         ..Default::default()
