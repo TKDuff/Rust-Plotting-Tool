@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let aggregate_thread_raw_data_accessor = my_app.raw_data.clone();
     let initial_tier_accessor = my_app.tiers[0].clone();
 
-    /*Special condition when only raw data being read in and catch all tier. So go straight from raw data to catch all */
+    /*Special condition when only raw data being read in and catch all tier. So go straight from raw data to catch all 
     if num_tiers == 3 {
         thread::spawn(move || {
             let mut chunk: Vec<[f64;2]>;
@@ -136,9 +136,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         });
-    }
+    }*/
 
-    /*
+    
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
         let mut objective_length = 0;
@@ -163,7 +163,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             
         }   
-    });*/
+    });
 
     
     //rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
@@ -179,10 +179,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     catch_all_tier.write().unwrap().y_stats.drain(0..1);
     
 
-    /*
+    
     let tier_check_cut_loop = thread::spawn(move || { 
         let mut merged_CA_last_x_element;
         let mut merged_CA_last_y_element;
+        let CA_condition = catch_all_tier.read().unwrap().condition;
 
         
         loop {
@@ -200,11 +201,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();
 
-
-            if catch_all_tier_write_lock.x_stats.len() == catch_all_tier_write_lock.condition {
+            if catch_all_tier_write_lock.x_stats.len() == CA_condition {
                 
-                merged_CA_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, true);
-                merged_CA_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, false);
+                merged_CA_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,CA_condition, true);
+                merged_CA_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,CA_condition, false);
                 println!("Got the point {:?}", merged_CA_last_x_element);
 
                 let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();
@@ -217,7 +217,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
         }
-    });*/
+    });
     
     let native_options = NativeOptions{
         ..Default::default()

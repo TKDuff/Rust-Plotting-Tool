@@ -12,7 +12,7 @@ impl CountRawData {
         Self {
 
             //When set to 10 ecluding the last point, as that is kept for plot consistency
-            points_count: 10,
+            points_count: 7,
             points: Vec::new(),//vec![[0.0, 0.0]]
         }
     }
