@@ -137,7 +137,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now
 
 
-                //println!("For tier {} the condition is {}", tier, tier_vector[tier].read().unwrap().condition);
+                println!("For tier {} the condition is {}", tier, tier_vector[tier].read().unwrap().condition);
                 
                 
                 if tier_vector[tier].read().unwrap().x_stats.len() == tier_vector[tier].read().unwrap().condition {
@@ -150,7 +150,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } 
             thread::sleep(Duration::from_millis(1));
             //println!("catch all {}", catch_all_tier.read().unwrap().condition);
-            catch_all_tier.read().unwrap().len();
+
 
             /*
             if catch_all_tier.write().unwrap().x_stats.len() == 6 {
