@@ -58,32 +58,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread = my_app.raw_data.clone();
     
-    println!("The number of tiers is {}", num_tiers);
+    //println!("The number of tiers is {}", num_tiers);
 
-    rt.spawn(async move {
-        let stdin = io::stdin();
-        let reader = BufReader::new(stdin);
-        let mut lines = reader.lines();
-        loop {
-            if should_halt_clone.load(Ordering::SeqCst) {
-                break; // Exit the loop if the atomic bool is true
-            }
-            tokio::select! {
-                line = lines.next_line() => {
-                    if let Ok(Some(line)) = line {
-                        raw_data_thread.write().unwrap().append_str(line);
-                        if let Some(cut_index) = raw_data_thread.write().unwrap().check_cut() {
-                            rd_sender.send(cut_index).unwrap();
-                        }
-
-                    } else {
-                        break;
-                    }
-                }, 
-            }
-        }
-    });
-
+    //main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
+    main_threads::create_interval_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
+    
     let raw_data_accessor = my_app.raw_data.clone();
     let initial_tier_accessor = my_app.tiers[0].clone();
 
@@ -93,17 +72,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor, initial_tier_accessor);
 
-        let tier_vector = my_app.tiers.clone();
-        let num_tiers = tier_vector.len();
-        let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
+        // let tier_vector = my_app.tiers.clone();
+        // let num_tiers = tier_vector.len();
+        // let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
 
-        //always have to drain final catch all vector
-        catch_all_tier.write().unwrap().x_stats.drain(0..1);
-        catch_all_tier.write().unwrap().y_stats.drain(0..1);
-        main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
+        // //always have to drain final catch all vector
+        // catch_all_tier.write().unwrap().x_stats.drain(0..1);
+        // catch_all_tier.write().unwrap().y_stats.drain(0..1);
+        // main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
     }
-    
-    //rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();    
 
     
     

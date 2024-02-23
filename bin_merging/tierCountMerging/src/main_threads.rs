@@ -1,22 +1,84 @@
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{num, thread, usize};
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{Receiver, Sender};
 use crate::data_strategy::DataStrategy;
 use crate::tier::TierData;
 use std::sync::{Arc, RwLock};
-use tokio::time::Duration;
+use tokio::time::{self,Duration, Instant};
 use crate::main_functions::process_tier;
 use crate::bin::Bin;
+use tokio::runtime::Runtime;
+use tokio::io::{self, AsyncBufReadExt, BufReader};
+
+pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, raw_data_thread: Arc<RwLock<dyn DataStrategy + Send + Sync>>, rd_sender: Sender<usize>) {
+    rt.spawn(async move {
+        let stdin = io::stdin();
+        let reader = BufReader::new(stdin);
+        let mut lines = reader.lines();
+        loop {
+            if should_halt_clone.load(Ordering::SeqCst) {
+                break; // Exit the loop if the atomic bool is true
+            }
+            tokio::select! {
+                line = lines.next_line() => {
+                    if let Ok(Some(line)) = line {
+                        raw_data_thread.write().unwrap().append_str(line);
+                        if let Some(cut_index) = raw_data_thread.write().unwrap().check_cut() {
+                            rd_sender.send(cut_index).unwrap();
+                        }
+
+                    } else {
+                        break;
+                    }
+                }, 
+            }
+        }
+    });
+}
+
+pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, raw_data_thread: Arc<RwLock<dyn DataStrategy + Send + Sync>>, rd_sender: Sender<usize>) {
+    let initial_delay = Duration::from_secs(1); // Initial delay of 5 seconds
+    let interval_duration = Duration::from_secs(1); // Interval duration of 5 seconds
+
+    rt.spawn(async move {
+
+        let mut interval = time::interval_at(Instant::now() + initial_delay, interval_duration); //intial delay is 5 seconds
+        let stdin = io::stdin();
+        let reader = BufReader::new(stdin);
+        let mut lines = reader.lines();
+
+        loop {
+            if should_halt_clone.load(Ordering::SeqCst) {
+                break; // Exit the loop if the atomic bool is true
+            }
+            tokio::select! {
+                line = lines.next_line() => {
+                    if let Ok(Some(line)) = line {
+                        raw_data_thread.write().unwrap().append_str(line);
+                    } else {
+                        break;
+                    }
+                }, 
+                _ = interval.tick() => {
+                    let length = raw_data_thread.read().unwrap().get_length();
+                    rd_sender.send(length).unwrap();
+                }
+            }
+        }
+    });
+}
+
+
 
 pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>> )   {
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
-        let mut objective_length = 0;
         let mut aggregated_raw_data ; 
         for message in hd_receiver {
 
             {
-                println!("{}", message);
+                //println!("The length is {}", message);
                 let mut aggregate_thread_raw_data_accessor_lock = raw_data_accessor.write().unwrap();
                 chunk = aggregate_thread_raw_data_accessor_lock.get_chunk(message);
                 aggregated_raw_data = aggregate_thread_raw_data_accessor_lock.append_chunk_aggregate_statistics(chunk);
@@ -29,6 +91,7 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
                 initial_tier_lock.x_stats[length] = aggregated_raw_data.2;
                 initial_tier_lock.y_stats[length] = aggregated_raw_data.3;
 
+                //println!(" Avgerage of x stats {:?} ", aggregated_raw_data.2);
                 initial_tier_lock.x_stats.push(aggregated_raw_data.0);
                 initial_tier_lock.y_stats.push(aggregated_raw_data.1);
             }
@@ -36,7 +99,6 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
         }   
     });
 }
-
 
 pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
     thread::spawn(move || {

@@ -2,6 +2,9 @@ use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use crate::tier::TierData;
 use crate::count_data::CountRawData;
+use crate::interval_data::IntervalRawData;
+
+
 use crate::data_strategy::DataStrategy;
 use std::env;
 
@@ -42,13 +45,10 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
 
     let tiers = create_tiers(num_tiers, &args);
     let should_halt = Arc::new(AtomicBool::new(false));
-    let strategy;
 
-    match data_strategy {
-        "count" => (
-            strategy = Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
-        ),
-        // ... other cases ...
+    let strategy: Arc<RwLock<dyn DataStrategy + Send + Sync>> = match data_strategy {
+        "count" => Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
+        "interval" => Arc::new(RwLock::new(IntervalRawData::new(raw_data_aggregation_condition))),
         _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
     };
 
