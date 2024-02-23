@@ -72,14 +72,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor, initial_tier_accessor);
 
-        // let tier_vector = my_app.tiers.clone();
-        // let num_tiers = tier_vector.len();
-        // let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
+        let tier_vector = my_app.tiers.clone();
+        let num_tiers = tier_vector.len();
+        let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
 
-        // //always have to drain final catch all vector
-        // catch_all_tier.write().unwrap().x_stats.drain(0..1);
-        // catch_all_tier.write().unwrap().y_stats.drain(0..1);
-        // main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
+        //always have to drain final catch all vector
+        catch_all_tier.write().unwrap().x_stats.drain(0..1);
+        catch_all_tier.write().unwrap().y_stats.drain(0..1);
+        main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
     }
 
     
