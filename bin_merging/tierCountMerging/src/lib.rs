@@ -18,4 +18,4 @@ pub use self::aggregation_strategy::AggregationStrategy;
 pub use self::data_strategy::DataStrategy;
 pub use self::tier::TierData;
 pub use self::main_functions::{process_tier, setup_my_app};
-pub use self::main_threads::{create_raw_data_to_initial_tier, create_tier_check_cut_loop, create_raw_data_to_initial_tier_edge, create_count_stdin_read};
+pub use self::main_threads::{create_raw_data_to_initial_tier, create_tier_check_cut_loop, create_raw_data_to_initial_tier_edge, create_count_stdin_read, create_tier_interval_check_cut_loop};

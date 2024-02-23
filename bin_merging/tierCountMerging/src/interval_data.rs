@@ -85,7 +85,7 @@ impl DataStrategy for IntervalRawData {
 
         match values_result {
             Ok(values) => {
-                println!("{}", values[0]);
+                //println!("{}", values[0]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {
@@ -119,9 +119,9 @@ impl DataStrategy for IntervalRawData {
     In count the remove_chunk does not decrement by 1 since the check_cut method checks the length of the rae data vector minus 1 
      */
     fn remove_chunk(&mut self, count:usize) {
-        println!("Before removing {:?}", self.points);
+        //println!("Before removing {:?}", self.points);
         self.points.drain(..count-1);
-        println!("After removing {:?}", self.points);
+        //println!("After removing {:?}", self.points);
     }
 
     fn check_cut(&self) -> Option<usize> {

@@ -79,7 +79,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         //always have to drain final catch all vector
         catch_all_tier.write().unwrap().x_stats.drain(0..1);
         catch_all_tier.write().unwrap().y_stats.drain(0..1);
-        main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
+        //main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
+        main_threads::create_tier_interval_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
     }
 
     

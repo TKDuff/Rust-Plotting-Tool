@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use crate::tier::TierData;
+
 use crate::count_data::CountRawData;
 use crate::interval_data::IntervalRawData;
 
@@ -43,7 +44,6 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
 
     let num_tiers = args.len(); //= args[2].parse::<usize>().unwrap_or_default();
 
-    let tiers = create_tiers(num_tiers, &args);
     let should_halt = Arc::new(AtomicBool::new(false));
 
     let strategy: Arc<RwLock<dyn DataStrategy + Send + Sync>> = match data_strategy {
@@ -52,11 +52,14 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
         _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
     };
 
+    let tiers = create_tiers(num_tiers, &args);
+
     Ok((strategy, tiers, should_halt, num_tiers))
 }
 
 
 fn create_tiers(num_tiers: usize, args: &[String]) -> Vec<Arc<RwLock<TierData>>> {
+
     let mut tiers = Vec::new();
     println!("{:?}", args);
 
@@ -65,6 +68,5 @@ fn create_tiers(num_tiers: usize, args: &[String]) -> Vec<Arc<RwLock<TierData>>>
         //println!("Tier {} initial cond {}", i-2,args[i] /*,tier.read().unwrap().condition*/);
         tiers.push(tier);
     }
-
     tiers
 }

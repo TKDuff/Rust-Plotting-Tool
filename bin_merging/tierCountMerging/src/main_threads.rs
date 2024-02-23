@@ -154,17 +154,13 @@ pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch
     thread::spawn(move || { 
         let mut merged_CA_last_x_element;
         let mut merged_CA_last_y_element;
-        let CA_condition = catch_all_tier.read().unwrap().condition;
-
-        
+        let CA_condition = catch_all_tier.read().unwrap().condition;        
         loop {
+
             //will break when only one tier, however this is an edge case, the Catch All only edge case
             for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now 
                 if tier_vector[tier].read().unwrap().x_stats.len() == tier_vector[tier].read().unwrap().condition {
-                    //println!("\nTier {}", tier);
-                    print!("{:?}", tier_vector[tier].read().unwrap().print_x_means("Before"));
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
-                    //print!("{:?}\n", tier_vector[tier].read().unwrap().print_x_means("After"));
                 }
                 
             } 
@@ -188,4 +184,25 @@ pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch
             }
         }
     });
+}
+
+pub fn create_tier_interval_check_cut_loop (tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
+    thread::spawn(move || {
+        let mut seconds_passed:usize = 1;
+        thread::sleep(Duration::from_secs(1));
+        println!("First tier interval condition {}", tier_vector[0].read().unwrap().condition);
+        loop {
+            println!("tick");          
+            for tier in 0..=(num_tiers-2) {
+                if seconds_passed % tier_vector[tier].read().unwrap().condition == 0 {
+                    println!("For tier {} ", tier);
+                    let tier_length = tier_vector[tier].read().unwrap().x_stats.len();
+                    process_tier(&tier_vector[tier], &tier_vector[tier+1], tier_length)
+                }
+        }
+
+        seconds_passed += 1;
+        thread::sleep(Duration::from_secs(1));
+    }
+});
 }
