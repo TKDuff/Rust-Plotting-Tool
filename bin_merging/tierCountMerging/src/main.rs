@@ -136,11 +136,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     plot_ui.line(line);
                  }
 
-                 
-            //     plot_ui.line(initial_tier_plot_line);
-            //     plot_ui.line(t2_plot_line);
-            //     plot_ui.line(t3_plot_line);
-            //     //plot_ui.line(t4_plot_line);
             });
 
         });
