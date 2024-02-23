@@ -150,6 +150,9 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
     });
 }
 
+
+
+
 pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
     thread::spawn(move || { 
         let mut merged_CA_last_x_element;
@@ -183,6 +186,7 @@ pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch
         }
     });
 }
+
 pub fn create_tier_interval_check_cut_loop (tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
     thread::spawn(move || {
         let mut merged_CA_last_x_element;
