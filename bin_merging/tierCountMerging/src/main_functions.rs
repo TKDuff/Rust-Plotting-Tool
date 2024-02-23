@@ -36,6 +36,8 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
     let args: Vec<String> = env::args().collect();
     let data_strategy = args[1].as_str();
 
+    let raw_data_aggregation_condition: usize = args[2].parse().expect("Provide a number");
+
     let num_tiers = args.len(); //= args[2].parse::<usize>().unwrap_or_default();
 
     let tiers = create_tiers(num_tiers, &args);
@@ -44,7 +46,7 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
 
     match data_strategy {
         "count" => (
-            strategy = Arc::new(RwLock::new(CountRawData::new())),
+            strategy = Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
         ),
         // ... other cases ...
         _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
@@ -58,7 +60,7 @@ fn create_tiers(num_tiers: usize, args: &[String]) -> Vec<Arc<RwLock<TierData>>>
     let mut tiers = Vec::new();
     println!("{:?}", args);
 
-    for i in 2..num_tiers {
+    for i in 3..num_tiers {
         let tier = Arc::new(RwLock::new(TierData::new(args.get(i).map_or(0, |arg| arg.parse::<usize>().unwrap_or_default())    )));
         //println!("Tier {} initial cond {}", i-2,args[i] /*,tier.read().unwrap().condition*/);
         tiers.push(tier);

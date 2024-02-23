@@ -8,11 +8,11 @@ pub struct CountRawData {
 }
 
 impl CountRawData {
-    pub fn new() -> Self {
+    pub fn new(condition: usize) -> Self {
         Self {
 
             //When set to 10 ecluding the last point, as that is kept for plot consistency
-            points_count: 7,
+            points_count: condition,
             points: Vec::new(),//vec![[0.0, 0.0]]
         }
     }
