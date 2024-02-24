@@ -66,8 +66,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let raw_data_accessor = my_app.raw_data.clone();
     let initial_tier_accessor = my_app.tiers[0].clone();
 
+    /*
+    need to get single condition working, when user gives only one tier
+    Every time length reached/unit time, all the R.D points are moved straight to C.A and merged in C.A. 
+    Thus, the merge condition for R.D is infact the merge condition for the C.A
+    No R.D aggregation occurs, only R.D merging in the C.A tier
 
-    if num_tiers == 4 {
+    If want R.D aggregatoin and C.A to merge the aggregated points, give two arguments. 1)R.D aggregation, 2) C.A merge timing
+    */
+    if num_tiers == 3 {
+        println!("The cond {}", raw_data_accessor.read().unwrap().get_condition());
         main_threads::create_raw_data_to_initial_tier_edge(hd_receiver, raw_data_accessor, initial_tier_accessor);
     } else {
         main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor, initial_tier_accessor);

@@ -130,4 +130,8 @@ impl DataStrategy for CountRawData {
         self.points[0..count+1].to_vec()
     }
 
+    fn get_condition(&self) -> usize {
+        self.condition
+    }
+
 }

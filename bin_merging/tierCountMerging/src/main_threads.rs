@@ -38,8 +38,10 @@ pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>,
 }
 
 pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, raw_data_thread: Arc<RwLock<dyn DataStrategy + Send + Sync>>, rd_sender: Sender<usize>) {
-    let initial_delay = Duration::from_secs(1); // Initial delay of 5 seconds
-    let interval_duration = Duration::from_secs(1); // Interval duration of 5 seconds
+    let raw_data_interval_condition = raw_data_thread.read().unwrap().get_condition();
+
+    let initial_delay = Duration::from_secs(raw_data_interval_condition as u64); // Initial delay of 5 seconds
+    let interval_duration = Duration::from_secs(raw_data_interval_condition as u64); // Interval duration of 5 seconds
 
     rt.spawn(async move {
 
@@ -100,6 +102,7 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
     });
 }
 
+
 pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
     thread::spawn(move || {
         let mut chunk: Vec<[f64;2]>;
@@ -107,7 +110,7 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
         let mut new_bin_y: Vec<Bin>;
         for message in hd_receiver {
             {
-                let mut aggregate_thread_raw_data_accessor_lock = raw_data_accessor.write().unwrap();
+                let aggregate_thread_raw_data_accessor_lock = raw_data_accessor.write().unwrap();
                 chunk = aggregate_thread_raw_data_accessor_lock.get_chunk(message);
 
 
@@ -149,8 +152,6 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
         }
     });
 }
-
-
 
 
 pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
@@ -206,6 +207,7 @@ pub fn create_tier_interval_check_cut_loop (tier_vector :Vec<Arc<RwLock<TierData
                 }
             }
 
+            
             {
             let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();            
             catch_all_length = catch_all_tier_write_lock.x_stats.len();

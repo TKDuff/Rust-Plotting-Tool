@@ -131,4 +131,8 @@ impl DataStrategy for IntervalRawData {
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
         self.points.clone().into_iter().collect()
     }
+
+    fn get_condition(&self) -> usize {
+        self.condition
+    }
 }

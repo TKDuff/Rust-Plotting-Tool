@@ -11,4 +11,5 @@ pub trait DataStrategy: Send + Sync {
     fn get_length(&self) -> usize;
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]>;
     fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (Bin, Bin, Bin, Bin);
+    fn get_condition(&self) -> usize;
 }
