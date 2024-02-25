@@ -116,26 +116,4 @@ impl TierData {
         to_merge[to_merge.len()-1]        
     }
 
-    pub fn merge_final_tier_vector_bins_single_tier(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
-
-        //println!("Before {:?}\n", self.x_stats);
-
-        let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
-
-        let temp_bins = to_merge.chunks(chunk_size).map(|chunk| {
-            let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
-            let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
-            let chunk_min = chunk.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
-            let chunk_max = chunk.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
-            let chunk_mean = if chunk_count > 0 { chunk_sum / chunk_count as f64 } else { 0.0 };
-
-            Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count}
-        }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
-
-        to_merge.drain(0..length);
-        to_merge.splice(0..0, temp_bins);
-        to_merge[to_merge.len()-1]        
-    }
-
-
 }

@@ -72,9 +72,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor.clone(), initial_tier_accessor.clone());
     
-
+    
     if num_tiers == 4 {
-        //main_threads::rd_to_ca_edge(raw_data_accessor, initial_tier_accessor); 
+        main_threads::count_rd_to_ca_edge(raw_data_accessor, initial_tier_accessor); 
     } else {
         let tier_vector = my_app.tiers.clone();
         let num_tiers = tier_vector.len();
@@ -89,6 +89,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             main_threads::count_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
         }
     }
+
+
     /*
     if num_tiers == 3 {
         //Don't have this condition yet, this is for R.D straight to catch all

@@ -155,9 +155,8 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
 }
 
 pub fn rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
+    println!("rd_to_ca_edge");
     thread::spawn(move || {
-        let mut merged_ca_last_x_element;
-        let mut merged_ca_last_y_element;
         let mut seconds_passed: usize = 1;
         let mut catch_all_length = 0;
         thread::sleep(Duration::from_secs(1));
@@ -170,21 +169,37 @@ pub fn rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Syn
                 {
                 let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
                 catch_all_length = catch_all_tier_write_lock.x_stats.len();
-                merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, true);
-                merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, false);
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, true);
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, false);
                 }
-
-                {
-                let mut initial_rd_write_lock = raw_data_accessor.write().unwrap();
-                //println!("{:?}", merged_ca_last_y_element);
-                }
-
             }
         seconds_passed += 1;
         thread::sleep(Duration::from_secs(1));
         }
     });
 }
+
+pub fn count_rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
+    println!("count_rd_to_ca_edge");
+    thread::spawn(move || {
+        let mut catch_all_length = 0;
+        thread::sleep(Duration::from_secs(1));
+        let ca_condition = initial_tier_accessor.read().unwrap().condition;
+
+        loop {
+            catch_all_length = initial_tier_accessor.read().unwrap().x_stats.len();
+            if catch_all_length == ca_condition {
+                {
+                let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, true);
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, false);
+                }
+            }
+        }
+    });
+}
+
+
 
 pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
     println!("interval_check_cut_ca");
@@ -247,6 +262,10 @@ pub fn interval_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_a
 }
 
 
+
+
+
+
 pub fn count_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
     println!("count_check_cut_no_ca");
     thread::spawn(move || {
@@ -285,7 +304,7 @@ pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tie
             } 
 
             thread::sleep(Duration::from_millis(1)); 
-            
+
             let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();
 
             if catch_all_tier_write_lock.x_stats.len() == ca_condition {
