@@ -36,7 +36,7 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
 }
 
 
-pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Vec<Arc<RwLock<TierData>>>, Arc<AtomicBool>, usize), String> {
+pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Vec<Arc<RwLock<TierData>>>, bool, Arc<AtomicBool>, usize), String> {
     let args: Vec<String> = env::args().collect();
     let data_strategy = args[1].as_str();
 
@@ -52,21 +52,31 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
         _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
     };
 
-    let tiers = create_tiers(num_tiers, &args);
+    let (tiers,catch_all_policy)  = create_tiers(num_tiers, &args);
 
-    Ok((strategy, tiers, should_halt, num_tiers))
+    Ok((strategy, tiers, catch_all_policy ,should_halt, num_tiers))
 }
 
 
-fn create_tiers(num_tiers: usize, args: &[String]) -> Vec<Arc<RwLock<TierData>>> {
+fn create_tiers(num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<TierData>>>, bool) {
 
     let mut tiers = Vec::new();
+    let mut catch_all_policy = true;
     println!("{:?}", args);
 
     for i in 3..num_tiers {
-        let tier = Arc::new(RwLock::new(TierData::new(args.get(i).map_or(0, |arg| arg.parse::<usize>().unwrap_or_default())    )));
-        //println!("Tier {} initial cond {}", i-2,args[i] /*,tier.read().unwrap().condition*/);
+        let condition = args.get(i)
+            .map(|arg| arg.trim_end_matches(|c: char| !c.is_digit(10)))
+            .and_then(|num_str| num_str.parse::<usize>().ok())
+            .unwrap_or_default();
+        
+        let tier = Arc::new(RwLock::new(TierData::new( condition )));
+        
         tiers.push(tier);
     }
-    tiers
+
+    if tiers[num_tiers-4].read().unwrap().condition == 0 {
+        catch_all_policy = false;
+    }    
+    (tiers, catch_all_policy)
 }

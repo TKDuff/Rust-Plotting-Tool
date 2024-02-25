@@ -68,8 +68,7 @@ impl DataStrategy for IntervalRawData {
             count: 0,
         };
 
-        //println!("The last r.d element is {}", last_elem_x_bin.mean);
-        
+        //println!("last X {:?}\nlast Y {:?}\nMerged X {:?}\nMerged Y {:?}", last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin);
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
 
         //println!("X means {:?}", self.get_x_means());
@@ -85,7 +84,6 @@ impl DataStrategy for IntervalRawData {
 
         match values_result {
             Ok(values) => {
-                //println!("{}", values[0]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {

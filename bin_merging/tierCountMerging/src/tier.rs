@@ -89,6 +89,34 @@ impl TierData {
 
 
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
+        let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
+
+        println!("Going to merge");
+        for bin in &to_merge[..length].to_vec() {
+            println!("{} and the sum is {} and the count is {} ", bin.mean, bin.sum, bin.count);
+        }
+        let temp_bins = to_merge[..length].chunks(chunk_size).map(|chunk| {
+            let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
+            let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
+            let chunk_min = chunk.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
+            let chunk_max = chunk.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
+            let chunk_mean:f64 = if chunk_count > 0 { chunk_sum / chunk_count as f64 } else { 0.0 };
+
+            Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count}
+        }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
+        
+        
+        println!("What");
+        for bin in &temp_bins {
+            println!("{:?}", bin);
+        }
+
+        to_merge.drain(0..length);
+        to_merge.splice(0..0, temp_bins);
+        to_merge[to_merge.len()-1]        
+    }
+
+    pub fn merge_final_tier_vector_bins_single_tier(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
 
         //println!("Before {:?}\n", self.x_stats);
 
@@ -104,9 +132,6 @@ impl TierData {
             Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count}
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
 
-
-        //println!("After {:?}\n", temp_bins);
-        //mem::replace(to_merge, temp_bins);
         to_merge.drain(0..length);
         to_merge.splice(0..0, temp_bins);
         to_merge[to_merge.len()-1]        

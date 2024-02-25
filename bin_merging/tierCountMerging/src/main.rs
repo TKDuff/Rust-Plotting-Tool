@@ -43,14 +43,8 @@ impl MyApp {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
 
-    let (raw_data, tiers, should_halt, num_tiers)  = match setup_my_app() {
-        Ok((raw_data, tiers, should_halt, num_tiers)) => (raw_data, tiers, should_halt, num_tiers),
-        Err(e) => {
-            eprintln!("{}", e);
-            //return Err(Box::new(e));  // Early return for error case
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)));
-        }
-    };
+    let (raw_data, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
+     
 
     let my_app = MyApp::new(raw_data, tiers, should_halt);
     
@@ -74,6 +68,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     If want R.D aggregatoin and C.A to merge the aggregated points, give two arguments. 1)R.D aggregation, 2) C.A merge timing
     */
+
+
+    
+    if num_tiers == 3 {
+        
+
+    } else if num_tiers == 4 {
+        main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor.clone(), initial_tier_accessor.clone());
+        main_threads::rd_to_ca_edge(raw_data_accessor, initial_tier_accessor);
+    } else {
+        main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor, initial_tier_accessor);
+
+        let tier_vector = my_app.tiers.clone();
+        let num_tiers = tier_vector.len();
+        let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
+
+        println!("Is there a policy {}", catch_all_policy);
+        catch_all_tier.write().unwrap().x_stats.drain(0..1);
+        catch_all_tier.write().unwrap().y_stats.drain(0..1);
+        if catch_all_policy {
+            main_threads::interval_check_cut_ca(tier_vector, catch_all_tier, num_tiers)
+        } else {        
+            main_threads::interval_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
+        }
+    }
+
+
+    /*
     if num_tiers == 3 {
         println!("The cond {}", raw_data_accessor.read().unwrap().get_condition());
         main_threads::create_raw_data_to_initial_tier_edge(hd_receiver, raw_data_accessor, initial_tier_accessor);
@@ -89,7 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         catch_all_tier.write().unwrap().y_stats.drain(0..1);
         //main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
         main_threads::create_tier_interval_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
-    }
+    }*/
 
     
     

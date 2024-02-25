@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::{num, thread, usize};
 use crossbeam::channel::{Receiver, Sender};
 use crate::data_strategy::DataStrategy;
+use crate::interval_data;
 use crate::tier::TierData;
 use std::sync::{Arc, Condvar, RwLock};
 use tokio::time::{self,Duration, Instant};
@@ -83,6 +84,8 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
                 //println!("The length is {}", message);
                 let mut aggregate_thread_raw_data_accessor_lock = raw_data_accessor.write().unwrap();
                 chunk = aggregate_thread_raw_data_accessor_lock.get_chunk(message);
+
+                //return last element of the R.D for x,y and the aggregated R.D excluding the last point
                 aggregated_raw_data = aggregate_thread_raw_data_accessor_lock.append_chunk_aggregate_statistics(chunk);
                 aggregate_thread_raw_data_accessor_lock.remove_chunk(message);
             }
@@ -93,7 +96,7 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
                 initial_tier_lock.x_stats[length] = aggregated_raw_data.2;
                 initial_tier_lock.y_stats[length] = aggregated_raw_data.3;
 
-                //println!(" Avgerage of x stats {:?} ", aggregated_raw_data.2);
+                //println!("R.D last element {}", aggregated_raw_data.0.mean);
                 initial_tier_lock.x_stats.push(aggregated_raw_data.0);
                 initial_tier_lock.y_stats.push(aggregated_raw_data.1);
             }
@@ -101,7 +104,6 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
         }   
     });
 }
-
 
 pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
     thread::spawn(move || {
@@ -153,6 +155,37 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
     });
 }
 
+pub fn rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
+    thread::spawn(move || {
+        let mut merged_ca_last_x_element;
+        let mut merged_ca_last_y_element;
+        let mut seconds_passed: usize = 1;
+        let mut catch_all_length = 0;
+        thread::sleep(Duration::from_secs(1));
+        let ca_condition = initial_tier_accessor.read().unwrap().condition;
+
+        loop {
+
+            if seconds_passed % ca_condition == 0 {
+
+                {
+                let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
+                catch_all_length = catch_all_tier_write_lock.x_stats.len();
+                merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, true);
+                merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, false);
+                }
+
+                {
+                let mut initial_rd_write_lock = raw_data_accessor.write().unwrap();
+                //println!("{:?}", merged_ca_last_y_element);
+                }
+
+            }
+        seconds_passed += 1;
+        thread::sleep(Duration::from_secs(1));
+        }
+    });
+}
 
 pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
     thread::spawn(move || { 
@@ -188,8 +221,9 @@ pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch
     });
 }
 
-pub fn create_tier_interval_check_cut_loop (tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
-    thread::spawn(move || {
+pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
+    println!("interval_check_cut_ca");
+    thread::spawn(move || {        
         let mut merged_CA_last_x_element;
         let mut merged_CA_last_y_element;
         let CA_condition = catch_all_tier.read().unwrap().condition;  
@@ -197,17 +231,14 @@ pub fn create_tier_interval_check_cut_loop (tier_vector :Vec<Arc<RwLock<TierData
 
         let mut seconds_passed:usize = 1;
         thread::sleep(Duration::from_secs(1));
-        println!("First tier interval condition {}", tier_vector[0].read().unwrap().condition);
-        loop {      
+        loop { 
             println!("Tick {} ", seconds_passed);  
             for tier in 0..=(num_tiers-2) {
                 if seconds_passed % tier_vector[tier].read().unwrap().condition == 0 {
                     let tier_length = tier_vector[tier].read().unwrap().x_stats.len();
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], tier_length)
                 }
-            }
-
-            
+            }         
             {
             let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();            
             catch_all_length = catch_all_tier_write_lock.x_stats.len();
@@ -224,10 +255,29 @@ pub fn create_tier_interval_check_cut_loop (tier_vector :Vec<Arc<RwLock<TierData
                 println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.x_stats[0]);
             }
             }
-            
-
         seconds_passed += 1;
         thread::sleep(Duration::from_secs(1));
     }
 });
 }
+
+pub fn interval_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
+    println!("interval_check_cut_no_ca");
+    thread::spawn(move || {
+        let mut seconds_passed:usize = 1;
+        thread::sleep(Duration::from_secs(1));
+        println!("First tier interval condition {}", tier_vector[0].read().unwrap().condition);
+        loop {      
+            println!("Ticks {} ", seconds_passed);  
+            for tier in 0..=(num_tiers-2) {
+                if seconds_passed % tier_vector[tier].read().unwrap().condition == 0 {
+                    let tier_length = tier_vector[tier].read().unwrap().x_stats.len();
+                    process_tier(&tier_vector[tier], &tier_vector[tier+1], tier_length)
+                }
+            }          
+        seconds_passed += 1;
+        thread::sleep(Duration::from_secs(1));
+    }
+});
+}
+
