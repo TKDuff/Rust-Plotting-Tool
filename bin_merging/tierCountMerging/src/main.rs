@@ -43,23 +43,15 @@ impl MyApp {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
 
-    let (raw_data, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
+    let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
      
 
-    let my_app = MyApp::new(raw_data, tiers, should_halt);
+    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt);
     
     let rt = Runtime::new().unwrap();
     let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread = my_app.raw_data.clone();
     
-    //println!("The number of tiers is {}", num_tiers);
-
-    //main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
-    main_threads::create_interval_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
-    
-    let raw_data_accessor = my_app.raw_data.clone();
-    let initial_tier_accessor = my_app.tiers[0].clone();
-
     /*
     need to get single condition working, when user gives only one tier
     Every time length reached/unit time, all the R.D points are moved straight to C.A and merged in C.A. 
@@ -69,10 +61,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     If want R.D aggregatoin and C.A to merge the aggregated points, give two arguments. 1)R.D aggregation, 2) C.A merge timing
     */
 
-
+    if strategy == "count" {
+        main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
+    } else {
+        main_threads::create_interval_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
+    }  
     
+    let raw_data_accessor = my_app.raw_data.clone();
+    let initial_tier_accessor = my_app.tiers[0].clone();
+
+    main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor.clone(), initial_tier_accessor.clone());
+    
+
+    if num_tiers == 4 {
+        //main_threads::rd_to_ca_edge(raw_data_accessor, initial_tier_accessor); 
+    } else {
+        let tier_vector = my_app.tiers.clone();
+        let num_tiers = tier_vector.len();
+        let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
+
+        catch_all_tier.write().unwrap().x_stats.drain(0..1);
+        catch_all_tier.write().unwrap().y_stats.drain(0..1);
+
+        if catch_all_policy {
+            main_threads::count_check_cut_ca(tier_vector, catch_all_tier, num_tiers);
+        } else {
+            main_threads::count_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
+        }
+    }
+    /*
     if num_tiers == 3 {
-        
+        //Don't have this condition yet, this is for R.D straight to catch all
 
     } else if num_tiers == 4 {
         main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor.clone(), initial_tier_accessor.clone());
@@ -92,7 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {        
             main_threads::interval_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
         }
-    }
+    }*/
 
 
     /*

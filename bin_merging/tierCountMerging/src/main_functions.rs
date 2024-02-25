@@ -36,9 +36,9 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
 }
 
 
-pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Vec<Arc<RwLock<TierData>>>, bool, Arc<AtomicBool>, usize), String> {
+pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, String, Vec<Arc<RwLock<TierData>>>, bool, Arc<AtomicBool>, usize), String> {
     let args: Vec<String> = env::args().collect();
-    let data_strategy = args[1].as_str();
+    let data_strategy = args[1].clone();
 
     let raw_data_aggregation_condition: usize = args[2].parse().expect("Provide a number");
 
@@ -46,7 +46,7 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
 
     let should_halt = Arc::new(AtomicBool::new(false));
 
-    let strategy: Arc<RwLock<dyn DataStrategy + Send + Sync>> = match data_strategy {
+    let aggregation_strategy: Arc<RwLock<dyn DataStrategy + Send + Sync>> = match data_strategy.as_str() {
         "count" => Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
         "interval" => Arc::new(RwLock::new(IntervalRawData::new(raw_data_aggregation_condition))),
         _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
@@ -54,7 +54,7 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, Ve
 
     let (tiers,catch_all_policy)  = create_tiers(num_tiers, &args);
 
-    Ok((strategy, tiers, catch_all_policy ,should_halt, num_tiers))
+    Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy ,should_halt, num_tiers))
 }
 
 

@@ -81,7 +81,6 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
         for message in hd_receiver {
 
             {
-                //println!("The length is {}", message);
                 let mut aggregate_thread_raw_data_accessor_lock = raw_data_accessor.write().unwrap();
                 chunk = aggregate_thread_raw_data_accessor_lock.get_chunk(message);
 
@@ -187,40 +186,6 @@ pub fn rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Syn
     });
 }
 
-pub fn create_tier_check_cut_loop(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
-    thread::spawn(move || { 
-        let mut merged_CA_last_x_element;
-        let mut merged_CA_last_y_element;
-        let CA_condition = catch_all_tier.read().unwrap().condition;        
-        loop {
-            //will break when only one tier, however this is an edge case, the Catch All only edge case
-            for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now 
-                if tier_vector[tier].read().unwrap().x_stats.len() == tier_vector[tier].read().unwrap().condition {
-                    process_tier(&tier_vector[tier], &tier_vector[tier+1], 7);
-                }
-                
-            } 
-            thread::sleep(Duration::from_millis(1));
-
-            let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();
-
-            if catch_all_tier_write_lock.x_stats.len() == CA_condition {
-                
-                merged_CA_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,CA_condition, true);
-                merged_CA_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,CA_condition, false);
-                println!("Got the point {:?}", merged_CA_last_x_element);
-
-                let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();
-                println!("The first elem of t2 was {:?}", tier_vector_write_lock.x_stats[0]);
-                tier_vector_write_lock.x_stats[0] = merged_CA_last_x_element;
-                tier_vector_write_lock.y_stats[0] = merged_CA_last_y_element;
-                println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.x_stats[0]);
-
-            }
-        }
-    });
-}
-
 pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
     println!("interval_check_cut_ca");
     thread::spawn(move || {        
@@ -278,6 +243,63 @@ pub fn interval_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_a
         seconds_passed += 1;
         thread::sleep(Duration::from_secs(1));
     }
-});
+    });
 }
 
+
+pub fn count_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
+    println!("count_check_cut_no_ca");
+    thread::spawn(move || {
+        let mut condition: usize;
+        thread::sleep(Duration::from_secs(1));
+        println!("First tier interval condition {}", tier_vector[0].read().unwrap().condition);
+        loop {     
+            for tier in 0..=(num_tiers-2) {
+                condition = tier_vector[tier].read().unwrap().condition;
+                if tier_vector[tier].read().unwrap().x_stats.len() == condition {
+                    println!("{} merging", tier);
+                    process_tier(&tier_vector[tier], &tier_vector[tier+1], condition);
+                }
+            }     
+            thread::sleep(Duration::from_millis(1));     
+        }
+    });
+} 
+
+pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
+    println!("count_check_cut_ca");
+    thread::spawn(move || { 
+        let mut merged_ca_last_x_element;
+        let mut merged_ca_last_y_element;
+        let ca_condition = catch_all_tier.read().unwrap().condition;  
+        let mut condition: usize;
+
+        loop {
+            //will break when only one tier, however this is an edge case, the Catch All only edge case
+            for tier in 0..=(num_tiers-2) {  //only testing on first tier, initial tier, for now 
+                condition = tier_vector[tier].read().unwrap().condition;
+                if tier_vector[tier].read().unwrap().x_stats.len() == condition {
+                    process_tier(&tier_vector[tier], &tier_vector[tier+1], condition);
+                }
+                
+            } 
+
+            thread::sleep(Duration::from_millis(1)); 
+            
+            let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();
+
+            if catch_all_tier_write_lock.x_stats.len() == ca_condition {
+                
+                merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,ca_condition, true);
+                merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,ca_condition, false);
+                println!("Got the point {:?}", merged_ca_last_x_element);
+
+                let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();
+                println!("The first elem of t2 was {:?}", tier_vector_write_lock.x_stats[0]);
+                tier_vector_write_lock.x_stats[0] = merged_ca_last_x_element;
+                tier_vector_write_lock.y_stats[0] = merged_ca_last_y_element;
+                println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.x_stats[0]);
+            }   
+        }
+    });
+}
