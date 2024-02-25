@@ -72,7 +72,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor.clone(), initial_tier_accessor.clone());
     
-    
+    let tier_vector = my_app.tiers.clone();
+    setup(raw_data_accessor, initial_tier_accessor, num_tiers, catch_all_policy, tier_vector);
+    /*
     if num_tiers == 4 {
         main_threads::count_rd_to_ca_edge(raw_data_accessor, initial_tier_accessor); 
     } else {
@@ -88,9 +90,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             main_threads::count_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
         }
+    }*/
+
+    fn setup(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
+        if num_tiers == 4 {
+            main_threads::count_rd_to_ca_edge(raw_data_accessor, initial_tier_accessor); 
+        } else {
+            //let tier_vector = my_app.tiers.clone();
+            let num_tiers = tier_vector.len();
+            let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
+    
+            catch_all_tier.write().unwrap().x_stats.drain(0..1);
+            catch_all_tier.write().unwrap().y_stats.drain(0..1);
+    
+            if catch_all_policy {
+                main_threads::count_check_cut_ca(tier_vector, catch_all_tier, num_tiers);
+            } else {
+                main_threads::count_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
+            }
+        }
     }
-
-
     /*
     if num_tiers == 3 {
         //Don't have this condition yet, this is for R.D straight to catch all
@@ -114,27 +133,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             main_threads::interval_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
         }
     }*/
-
-
-    /*
-    if num_tiers == 3 {
-        println!("The cond {}", raw_data_accessor.read().unwrap().get_condition());
-        main_threads::create_raw_data_to_initial_tier_edge(hd_receiver, raw_data_accessor, initial_tier_accessor);
-    } else {
-        main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor, initial_tier_accessor);
-
-        let tier_vector = my_app.tiers.clone();
-        let num_tiers = tier_vector.len();
-        let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
-
-        //always have to drain final catch all vector
-        catch_all_tier.write().unwrap().x_stats.drain(0..1);
-        catch_all_tier.write().unwrap().y_stats.drain(0..1);
-        //main_threads::create_tier_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
-        main_threads::create_tier_interval_check_cut_loop(tier_vector, catch_all_tier, num_tiers);
-    }*/
-
-    
     
 
     let native_options = NativeOptions{
