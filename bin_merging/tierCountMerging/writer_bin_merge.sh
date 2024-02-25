@@ -1,7 +1,7 @@
 #!/bin/bash
 #Change the argument after count to set the tiers
 
-(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "10" "10" "0C" )
+(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "2" "10" "0C" )
 
 
 : '
@@ -18,6 +18,10 @@ Examples....
                          t1: merge every 10 seconds, push to t2
                          t2: merge every 60 seconds, push to t3
                          t3: No merge policy, so just collect points
+
+
+
+Same applies to count, however it is not based on the number of seconds, instead the number of elements in the Raw Data vector and Bins in the tier vector
 '
 
 #"6" "4" "5" "4" "4"
