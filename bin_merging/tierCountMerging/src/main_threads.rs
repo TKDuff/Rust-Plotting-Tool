@@ -14,6 +14,7 @@ use tokio::io::{self, AsyncBufReadExt, BufReader};
 
 pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, raw_data_thread: Arc<RwLock<dyn DataStrategy + Send + Sync>>, rd_sender: Sender<usize>) {
     rt.spawn(async move {
+        println!("create_count_stdin_read");
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
@@ -76,6 +77,7 @@ pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBoo
 
 pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>> )   {
     thread::spawn(move || {
+        println!("create_raw_data_to_initial_tier");
         let mut chunk: Vec<[f64;2]>;
         let mut aggregated_raw_data ; 
         for message in hd_receiver {
@@ -276,7 +278,6 @@ pub fn count_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
             for tier in 0..=(num_tiers-2) {
                 condition = tier_vector[tier].read().unwrap().condition;
                 if tier_vector[tier].read().unwrap().x_stats.len() == condition {
-                    println!("{} merging", tier);
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], condition);
                 }
             }     
