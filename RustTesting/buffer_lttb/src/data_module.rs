@@ -10,7 +10,17 @@ pub struct StdinData {
 
 impl StdinData {
     pub fn new() -> Self {
-        Self { points: Vec::default(),}
+        let points = vec![
+            [0.0, 0.0],
+            [1.0, 1.0],
+            [2.0, 1.0],
+            [3.0, 1.0],
+            [4.0, 1.0],
+            [5.0, 1.0],
+            // Add more points as needed
+        ];
+        
+        Self { points }
     }
 
     pub fn append_points(&mut self, points: [f64; 2]) {

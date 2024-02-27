@@ -1,13 +1,17 @@
 mod data_module;
 use data_module::{StdinData, DownsampledData};
+use eframe::egui::PointerState;
 
 
 
+use std::any::Any;
+use std::collections::btree_map::Values;
+use std::fmt::format;
 use std::thread;
 use eframe::{egui, NativeOptions}; 
-use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
-use egui::{Vec2, CentralPanel};
-use std::io::{self, BufRead};
+use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, MarkerShape, Plot, PlotItem, PlotPoint, Points, Text, PlotResponse};
+use egui::{CentralPanel, Pos2, Vec2, Visuals};
+use std::io::{self, BufRead, SeekFrom};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
 use std::time::Duration;
@@ -27,11 +31,12 @@ impl Default for MyApp {
 }
 
 fn main() -> Result<(), eframe::Error> {
-    let (rd_sender, hd_receiver) = channel::unbounded();
-    let (hd_sender, rd_receiver) = channel::unbounded();
+    // let (rd_sender, hd_receiver) = channel::unbounded();
+    // let (hd_sender, rd_receiver) = channel::unbounded();
 
     let my_app = MyApp::default();
 
+    /*
     //let sender_clone = sender.clone();
     let raw_data_thread = my_app.raw_data.clone();
 
@@ -72,10 +77,11 @@ fn main() -> Result<(), eframe::Error> {
                 downsampler_thread.write().unwrap().combineBins(lltb_points);
             }
         }
-    });
+    });*/
 
     
-    let native_options = NativeOptions{
+    let native_options = NativeOptions {
+        //initial_window_size: Some(egui::vec2(1400.0, 700.0)), 
         ..Default::default()
     };
 
@@ -83,8 +89,8 @@ fn main() -> Result<(), eframe::Error> {
         "My egui App",native_options,Box::new(move |_|{Box::new(my_app)}),
     );
 
-    raw_data_handle.join().unwrap();
-    historic_data_handle.join().unwrap();
+    // raw_data_handle.join().unwrap();
+    // historic_data_handle.join().unwrap();
 
     Ok(())
 }
@@ -92,21 +98,62 @@ fn main() -> Result<(), eframe::Error> {
 impl eframe::App for MyApp {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
-          
-            //let raw_data_points = self.raw_data.read().unwrap().get_values();
-            //let historic_data_points = self.raw_data.read().unwrap().get_values();
+            ctx.set_visuals(Visuals::light());
 
-            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_values());
-            let historic_plot_line = Line::new(self.historic_data.read().unwrap().get_means());
+            let values = self.raw_data.read().unwrap().get_values();
+            let raw_plot_line = Line::new(values).color(egui::Color32::BLUE).name("Tier 1").id(egui::Id::new("t1"));
 
-            let plot = Plot::new("plot")
-            .min_size(Vec2::new(400.0, 300.0));
+            let points_data = self.raw_data.read().unwrap().get_values();  
+            let mut position: Option<PlotPoint> =None;
+            let mut hovered_item: Option<String> = None;
+            let id = ui.make_persistent_id("interaction_demo");
 
-            plot.show(ui, |plot_ui| {
-                plot_ui.line(historic_plot_line);
-                plot_ui.line(raw_plot_line);
-            });
-        });
+
+            let plot = Plot::new("plot").width(1300.0).height(600.0).legend(Legend::default()).id(id);
+            
+
+            ui.vertical(|ui| {
+
+
+                let p_r: PlotResponse<()> = plot.show(ui, |plot_ui| {
+                    plot_ui.line(raw_plot_line);  
+                    position = plot_ui.pointer_coordinate();
+                });
+
+            
+                if let Some(plot_point) = position {
+                    ui.label(format!("clicked {:.2}, {:.2}", plot_point.x, plot_point.y));
+                }
+
+                let hovered = if let Some(hovered_item) = p_r.hovered_plot_item {
+                    if hovered_item == egui::Id::new("t1") {
+                        "tier 1"
+                    }else {
+                        "none"
+                    }
+                } else {
+                    "none"
+                };
+
+                ui.label(format!("Hovered item: {:?}", {hovered}));
+
+
+                let click = ctx.input(|i| i.pointer.any_click());
+
+                if click {
+                    find_closest(position, hovered)
+                }
+                
+            });            
+        }); 
+
         ctx.request_repaint();
     }
+}
+
+fn find_closest(position: Option<PlotPoint>, hovered: &str) {
+    
+
+    println!("Position {:?}",position);
+    println!("Tier {}",hovered);
 }
