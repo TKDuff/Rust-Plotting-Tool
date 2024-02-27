@@ -7,7 +7,7 @@ use std::process::id;
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals};
-use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot, PlotPoint, PlotResponse};
+use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, Plot, PlotPoint, PlotResponse};
 use egui::{Vec2, CentralPanel, Id};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
@@ -157,7 +157,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             tier_plot_lines.push(line);
             }
 
-            let plot = Plot::new("plot").width(1300.0).height(600.0).legend(Legend::default());
+            let mut plot = Plot::new("plot").width(1300.0).height(600.0).legend(Legend::default()).coordinates_formatter(Corner::LeftBottom, CoordinatesFormatter::default());
 
             if ui.button("Halt Processing").clicked() {
                 self.should_halt.store(true, Ordering::SeqCst);
@@ -170,6 +170,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                  }
                  position = plot_ui.pointer_coordinate();
             });
+
+        
 
             // let hovered = if let Some(hovered_item) = plot_responese.hovered_plot_item {
             //     if hovered_item == egui::Id::new("Tier 1") {
@@ -186,6 +188,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 let tier_index = plot_responese.hovered_plot_item
                 .and_then(|id| (0..self.tiers.len()).find(|&i| id == egui::Id::new(i)))
                 .unwrap_or_else(|| usize::MAX);
+
                 find_closest(position, &self.tiers[tier_index])
             }
 
@@ -196,16 +199,27 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
 
 fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>) {
-
-
         if let Some(plot_point) = position {
             let x = plot_point.x;
             let y = plot_point.y;
+            let tier_data = tier.read().unwrap();
+            let tolerance = 5.0;
+            let closest = tier_data.x_stats.iter().zip(tier_data.y_stats.iter())
+            .find(|&(x_bin, y_bin)| {
+                (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
+            });
+
 
             println!("Position x: {:.2}, y: {:.2}", x, y);
-            println!("{:?}", tier.read().unwrap().print_x_means("X means"));
+            if let Some((x_closest, y_closest)) = closest {
+                println!("Closest X Bin: {:?}", x_closest);
+                println!("Closest Y Bin: {:?}", y_closest);
+            } else {
+                println!("No point found within tolerance");
+            }
+    
         }
-    } 
+} 
 
 
 
