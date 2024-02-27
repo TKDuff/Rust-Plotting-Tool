@@ -2,11 +2,13 @@
 #![allow(warnings)] use nix::libc::ARPD_FLUSH;
 //Remove warning, be sure to remove this
 use project_library::{CountRawData, DataStrategy, TierData, Bin, main_threads, process_tier, setup_my_app};
+use std::fmt::format;
+use std::process::id;
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals};
-use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot};
-use egui::{Vec2, CentralPanel};
+use egui_plot :: {BoxElem, BoxPlot, BoxSpread, Legend, Line, Plot, PlotPoint, PlotResponse};
+use egui::{Vec2, CentralPanel, Id};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
 use tokio::runtime::Runtime;
@@ -136,43 +138,77 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
 
             let mut tier_plot_lines = Vec::new();
-            let colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];
-
-
+            let colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];            
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
-
+            let mut position: Option<PlotPoint> =None;
+            let mut hovered_item: Option<String> = None;
 
 
             //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
                 let color = colors[i];
+                let line_id = format!("Tier {}", i+1);   
                 let line = Line::new(tier.read().unwrap().get_means())
                 .width(2.0)
-                .color(color);
+                .color(color)
+                .name(&line_id)
+                .id(egui::Id::new(i));
 
             tier_plot_lines.push(line);
             }
 
-            let plot = Plot::new("plot")
-            .min_size(Vec2::new(800.0, 600.0));
+            let plot = Plot::new("plot").width(1300.0).height(600.0).legend(Legend::default());
 
             if ui.button("Halt Processing").clicked() {
                 self.should_halt.store(true, Ordering::SeqCst);
             }
 
-            plot.show(ui, |plot_ui| {
+            let plot_responese: PlotResponse<()> = plot.show(ui, |plot_ui| {
                  plot_ui.line(raw_plot_line);
-
                  for line in tier_plot_lines {
                     plot_ui.line(line);
                  }
-
+                 position = plot_ui.pointer_coordinate();
             });
+
+            // let hovered = if let Some(hovered_item) = plot_responese.hovered_plot_item {
+            //     if hovered_item == egui::Id::new("Tier 1") {
+            //         "Tier 1"
+            //     }else {
+            //         "none"
+            //     }
+            // } else {
+            //     "none"
+            // };
+            let click = ctx.input(|i| i.pointer.any_click());
+
+            if click {
+                let tier_index = plot_responese.hovered_plot_item
+                .and_then(|id| (0..self.tiers.len()).find(|&i| id == egui::Id::new(i)))
+                .unwrap_or_else(|| usize::MAX);
+                find_closest(position, &self.tiers[tier_index])
+            }
 
         });
         ctx.request_repaint();
     }
 }
+
+
+fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>) {
+
+
+        if let Some(plot_point) = position {
+            let x = plot_point.x;
+            let y = plot_point.y;
+
+            println!("Position x: {:.2}, y: {:.2}", x, y);
+            println!("{:?}", tier.read().unwrap().print_x_means("X means"));
+        }
+    } 
+
+
+
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window

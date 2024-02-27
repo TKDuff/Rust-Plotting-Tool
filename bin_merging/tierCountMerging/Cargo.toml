@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 crossbeam = "0.8.4"
 eframe = "0.26.2"
+egui = "0.26.2"
 egui_plot = "0.26.2"
 nix = "0.27.1"
 rayon = "1.8.1"
