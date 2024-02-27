@@ -101,7 +101,7 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
             ctx.set_visuals(Visuals::light());
 
             let values = self.raw_data.read().unwrap().get_values();
-            let raw_plot_line = Line::new(values).color(egui::Color32::BLUE).name("Tier 1").id(egui::Id::new("t1"));
+            let raw_plot_line = Line::new(values.clone()).color(egui::Color32::BLUE).name("Tier 1").id(egui::Id::new("t1"));
 
             let points_data = self.raw_data.read().unwrap().get_values();  
             let mut position: Option<PlotPoint> =None;
@@ -120,11 +120,6 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
                     position = plot_ui.pointer_coordinate();
                 });
 
-            
-                if let Some(plot_point) = position {
-                    ui.label(format!("clicked {:.2}, {:.2}", plot_point.x, plot_point.y));
-                }
-
                 let hovered = if let Some(hovered_item) = p_r.hovered_plot_item {
                     if hovered_item == egui::Id::new("t1") {
                         "tier 1"
@@ -135,13 +130,10 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
                     "none"
                 };
 
-                ui.label(format!("Hovered item: {:?}", {hovered}));
-
-
                 let click = ctx.input(|i| i.pointer.any_click());
 
                 if click {
-                    find_closest(position, hovered)
+                    find_closest(position, hovered, &values)
                 }
                 
             });            
@@ -151,9 +143,26 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
     }
 }
 
-fn find_closest(position: Option<PlotPoint>, hovered: &str) {
-    
+fn find_closest(position: Option<PlotPoint>, hovered: &str, values: &Vec<[f64; 2]>) {
+    if let Some(plot_point) = position {
+        let x = plot_point.x;
+        let y = plot_point.y;
+        let tolerance = 0.1;
 
-    println!("Position {:?}",position);
-    println!("Tier {}",hovered);
+        // Find the closest point within the tolerance
+        let closest = values.iter().find(|&&p| {
+            (x - p[0]).abs() <= tolerance && (y - p[1]).abs() <= tolerance
+        });
+
+        println!("Position x: {:.2}, y: {:.2}", x, y);
+        println!("Tier {}", hovered);
+
+        if let Some(closest_point) = closest {
+            println!("Closest point found at {:?}", closest_point);
+        } else {
+            println!("No point found within tolerance");
+        }
+    } else {
+        println!("No position provided");
+    }
 }
