@@ -82,7 +82,7 @@ impl DataStrategy for CountRawData {
 
         match values_result {
             Ok(values) => {
-                println!("{} {}", values[0], values[1]);
+                //println!("{} {}", values[0], values[1]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {

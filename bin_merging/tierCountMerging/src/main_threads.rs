@@ -292,6 +292,7 @@ pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tie
         let mut merged_ca_last_x_element;
         let mut merged_ca_last_y_element;
         let ca_condition = catch_all_tier.read().unwrap().condition;  
+        let ca_chunk_size: usize = catch_all_tier.read().unwrap().chunk_size;
         let mut condition: usize;
 
         loop {
@@ -310,15 +311,15 @@ pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tie
 
             if catch_all_tier_write_lock.x_stats.len() == ca_condition {
                 
-                merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,ca_condition, true);
-                merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,ca_condition, false);
-                //println!("Got the point {:?}", merged_ca_last_x_element);
+                merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, true);
+                merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, false);
+                println!("Got the point {:?}", merged_ca_last_x_element);
 
                 let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();
-                //println!("The first elem of t2 was {:?}", tier_vector_write_lock.x_stats[0]);
+                println!("The first elem of t2 was {:?}", tier_vector_write_lock.x_stats[0]);
                 tier_vector_write_lock.x_stats[0] = merged_ca_last_x_element;
                 tier_vector_write_lock.y_stats[0] = merged_ca_last_y_element;
-                //println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.x_stats[0]);
+                println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.x_stats[0]);
             }   
         }
     });
