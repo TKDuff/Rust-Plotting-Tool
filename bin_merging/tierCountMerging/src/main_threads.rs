@@ -250,7 +250,7 @@ pub fn interval_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_a
         thread::sleep(Duration::from_secs(1));
         println!("First tier interval condition {}", tier_vector[0].read().unwrap().condition);
         loop {      
-            println!("Ticks {} ", seconds_passed);  
+            //println!("Ticks {} ", seconds_passed);  
             for tier in 0..=(num_tiers-2) {
                 if seconds_passed % tier_vector[tier].read().unwrap().condition == 0 {
                     let tier_length = tier_vector[tier].read().unwrap().x_stats.len();

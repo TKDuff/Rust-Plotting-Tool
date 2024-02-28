@@ -6,7 +6,7 @@ use std::fmt::format;
 use std::process::id;
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
-use egui::{Style, Visuals};
+use egui::{Style, Visuals, ViewportBuilder};
 use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, Plot, PlotPoint, PlotResponse};
 use egui::{Vec2, CentralPanel, Id};
 use std::sync::{Arc, RwLock};
@@ -122,6 +122,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
 
     let native_options = NativeOptions{
+        viewport: egui::ViewportBuilder::default().with_inner_size([1900.0, 800.0]),
         ..Default::default()
     };
 
@@ -167,9 +168,10 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let mut plot = Plot::new("plot").width(plot_width).height(plot_height).legend(Legend::default()).coordinates_formatter(Corner::LeftBottom, CoordinatesFormatter::default());
 
+            /*
             if ui.button("Halt Processing").clicked() {
                 self.should_halt.store(true, Ordering::SeqCst);
-            }
+            }*/
 
             let plot_responese: PlotResponse<()> = plot.show(ui, |plot_ui| {
                  plot_ui.line(raw_plot_line);
@@ -196,8 +198,12 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 .show(ui.ctx(), |ui| {
                     if let Some((x_bin, y_bin)) = self.clicked_bin {
                         // Only display the information if clicked_info is Some
-                        ui.label(format!("Closest X: Mean = {:.2}", x_bin.mean));
-                        ui.label(format!("Closest Y: Mean = {:.2}", y_bin.mean));
+                        ui.label(format!("X: Mean = {:.2}", x_bin.mean));
+                        ui.label(format!("X: Sum = {:.2}", x_bin.sum));
+                        ui.label(format!("X: Min = {:.2}", x_bin.min));
+                        ui.label(format!("X: Max = {:.2}", x_bin.max));
+                        ui.label(format!("X: Count = {:.2}", x_bin.count));
+
                     } else {
                         // Display some default text or leave it empty
                         ui.label("Click on a plot point");
@@ -223,22 +229,6 @@ fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>) -> Op
         })
         .map(|(x_closest, y_closest)| (*x_closest, *y_closest)) //map extracts pair from the find, return them as a tuple
 } 
-
-
-// fn draw_bin_info_window(ui: &mut egui::Ui,   x_bin: Bin, y_bin: Bin) {
-//     //println!("{:?} {:?}", x, y);
-
-//     egui::Area::new("info_area")
-//         .fixed_pos(ui.min_rect().bottom_left())
-//         .show(ui.ctx(), |ui| {
-//             ui.painter().rect_filled(ui.max_rect(), 5.0, egui::Color32::WHITE);
-//             ui.label(format!("Closest X: Mean = {:.2}", x_bin.mean));
-//             ui.label(format!("Closest Y: Mean = {:.2}", y_bin.mean));
-//     });
-// }
-
-
-
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window
