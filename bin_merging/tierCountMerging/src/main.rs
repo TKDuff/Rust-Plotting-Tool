@@ -51,6 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
      
 
     let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None);
+    
     let should_halt_clone = my_app.should_halt.clone();
 
 

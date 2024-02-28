@@ -6,14 +6,16 @@ pub struct TierData {
     pub x_stats: Vec<Bin>,
     pub y_stats: Vec<Bin>,
     pub condition: usize,
+    pub chunk_size: usize,
 }
 
 impl TierData {
-    pub fn new(condition: usize) -> Self {
+    pub fn new(condition: usize, chunk_size: usize) -> Self {
         Self { 
             x_stats: vec![Bin::default()],
             y_stats: vec![Bin::default()],
             condition: condition,
+            chunk_size: chunk_size
         }
     }
 
@@ -85,6 +87,10 @@ impl TierData {
             print!("{}, ", bin.mean);
         }
         println!("\n");
+    }
+
+    pub fn update_chunk_size(&mut self, new_size: usize) {
+        self.chunk_size = new_size;
     }
 
 
