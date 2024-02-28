@@ -27,6 +27,7 @@ struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     tiers: Vec<Arc<RwLock<TierData>>>,
     should_halt: Arc<AtomicBool>,
+    clicked_bin:  Option<(Bin, Bin)>,
 }
 
 impl MyApp {
@@ -35,9 +36,10 @@ impl MyApp {
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
         tiers: Vec<Arc<RwLock<TierData>>>,
         should_halt: Arc<AtomicBool>,
+        clicked_bin:  Option<(Bin, Bin)>,
         
     ) -> Self {
-        Self { raw_data, tiers ,should_halt }
+        Self { raw_data, tiers ,should_halt, clicked_bin }
     }
 }
 
@@ -48,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
      
 
-    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt);
+    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None);
     let should_halt_clone = my_app.should_halt.clone();
 
 
@@ -144,6 +146,12 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let mut hovered_item: Option<String> = None;
 
 
+            let plot_width = 1800.0;
+            let plot_height = 600.0;
+            let plot_top_left = egui::pos2(10.0, 50.0); 
+            let bin_info_area_pos = egui::pos2(plot_top_left.x, plot_top_left.y + plot_height);
+
+
             //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
                 let color = colors[i];
@@ -157,7 +165,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             tier_plot_lines.push(line);
             }
 
-            let mut plot = Plot::new("plot").width(1300.0).height(600.0).legend(Legend::default()).coordinates_formatter(Corner::LeftBottom, CoordinatesFormatter::default());
+            let mut plot = Plot::new("plot").width(plot_width).height(plot_height).legend(Legend::default()).coordinates_formatter(Corner::LeftBottom, CoordinatesFormatter::default());
 
             if ui.button("Halt Processing").clicked() {
                 self.should_halt.store(true, Ordering::SeqCst);
@@ -171,55 +179,63 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                  position = plot_ui.pointer_coordinate();
             });
 
-        
-
-            // let hovered = if let Some(hovered_item) = plot_responese.hovered_plot_item {
-            //     if hovered_item == egui::Id::new("Tier 1") {
-            //         "Tier 1"
-            //     }else {
-            //         "none"
-            //     }
-            // } else {
-            //     "none"
-            // };
             let click = ctx.input(|i| i.pointer.any_click());
 
             if click {
                 let tier_index = plot_responese.hovered_plot_item
                 .and_then(|id| (0..self.tiers.len()).find(|&i| id == egui::Id::new(i)))
                 .unwrap_or_else(|| usize::MAX);
-
-                find_closest(position, &self.tiers[tier_index])
+            
+                if tier_index != usize::MAX {
+                self.clicked_bin = find_closest(position, &self.tiers[tier_index])
+                }
             }
 
+            egui::Area::new("Bin Information Area")
+                .fixed_pos(bin_info_area_pos) // Position the area as desired
+                .show(ui.ctx(), |ui| {
+                    if let Some((x_bin, y_bin)) = self.clicked_bin {
+                        // Only display the information if clicked_info is Some
+                        ui.label(format!("Closest X: Mean = {:.2}", x_bin.mean));
+                        ui.label(format!("Closest Y: Mean = {:.2}", y_bin.mean));
+                    } else {
+                        // Display some default text or leave it empty
+                        ui.label("Click on a plot point");
+                    }
+                });
         });
         ctx.request_repaint();
     }
 }
 
 
-fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>) {
-        if let Some(plot_point) = position {
-            let x = plot_point.x;
-            let y = plot_point.y;
-            let tier_data = tier.read().unwrap();
-            let tolerance = 5.0;
-            let closest = tier_data.x_stats.iter().zip(tier_data.y_stats.iter())
-            .find(|&(x_bin, y_bin)| {
-                (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
-            });
+fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>) -> Option<(Bin, Bin)>  {
+    let plot_point = position?;// ? returns None is position is None, no need to check via 'Some' statement
 
+    let x = plot_point.x;
+    let y = plot_point.y;
+    let tier_data = tier.read().unwrap();
 
-            println!("Position x: {:.2}, y: {:.2}", x, y);
-            if let Some((x_closest, y_closest)) = closest {
-                println!("Closest X Bin: {:?}", x_closest);
-                println!("Closest Y Bin: {:?}", y_closest);
-            } else {
-                println!("No point found within tolerance");
-            }
-    
-        }
+    let tolerance = 5.0;
+    tier_data.x_stats.iter().zip(tier_data.y_stats.iter())  //combine x_stats and y_stats iterator via zip
+        .find(|&(x_bin, y_bin)| {   //find takes x_bin and y_bin which is each element, used to get absolute difference of means
+            (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance //get absolute diff of means and check they are within tolerance 
+        })
+        .map(|(x_closest, y_closest)| (*x_closest, *y_closest)) //map extracts pair from the find, return them as a tuple
 } 
+
+
+// fn draw_bin_info_window(ui: &mut egui::Ui,   x_bin: Bin, y_bin: Bin) {
+//     //println!("{:?} {:?}", x, y);
+
+//     egui::Area::new("info_area")
+//         .fixed_pos(ui.min_rect().bottom_left())
+//         .show(ui.ctx(), |ui| {
+//             ui.painter().rect_filled(ui.max_rect(), 5.0, egui::Color32::WHITE);
+//             ui.label(format!("Closest X: Mean = {:.2}", x_bin.mean));
+//             ui.label(format!("Closest Y: Mean = {:.2}", y_bin.mean));
+//     });
+// }
 
 
 
