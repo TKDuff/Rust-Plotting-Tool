@@ -54,13 +54,7 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
     };
 
     let (tiers,catch_all_policy)  = create_count_tiers(num_tiers, &args);
-
-    // for tier in tiers {
-    //     println!("Condition {}", tier.read().unwrap().condition);
-    //     println!("Chunk size {}\n", tier.read().unwrap().chunk_size);
-    // }
-    // println!("{}", catch_all_policy);
-
+    
     Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy ,should_halt, num_tiers))
 }
 
@@ -95,6 +89,16 @@ pub fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize
     
     let condition = extract_number_before_c(&args[catch_all_index]);
     let chunk_size = extract_number_after_c(&args[catch_all_index]);
+
+    if chunk_size == 0 {
+        eprintln!("Final tier chunk size cannot be 0");
+        std::process::exit(1); // Exits the program
+    }
+
+    if chunk_size == 1 {
+        println!("Warning: final tier chunk size is 1, instead make it \"0C\""); //Put this on egui if don't want to exit
+        std::process::exit(1);
+    }
 
     if condition == 0 {
         catch_all_policy = false;
