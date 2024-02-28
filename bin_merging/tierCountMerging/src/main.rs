@@ -45,11 +45,11 @@ impl MyApp {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (rd_sender, hd_receiver) = channel::unbounded();
+    //let (rd_sender, hd_receiver) = channel::unbounded();
 
-    let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
-     
-
+    //let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
+    setup_my_app();
+    /*
     let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None);
     let should_halt_clone = my_app.should_halt.clone();
 
@@ -128,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     eframe::run_native(
         "My egui App",native_options,Box::new(move |_|{Box::new(my_app)}),
-    );
+    );*/
 
     Ok(())
 }
