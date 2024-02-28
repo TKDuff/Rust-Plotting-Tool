@@ -2,24 +2,25 @@ use crate::data_strategy::DataStrategy;
 use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
 use crate::bin::Bin;
 
-pub struct CountRawData {
+pub struct IntervalRawData {
     pub condition: usize,
     pub points: Vec<[f64;2]>,
 }
 
-impl CountRawData {
+impl IntervalRawData {
     pub fn new(condition: usize) -> Self {
-        Self {
-
-            //When set to 10 ecluding the last point, as that is kept for plot consistency
+        Self { 
             condition: condition,
-            points: Vec::new(),//vec![[0.0, 0.0]]
+            points: Vec::new(),
         }
     }
 
+    pub fn get_x(&self) -> Vec<f64> {
+        self.points.iter().map(|&arr| arr[0]).collect()
+    }
 }
 
-impl DataStrategy for CountRawData {
+impl DataStrategy for IntervalRawData {
 
     fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (Bin, Bin, Bin, Bin) {
         //let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
@@ -32,7 +33,7 @@ impl DataStrategy for CountRawData {
                                                 .map(|&[x, y]| (x, y))
                                                 .unzip();
 
-        //println!("\nAggregating this chunk {:?}", x_vec);                            
+        //println!("Aggregating this chunk non last {:?}\n", x_vec);                            
 
 
         let x = Data::new(x_vec.clone());   
@@ -67,13 +68,14 @@ impl DataStrategy for CountRawData {
             count: 0,
         };
 
-        //println!("The last r.d element is {}", last_elem_x_bin.mean);
-        
+        //println!("last X {:?}\nlast Y {:?}\nMerged X {:?}\nMerged Y {:?}", last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin);
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
 
         //println!("X means {:?}", self.get_x_means());
 
     }
+
+
 
     fn append_str(&mut self, line:String) {
         let values_result: Result<Vec<f64>, _> = line.split(' ')
@@ -82,7 +84,6 @@ impl DataStrategy for CountRawData {
 
         match values_result {
             Ok(values) => {
-                println!("{} {}", values[0], values[1]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {
@@ -100,7 +101,7 @@ impl DataStrategy for CountRawData {
     }
 
     fn requires_external_trigger(&self) -> bool {
-        false
+        true
     }
 
     fn get_values(&self) -> Vec<[f64; 2]> {
@@ -110,28 +111,26 @@ impl DataStrategy for CountRawData {
     fn get_length(&self) -> usize {
         self.points.len()
     }
-
+    
+    /*
+    Interval remove chunk decrement length by 1 since 'count' determined at tick is all the elements appedned to the raw data vector so far, including the final point
+    In count the remove_chunk does not decrement by 1 since the check_cut method checks the length of the rae data vector minus 1 
+     */
     fn remove_chunk(&mut self, count:usize) {
         //println!("Before removing {:?}", self.points);
-        self.points.drain(..count);
+        self.points.drain(..count-1);
         //println!("After removing {:?}", self.points);
     }
 
     fn check_cut(&self) -> Option<usize> {
-        if (self.points.len() > 1) && (self.points.len() - 1) % self.condition == 0 {
-            return Some(self.points.len() -1 )
-        } else {
-            None
-        }
+        unreachable!();
     }
 
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-
-        self.points[0..count+1].to_vec()
+        self.points.clone().into_iter().collect()
     }
 
     fn get_condition(&self) -> usize {
         self.condition
     }
-
 }

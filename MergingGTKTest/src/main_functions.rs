@@ -62,7 +62,7 @@ fn create_tiers(num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<TierData>>
 
     let mut tiers = Vec::new();
     let mut catch_all_policy = true;
-    //println!("{:?}", args);
+    println!("{:?}", args);
 
     for i in 3..num_tiers {
         let condition = args.get(i)

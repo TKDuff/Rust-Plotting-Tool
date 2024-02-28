@@ -533,3 +533,118 @@ Merging itself is a CPU bound task, thus Rayon thread (Rayon pool threads can pa
 
 Altough merging is sequential, needs to be done for ordering of tiers.
 Can look into better approaches, maybe buffering/queing for OoO execution, however to make progress going with this approach.
+
+## 23-01-23
+* Check the commit "Working interval raw data aggregation and count based tiering" to see how user can have interval based initial commit and count based tiering
+* Problem is that count tiers cut based on length, **usize** while interval tiers cut based on time, **u64**. 
+* Since TierData struct has condition which is of type usize, however need to allow for u64. 
+* When checking cut condition for interval cannot use usize, need to use f64. **May create two structs, CountTierData and IntervalTierData**. Both share common TierData method however only difference is condition attribute, CountTierData is usize and IntervalTierData is f64. Need defualt implemintations for TierData struct, both share
+* For now will cast from usize to f64
+
+* Going to make check merge loops OS threads since they perform computations, modulo primarily
+## 24-01-24
+Exist problem with count single argument. When provide single arg only create the R.D thread, doesn't create the C.A thread. In order to create both must supply two arguments. The problem is the second argument, the C.A argument, is not used as a condition for the merge policy, instead the 2nd arg exists only two create the C.A vector. The C.A merge policy is determined by the R.D vector. 
+
+
+Can think of two cases, depend on number arguments
+1) Create R.D thread and C.A. Every time argument 1 condition (count/interval) met move the points in R.D collected so far to C.A and merge every X points in C.A(including the newly added raw points from R.D)
+2) Create R.D and C.A, now the C.A is a tier. Every time argument 1 condition (count/interval) met aggregate R.D points and move to C.A tier. Every argument 2 condition, merge the C.A tier. 
+   
+How will the C.A chunk merge size be set? As now it is hardcoded to be 2. 
+Can annotate with number after final argument number. 
+
+So if give 1 argument, **must have C in between for catch all chunk size**. So 10C3 would mean "every 10 seconds merge in chunks of 3" or "for every 10 elements merge in chunks of 3"
+This would  make sense, as when it comes to plain tier merging, users can specify there merging size, like 10M5, so for every 10 points merge in chunks of 5
+
+So it is <CondtionToMergeBins>C<ChunkSize> or <CondtionToMergeBins>M<ChunkSize>, where <CondtionToMergeBins> is count/interval
+For adwin, this would be implicit, so no need for <ChunkSize>
+
+When single argument given, need to automatically create the catch all tier. Can think of creating the catch all tier only when give single argument. The cut condition belongs to the R.D, as to when to move the points and the chunk size belongs to the C.A
+
+Going to make the Catch-All, C, optional.\
+The catch-all is always created, however user has option to add merge policy to this tier.\
+If it is not included then the catch-all is created but has no merge condtion.\
+Including C at the end is the user explicitaly specifying the C.A merge policy. 
+
+## 25-02-24
+Should mention, the mean of merged bins can be calculated two ways
+1) Divide the aggregated sum for each bin by the aggregated count for each bin to get the merged bins mean - **Mean of Merged Bins**
+2) Divide the number of bins by the aggregated sum the means of each bin - **Averaging Means of Individual Bins**, average of averages
+
+1 and 2 don't produce the same result i.e\
+```bash
+6.5 and the sum is 91 and the count is 14 
+20 and the sum is 260 and the count is 13 
+33 and the sum is 429 and the count is 13
+
+Bin { mean: 19.5, sum: 780.0, min: 0.0, max: 39.0, count: 40 }
+```
+
+1) (6.5 + 20 + 33)/3 = 19.83
+2) 760/40 = 19.5
+
+You keep on forgetting why they are different
+
+Option 1 gives you the overall average of all the individual points collected and gives more weight to bins with more points\
+Options 2 does not take take the number of points in a bin into account, it just divides by the number of bins.\
+So if\
+* Bin 1 mean is 2, made up of 1000 points
+* Bin2 mean is 4, made up of 100 points
+The mean is still (2+4)/2 which is just 2, regardless of the number of points
+
+
+Got both count and interval tiering working today. 
+
+## 26-02-24
+Makes sense it would not work with a writer interval delay of 0 miliseconds, as that is just reading the entire file
+Interval is okay\
+Count has edge cases, when the writer rate is 50ms seems to not merge, at 65 works again
+
+Reason is due to the fact the tokio reader thread is created before the tier threads\
+This causes a problem with count based merging, the create_raw_data_to_initial_tier thread populates the initial tier with data faster than the merging tier threads can process it, leads to a situation where the length condition in the mering tier threads may never be met.
+
+I.E
+Tokio threads is created - reads in points, say 100 in 50 miliseconds and the initial count cut length is 2
+Initial tier thread is created - contains 50 points in first 50  miliseconds, as every 2 points from R.D aggregated
+Tier check cut merge thread - If first initial tier merge condition is 10 elements, by the time this thread is created the initial tier already contains 50 points, thus **condition never met**
+
+This is an underlying problem, the thread to check the tier lengths is created last, after the initial tier has already obtained values
+To fix this, put tier length threads should be created first, so they constantly poll the initial tier, before it even contains values. No chance of missing the condition
+
+The same should be done for the **create_raw_data_to_initial_tier()**
+* setting this thread up first means as soon as live data is read by tokio thread this thread can handle the aggregation 
+* When this is created after tokio thread, chance of data loss if this thread not set up in time
+
+Seems to be an edge case when the the following argument is given: "count" "2" "10C" and the writer interval is 50 milliseconds thread::sleep(Duration::from_millis(50));\
+Reads in live data points and plots them, but does not do the every 10 then in tier 1 merge\
+Hoever, when increase time to 65 milis works or when initial R.D count is 3 it works with no errors, so like: "count" "3" "10C"
+
+It works when writer is 10 miliseconds and the arguments are "count" "15" "10C" 
+
+Looked into using GTK4.rs, so gtk for rust. Tried to get working with tokio however ran into this error\
+```bash
+(MergingGTKTest:260206): GLib-GIO-CRITICAL **: 17:08:29.373: This application can not open files.
+thread 'main' panicked at library/std/src/io/stdio.rs:1021:9:
+failed printing to stdout: Broken pipe (os error 32)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+Seems to be with standard input, checking online https://users.rust-lang.org/t/using-gtk-rs-and-tokio/100539/3
+says to create dedecated thread and put the tokio async thread inside this. I tried that however still got the error and also creating a new thread just for async seems pretty complex\
+Going to stick with egui, despite how simple the plotting is\
+GTK being dependant on standard input seems complex since this project mainly depends on standard input
+
+
+## 27-02-24
+Possible to do fill under line with egui plot 
+Looked into using egui, wil stick with it despite its basic plotting
+No feature to click on a point and display information, thus have to implement that manually. 
+Upon clicking on a point can obtain 1) the x,y value 2) the tier clicked
+Use these to determine what point was clicked
+ * Use tier id to search correct vector
+ * Use x,y value to find exact Bin. Have to search vector for point, need to add tolerance of 5.0 since mouse cursor not exactly equal to point
+  
+## 28-20-24
+* Going to use persistent space to show Bin information, more efficient no need to always redraw
+* Need to store recently bin clicked in 'myapp' struct as upon each ctx refresh information does not persist
+
+Going to test if actually fits between pipes

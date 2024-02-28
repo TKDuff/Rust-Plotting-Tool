@@ -6,9 +6,9 @@ num_points = 100000
 
 # Variance parameters
 low_variance_mean = 40
-low_variance_std = 5
+low_variance_std = 7
 high_variance_mean = 47.5
-high_variance_std = 15
+high_variance_std = 20
 high_variance_starts = [5000, 15000, 30000, 45000, 55000, 65000, 75000, 85000, 90000, 95000]
 high_variance_ends = [8000, 20000, 35000, 48000, 58000, 68000, 78000, 88000, 92000, 98000]
 dip_starts = [20000, 50000, 80000]
@@ -30,9 +30,9 @@ for i in range(num_points):
     data.append((i, y_value))
 
 # Write data to CSV file
-with open('extended_variance_dataset_100000.csv', 'w', newline='') as csvfile:
+with open('extended_variance_dataset_100000_more_variation.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(['x_col', 'y_col'])
     writer.writerows(data)
 
-print("CSV file 'extended_variance_dataset_100000.csv' created successfully.")
+print("CSV file 'extended_variance_dataset_100000_more_variation.csv' created successfully.")

@@ -10,7 +10,7 @@ use std::fmt::format;
 use std::thread;
 use eframe::{egui, NativeOptions}; 
 use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, MarkerShape, Plot, PlotItem, PlotPoint, Points, Text, PlotResponse};
-use egui::{CentralPanel, Pos2, Vec2, Visuals};
+use egui::{CentralPanel, Id, Pos2, Vec2, Visuals};
 use std::io::{self, BufRead, SeekFrom};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
@@ -101,9 +101,8 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
             ctx.set_visuals(Visuals::light());
 
             let values = self.raw_data.read().unwrap().get_values();
-            let raw_plot_line = Line::new(values.clone()).color(egui::Color32::BLUE).name("Tier 1").id(egui::Id::new("t1"));
+            let raw_plot_line = Line::new(values.clone()).color(egui::Color32::BLUE).name("Tier 1").id(egui::Id::new(1));
 
-            let points_data = self.raw_data.read().unwrap().get_values();  
             let mut position: Option<PlotPoint> =None;
             let mut hovered_item: Option<String> = None;
             let id = ui.make_persistent_id("interaction_demo");
@@ -119,21 +118,10 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
                     plot_ui.line(raw_plot_line);  
                     position = plot_ui.pointer_coordinate();
                 });
-
-                let hovered = if let Some(hovered_item) = p_r.hovered_plot_item {
-                    if hovered_item == egui::Id::new("t1") {
-                        "tier 1"
-                    }else {
-                        "none"
-                    }
-                } else {
-                    "none"
-                };
-
                 let click = ctx.input(|i| i.pointer.any_click());
 
                 if click {
-                    find_closest(position, hovered, &values)
+                    find_closest(position, p_r.hovered_plot_item, &values)
                 }
                 
             });            
@@ -143,7 +131,14 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
     }
 }
 
-fn find_closest(position: Option<PlotPoint>, hovered: &str, values: &Vec<[f64; 2]>) {
+fn find_closest(position: Option<PlotPoint>, hovered: Option<Id>, values: &Vec<[f64; 2]>) {
+    let hovered_line = hovered
+        .and_then(|id| (0..1).find(|&i| id == egui::Id::new(i)))
+        .map(|i| format!("Tier {}", i + 1))
+        .unwrap_or_else(|| "None".to_string());
+
+
+
     if let Some(plot_point) = position {
         let x = plot_point.x;
         let y = plot_point.y;
@@ -155,7 +150,7 @@ fn find_closest(position: Option<PlotPoint>, hovered: &str, values: &Vec<[f64; 2
         });
 
         println!("Position x: {:.2}, y: {:.2}", x, y);
-        println!("Tier {}", hovered);
+        println!("Tier {}", hovered_line);
 
         if let Some(closest_point) = closest {
             println!("Closest point found at {:?}", closest_point);

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 #file = 'LunarLander-v2_Reward.csv'
 #file = 'slow_increase_with_chunks.csv'
 #file= 'RustTest.csv'
-file = 'extended_variance_dataset_15000.csv'
+file = 'random_100000.csv'
 df = pd.read_csv("/home/thomas/FinalYearProject/online-graph/PythonMocking/AggregationTesting/plot_data/%s" % file)
 
 # Extract data from the DataFrame
