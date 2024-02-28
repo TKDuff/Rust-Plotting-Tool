@@ -53,8 +53,17 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
         _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
     };
 
-    let (tiers,catch_all_policy)  = create_count_tiers(num_tiers, &args);
-    
+    //let (tiers,catch_all_policy)  = create_count_tiers(num_tiers, &args);
+    let (tiers,catch_all_policy)  = create_inteval_tiers(num_tiers, &args);
+    //create_inteval_tiers(num_tiers, &args);
+
+    // for tier in tiers {
+    //     println!("{}", tier.read().unwrap().condition);
+    //     println!("{}", tier.read().unwrap().chunk_size);
+    //     println!("");
+    // }
+    // println!("{}", catch_all_policy);
+
     Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy ,should_halt, num_tiers))
 }
 
@@ -69,8 +78,7 @@ fn create_count_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<Tie
     } else {
         for i in 3..num_tiers-1 {
             let condition = args.get(i)
-            .map(|arg| arg.trim_end_matches(|c: char| !c.is_digit(10)))
-            .and_then(|num_str| num_str.parse::<usize>().ok())
+            .and_then(|arg| arg.parse::<usize>().ok())
             .unwrap_or_default();
 
         tiers.push( Arc::new(RwLock::new(TierData::new( condition, 0))) );
@@ -83,12 +91,14 @@ fn create_count_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<Tie
     (tiers, catch_all_policy)
 }
 
-
-pub fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
+fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
     let mut catch_all_policy = true;
     
-    let condition = extract_number_before_c(&args[catch_all_index]);
-    let chunk_size = extract_number_after_c(&args[catch_all_index]);
+    let condition_str = extract_before_c(&args[catch_all_index]).unwrap_or_default();
+    let chunk_size = extract_after_c(&args[catch_all_index]).unwrap_or_default().parse::<usize>().unwrap_or_default(); //this looks terrible, calling unwrap twice, but it works
+
+    let condition = condition_str.parse::<usize>().unwrap_or_default();
+    //let chunk_size = chunk_size_str.parse::<usize>().unwrap_or_default();
 
     if chunk_size == 0 {
         eprintln!("Final tier chunk size cannot be 0");
@@ -107,20 +117,89 @@ pub fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize
     (condition, chunk_size, catch_all_policy)
 }
 
-fn extract_number_after_c(input: &str) -> usize {
-    if let Some(index) = input.find('C') {
-        let number_str = &input[index + 1..];
-        number_str.parse::<usize>().unwrap_or_default()
+
+fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<TierData>>>, bool) {
+    let mut tiers = Vec::new();
+    let mut previous_condition = 0;
+    let catch_all_policy: bool;
+
+    if num_tiers == 4 {
+        let (condition, chunk_size, catch_all) = create_interval_catch_all(args, num_tiers-1);
+        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size))) );
+        catch_all_policy = catch_all
     } else {
-        0 // Default value if 'C' is not found
+        for i in 3..num_tiers - 1 {
+            let condition = convert_time_unit(&args[i]).unwrap_or_default();
+
+            //Ensure the current condition is greater than the previous one. Does not make sense for the times to be out of orderW``
+            if condition <= previous_condition {
+                panic!("The intervals should be in ascending order");
+            }
+            previous_condition = condition;
+            tiers.push( Arc::new(RwLock::new(TierData::new( condition, 0))) );
+        }
+        let (condition, chunk_size, catch_all) = create_interval_catch_all(args, num_tiers-1);
+
+        if condition <= previous_condition && condition != 0 {
+            panic!("The intervals should be in ascending order");
+        }
+    
+        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size))) );
+        catch_all_policy = catch_all
+    }
+    (tiers, catch_all_policy)
+}
+
+
+fn create_interval_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
+    let mut catch_all_policy = true;
+
+    let condition_str = extract_before_c(&args[catch_all_index]).unwrap_or_default(); //get the interval number and duration, so 6M is 6 minutes or 360 seconds
+    let chunk_size = extract_after_c(&args[catch_all_index]).unwrap_or_default().parse::<usize>().unwrap_or_default();
+    let time = convert_time_unit(&condition_str).unwrap_or_default();   //conver the condition in to time in seconds
+
+    if chunk_size == 0 {
+        eprintln!("Final tier chunk size cannot be 0");
+        std::process::exit(1); // Exits the program
+    }
+
+    if chunk_size == 1 {
+        println!("Warning: final tier chunk size is 1, instead make it \"0C\""); //Put this on egui if don't want to exit
+        std::process::exit(1);
+    }
+
+    if time == 0 {
+        catch_all_policy = false;
+    }
+
+    (time, chunk_size, catch_all_policy)
+
+}
+
+fn convert_time_unit(time_str: &str) -> Result<usize, String> {
+    let last_char = time_str.chars().last().unwrap_or_default();
+    let number_part = &time_str[..time_str.len() - 1];
+    
+    match last_char {
+        'S' | 's' => number_part.parse().map_err(|_| "Invalid number".to_string()),
+        'M' | 'm' => number_part.parse::<usize>()
+                     .map(|minutes| minutes * 60)
+                     .map_err(|_| "Invalid number".to_string()),
+        'H' | 'h' => number_part.parse::<usize>()
+                     .map(|hours| hours * 3600)
+                     .map_err(|_| "Invalid number".to_string()),
+        _ => Err("Invalid time unit".to_string()),
     }
 }
 
-fn extract_number_before_c(input: &str) -> usize {
-    if let Some(index) = input.find('C') {
-        let number_str = &input[..index];
-        number_str.parse::<usize>().unwrap_or_default()
-    } else {
-        0 // Default value if 'C' is not found
-    }
+
+
+
+
+fn extract_after_c(input: &str) -> Option<String> {
+    input.find('C').map(|index| input[index + 1..].to_string())
+}
+
+fn extract_before_c(input: &str) -> Option<String> {
+    input.find('C').map(|index| input[..index].to_string())
 }
