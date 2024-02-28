@@ -91,10 +91,10 @@ impl TierData {
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
         let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
 
-        // println!("Going to merge");
-        // for bin in &to_merge[..length].to_vec() {
-        //     println!("{} and the sum is {} and the count is {} ", bin.mean, bin.sum, bin.count);
-        // }
+        println!("Going to merge");
+        for bin in &to_merge[..length].to_vec() {
+            println!("{} and the sum is {} and the count is {} ", bin.mean, bin.sum, bin.count);
+        }
         let temp_bins = to_merge[..length].chunks(chunk_size).map(|chunk| {
             let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
             let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
@@ -106,10 +106,10 @@ impl TierData {
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
         
         
-        // println!("What");
-        // for bin in &temp_bins {
-        //     println!("{:?}", bin);
-        // }
+        println!("What");
+        for bin in &temp_bins {
+            println!("{:?}", bin);
+        }
 
         to_merge.drain(0..length);
         to_merge.splice(0..0, temp_bins);
