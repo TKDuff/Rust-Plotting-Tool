@@ -46,23 +46,28 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
 
     let should_halt = Arc::new(AtomicBool::new(false));
 
-    
+
+    //Trying to run the create tier methods on these branches is hard, too much to get working for now will leave it. Involes dynamic dispatch, screw that
     let aggregation_strategy: Arc<RwLock<dyn DataStrategy + Send + Sync>> = match data_strategy.as_str() {
         "count" => Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
         "interval" => Arc::new(RwLock::new(IntervalRawData::new(raw_data_aggregation_condition))),
-        _ => return Err("Invalid argument, please provide a valid data strategy".to_string()),
+        _ => return Err("Provide a valid data strategy".to_string()),
     };
 
-    //let (tiers,catch_all_policy)  = create_count_tiers(num_tiers, &args);
-    let (tiers,catch_all_policy)  = create_inteval_tiers(num_tiers, &args);
-    //create_inteval_tiers(num_tiers, &args);
+    let (tiers, catch_all_policy) = match data_strategy.as_str() {
+        "count" => create_count_tiers(num_tiers, &args),
+        "interval" => create_inteval_tiers(num_tiers, &args),
+        _ => return Err("Provide a valid data strategy".to_string()),
+    };
 
-    // for tier in tiers {
-    //     println!("{}", tier.read().unwrap().condition);
-    //     println!("{}", tier.read().unwrap().chunk_size);
-    //     println!("");
-    // }
-    // println!("{}", catch_all_policy);
+
+    /*
+    for tier in tiers {
+        println!("{}", tier.read().unwrap().condition);
+        println!("{}", tier.read().unwrap().chunk_size);
+        println!("");
+    }
+    println!("{}", catch_all_policy);*/
 
     Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy ,should_halt, num_tiers))
 }
