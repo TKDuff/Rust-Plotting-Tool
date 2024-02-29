@@ -40,23 +40,30 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
     let args: Vec<String> = env::args().collect();
     let data_strategy = args[1].clone();
 
-    let raw_data_aggregation_condition: usize = args[2].parse().expect("Provide a number");
+    let raw_data_aggregation_condition: usize; 
 
     let num_tiers = args.len(); //= args[2].parse::<usize>().unwrap_or_default();
 
     let should_halt = Arc::new(AtomicBool::new(false));
 
+    let (tiers, catch_all_policy, raw_data_aggregation_condition) = match data_strategy.as_str() {
+        "count" => {
+            let (tiers, catch_all_policy) = create_count_tiers(num_tiers, &args);
+            raw_data_aggregation_condition = args[2].parse().expect("Provide a number");
+            (tiers, catch_all_policy, raw_data_aggregation_condition)
+        },
+        "interval" => { 
+            let (tiers, catch_all_policy) = create_inteval_tiers(num_tiers, &args);
+            raw_data_aggregation_condition = convert_time_unit(&args[2]).unwrap_or_default();
+            (tiers, catch_all_policy, raw_data_aggregation_condition)
+        },
+        _ => return Err("Provide a valid data strategy".to_string()),
+    };
 
     //Trying to run the create tier methods on these branches is hard, too much to get working for now will leave it. Involes dynamic dispatch, screw that
     let aggregation_strategy: Arc<RwLock<dyn DataStrategy + Send + Sync>> = match data_strategy.as_str() {
         "count" => Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
         "interval" => Arc::new(RwLock::new(IntervalRawData::new(raw_data_aggregation_condition))),
-        _ => return Err("Provide a valid data strategy".to_string()),
-    };
-
-    let (tiers, catch_all_policy) = match data_strategy.as_str() {
-        "count" => create_count_tiers(num_tiers, &args),
-        "interval" => create_inteval_tiers(num_tiers, &args),
         _ => return Err("Provide a valid data strategy".to_string()),
     };
 
@@ -96,33 +103,6 @@ fn create_count_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<Tie
     (tiers, catch_all_policy)
 }
 
-fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
-    let mut catch_all_policy = true;
-    
-    let condition_str = extract_before_c(&args[catch_all_index]).unwrap_or_default();
-    let chunk_size = extract_after_c(&args[catch_all_index]).unwrap_or_default().parse::<usize>().unwrap_or_default(); //this looks terrible, calling unwrap twice, but it works
-
-    let condition = condition_str.parse::<usize>().unwrap_or_default();
-    //let chunk_size = chunk_size_str.parse::<usize>().unwrap_or_default();
-
-    if chunk_size == 0 {
-        eprintln!("Final tier chunk size cannot be 0");
-        std::process::exit(1); // Exits the program
-    }
-
-    if chunk_size == 1 {
-        println!("Warning: final tier chunk size is 1, instead make it \"0C\""); //Put this on egui if don't want to exit
-        std::process::exit(1);
-    }
-
-    if condition == 0 {
-        catch_all_policy = false;
-    }
-    // Return the values as a tuple
-    (condition, chunk_size, catch_all_policy)
-}
-
-
 fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<TierData>>>, bool) {
     let mut tiers = Vec::new();
     let mut previous_condition = 0;
@@ -156,12 +136,13 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
 }
 
 
-fn create_interval_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
+fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
     let mut catch_all_policy = true;
+    
+    let condition_str = extract_before_c(&args[catch_all_index]).unwrap_or_default();
+    let chunk_size = extract_after_c(&args[catch_all_index]).unwrap_or_default().parse::<usize>().unwrap_or_default(); //this looks terrible, calling unwrap twice, but it works
 
-    let condition_str = extract_before_c(&args[catch_all_index]).unwrap_or_default(); //get the interval number and duration, so 6M is 6 minutes or 360 seconds
-    let chunk_size = extract_after_c(&args[catch_all_index]).unwrap_or_default().parse::<usize>().unwrap_or_default();
-    let time = convert_time_unit(&condition_str).unwrap_or_default();   //conver the condition in to time in seconds
+    let condition = condition_str.parse::<usize>().unwrap_or_default();
 
     if chunk_size == 0 {
         eprintln!("Final tier chunk size cannot be 0");
@@ -173,8 +154,39 @@ fn create_interval_catch_all(args: &[String], catch_all_index: usize) -> (usize,
         std::process::exit(1);
     }
 
+    if condition == 0 {
+        catch_all_policy = false;
+    }
+    // Return the values as a tuple
+    (condition, chunk_size, catch_all_policy)
+}
+
+fn create_interval_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
+    let mut catch_all_policy = true;
+
+    let condition_str = extract_before_c(&args[catch_all_index]).unwrap_or_default(); //get the interval number and duration, so 6M is 6 minutes or 360 seconds
+    let chunk_size = extract_after_c(&args[catch_all_index]).unwrap_or_default().parse::<usize>().unwrap_or_default();
+    let time = convert_time_unit(&condition_str).unwrap_or_default();   //conver the condition in to time in seconds
+
+    /*
+    if chunk_size == 0 {
+        eprintln!("Final tier chunk size cannot be 0");
+        std::process::exit(1); // Exits the program
+    }
+
+    if chunk_size == 1 {
+        println!("Warning: final tier chunk size is 1, instead make it \"0C\""); //Put this on egui if don't want to exit
+        std::process::exit(1);
+    }*/
+
     if time == 0 {
         catch_all_policy = false;
+    } else if chunk_size == 0 {
+        eprintln!("Final tier chunk size cannot be 0");
+        std::process::exit(1); // Exits the program
+    } else if chunk_size == 1 {
+        println!("Warning: final tier chunk size is 1, instead make it \"0C\""); //Put this on egui if don't want to exit
+        std::process::exit(1);
     }
 
     (time, chunk_size, catch_all_policy)
