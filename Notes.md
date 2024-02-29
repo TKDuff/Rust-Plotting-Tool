@@ -648,3 +648,7 @@ Use these to determine what point was clicked
 * Need to store recently bin clicked in 'myapp' struct as upon each ctx refresh information does not persist
 
 Going to test if actually fits between pipes
+
+For interval, going to make time interval seconds, hour or minutes. Must be done in increasing order. 
+
+Looked into using clap, to parse and validate command-line arguments. Defines arguments program accepts. Whether rquired or optonal
