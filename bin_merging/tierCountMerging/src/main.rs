@@ -1,5 +1,6 @@
 
-#![allow(warnings)] use nix::libc::ARPD_FLUSH;
+#![allow(warnings)] use egui::color_picker::color_picker_color32;
+use nix::libc::ARPD_FLUSH;
 //Remove warning, be sure to remove this
 use project_library::{CountRawData, DataStrategy, TierData, Bin, main_threads, process_tier, setup_my_app};
 use std::fmt::format;
@@ -28,6 +29,8 @@ struct MyApp {
     tiers: Vec<Arc<RwLock<TierData>>>,
     should_halt: Arc<AtomicBool>,
     clicked_bin:  Option<(Bin, Bin)>,
+    colours: [egui::Color32; 5],    //maintain line colours between repaints
+    selected_line_index: usize,
 }
 
 impl MyApp {
@@ -37,9 +40,13 @@ impl MyApp {
         tiers: Vec<Arc<RwLock<TierData>>>,
         should_halt: Arc<AtomicBool>,
         clicked_bin:  Option<(Bin, Bin)>,
+        selected_line_index: usize,
+        colours: [egui::Color32; 5],
+
+
         
     ) -> Self {
-        Self { raw_data, tiers ,should_halt, clicked_bin }
+        Self { raw_data, tiers ,should_halt, clicked_bin, selected_line_index, colours }
     }
 }
 
@@ -48,13 +55,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
 
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
-     
+    let mut colours = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];
+    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None, 0, colours);
 
-    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None);
-    
+
+
     let should_halt_clone = my_app.should_halt.clone();
-
-
     let raw_data_thread_for_setup = my_app.raw_data.clone();
     
     let raw_data_accessor = my_app.raw_data.clone();
@@ -144,7 +150,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let mut tier_plot_lines = Vec::new();
             let mut tier_plot_lines_length: Vec<usize> = Vec::new();
             let mut number_of_tiers = self.tiers.len();
-            let colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];
+            //let mut colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];
 
             
             let mut position: Option<PlotPoint> =None;
@@ -153,13 +159,11 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let plot_width = 1800.0;
             let plot_height = 600.0;
-            let plot_top_left = egui::pos2(10.0, 50.0); 
-            let bin_info_area_pos = egui::pos2(plot_top_left.x, plot_top_left.y + plot_height);
 
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
             //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
-                let color = colors[i];
+                let color = self.colours[i];
                 let line_id = format!("Tier {}", i+1);
                 let values = tier.read().unwrap().get_means(); 
                 tier_plot_lines_length.push(values.len());  //want to store length of each line
@@ -199,26 +203,67 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 }
             }
 
+            let plot_top_left = egui::pos2(10.0, 50.0); 
+            let bin_info_area_pos = egui::pos2(plot_top_left.x, plot_top_left.y + plot_height);
             egui::Area::new("Bin Information Area")
-                .fixed_pos(bin_info_area_pos) // Position the area as desired
-                .show(ui.ctx(), |ui| {
-                    for i in 0..number_of_tiers {
-                        ui.label(format!("Tier {} length {}", i+1, tier_plot_lines_length[i]));
-                    }
+            .fixed_pos(bin_info_area_pos) // Position the area as desired
+            .show(ui.ctx(), |ui| {
+                for i in 0..number_of_tiers {
+                    ui.label(format!("Tier {} length {}", i+1, tier_plot_lines_length[i]));
+                }
 
-                    if let Some((x_bin, y_bin)) = self.clicked_bin {
-                        // Only display the information if clicked_info is Some
-                        ui.label(format!("X: Mean = {:.2}", x_bin.mean));
-                        ui.label(format!("X: Sum = {:.2}", x_bin.sum));
-                        ui.label(format!("X: Min = {:.2}", x_bin.min));
-                        ui.label(format!("X: Max = {:.2}", x_bin.max));
-                        ui.label(format!("X: Count = {:.2}", x_bin.count));
-                    } else {
-                        // Display some default text or leave it empty
-                        ui.label("Click on a plot point");
+                if let Some((x_bin, y_bin)) = self.clicked_bin {
+                    // Only display the information if clicked_info is Some
+                    ui.label(format!("X: Mean = {:.2}", x_bin.mean));
+                    ui.label(format!("X: Sum = {:.2}", x_bin.sum));
+                    ui.label(format!("X: Min = {:.2}", x_bin.min));
+                    ui.label(format!("X: Max = {:.2}", x_bin.max));
+                    ui.label(format!("X: Count = {:.2}", x_bin.count));
+                } else {
+                    // Display some default text or leave it empty
+                    ui.label("Click on a plot point");
+                }
+            });
+
+
+            let styling_area_pos = egui::pos2(1600.0, 630.0);
+            egui::Area::new("Styling area")
+            .fixed_pos(styling_area_pos)
+            .show(ui.ctx(), |ui| {
+                ui.heading(egui::RichText::new("Plot Styling Options").strong().size(20.0));
+
+                egui::ComboBox::from_label("Select a tier to style")
+                .selected_text(format!("Tier {}", self.selected_line_index + 1))
+                .show_ui(ui, |ui| {
+                    for i in 0..number_of_tiers {
+                        if ui.selectable_label(self.selected_line_index == i, format!("Tier {}", i + 1)).clicked() {
+                            self.selected_line_index = i;
+                        }
                     }
                 });
 
+                let toggle_id = ui.id().with("color_picker_toggle");
+                let mut show_color_picker = ui.data_mut(|d| d.get_temp::<bool>(toggle_id).unwrap_or(false));
+
+                if ui.button("Toggle Color Picker").clicked() {
+                    show_color_picker = !show_color_picker;
+                    ui.data_mut(|d| d.insert_temp(toggle_id, show_color_picker));
+                }
+
+                if show_color_picker {
+                    egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);
+                }
+                
+                //egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);
+
+
+
+
+            
+            //Alpha::OnlyBlend - 
+            //egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend)
+        
+        });
 
         });
         ctx.request_repaint();
