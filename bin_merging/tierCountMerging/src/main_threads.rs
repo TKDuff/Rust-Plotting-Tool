@@ -264,10 +264,6 @@ pub fn interval_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_a
 }
 
 
-
-
-
-
 pub fn count_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
     println!("count_check_cut_no_ca");
     thread::spawn(move || {
@@ -277,7 +273,9 @@ pub fn count_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
         loop {     
             for tier in 0..=(num_tiers-2) {
                 condition = tier_vector[tier].read().unwrap().condition;
-                if tier_vector[tier].read().unwrap().x_stats.len() == condition {
+                /*THERE EXISTS AN EDGE CASE HAVE TO FIX - when launch the app, if the number of elements in the initial tier is greater than its cut condition before this thread is spawned
+                the cut condition will never be met. A quick hack solution is to check if the length is greater than or equal to the condition. Proper fix is to block standard input reading until this thread created */
+                if tier_vector[tier].read().unwrap().x_stats.len() >= condition {
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], condition);
                 }
             }     
@@ -292,6 +290,7 @@ pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tie
         let mut merged_ca_last_x_element;
         let mut merged_ca_last_y_element;
         let ca_condition = catch_all_tier.read().unwrap().condition;  
+        let ca_chunk_size: usize = catch_all_tier.read().unwrap().chunk_size;
         let mut condition: usize;
 
         loop {
@@ -310,8 +309,8 @@ pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tie
 
             if catch_all_tier_write_lock.x_stats.len() == ca_condition {
                 
-                merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,ca_condition, true);
-                merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,ca_condition, false);
+                merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, true);
+                merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, false);
                 println!("Got the point {:?}", merged_ca_last_x_element);
 
                 let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();

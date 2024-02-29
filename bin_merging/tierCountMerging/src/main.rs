@@ -51,6 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
      
 
     let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None);
+    
     let should_halt_clone = my_app.should_halt.clone();
 
 
@@ -141,8 +142,11 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
 
             let mut tier_plot_lines = Vec::new();
-            let colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];            
-            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
+            let mut tier_plot_lines_length: Vec<usize> = Vec::new();
+            let mut number_of_tiers = self.tiers.len();
+            let colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];
+
+            
             let mut position: Option<PlotPoint> =None;
             let mut hovered_item: Option<String> = None;
 
@@ -152,12 +156,14 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let plot_top_left = egui::pos2(10.0, 50.0); 
             let bin_info_area_pos = egui::pos2(plot_top_left.x, plot_top_left.y + plot_height);
 
-
+            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
             //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
                 let color = colors[i];
-                let line_id = format!("Tier {}", i+1);   
-                let line = Line::new(tier.read().unwrap().get_means())
+                let line_id = format!("Tier {}", i+1);
+                let values = tier.read().unwrap().get_means(); 
+                tier_plot_lines_length.push(values.len());  //want to store length of each line
+                let line = Line::new(values)
                 .width(2.0)
                 .color(color)
                 .name(&line_id)
@@ -168,10 +174,10 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let mut plot = Plot::new("plot").width(plot_width).height(plot_height).legend(Legend::default()).coordinates_formatter(Corner::LeftBottom, CoordinatesFormatter::default());
 
-            /*
+            
             if ui.button("Halt Processing").clicked() {
                 self.should_halt.store(true, Ordering::SeqCst);
-            }*/
+            }
 
             let plot_responese: PlotResponse<()> = plot.show(ui, |plot_ui| {
                  plot_ui.line(raw_plot_line);
@@ -196,6 +202,10 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             egui::Area::new("Bin Information Area")
                 .fixed_pos(bin_info_area_pos) // Position the area as desired
                 .show(ui.ctx(), |ui| {
+                    for i in 0..number_of_tiers {
+                        ui.label(format!("Tier {} length {}", i+1, tier_plot_lines_length[i]));
+                    }
+
                     if let Some((x_bin, y_bin)) = self.clicked_bin {
                         // Only display the information if clicked_info is Some
                         ui.label(format!("X: Mean = {:.2}", x_bin.mean));
@@ -203,12 +213,13 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                         ui.label(format!("X: Min = {:.2}", x_bin.min));
                         ui.label(format!("X: Max = {:.2}", x_bin.max));
                         ui.label(format!("X: Count = {:.2}", x_bin.count));
-
                     } else {
                         // Display some default text or leave it empty
                         ui.label("Click on a plot point");
                     }
                 });
+
+
         });
         ctx.request_repaint();
     }
