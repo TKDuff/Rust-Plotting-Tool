@@ -8,7 +8,7 @@ use std::process::id;
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
 use egui::{Style, Visuals, ViewportBuilder};
-use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, Plot, PlotPoint, PlotResponse};
+use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, LineStyle, Plot, PlotPoint, PlotResponse};
 use egui::{Vec2, CentralPanel, Id};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
@@ -42,7 +42,6 @@ impl MyApp {
         clicked_bin:  Option<(Bin, Bin)>,
         selected_line_index: usize,
         colours: [egui::Color32; 5],
-
 
         
     ) -> Self {
@@ -149,8 +148,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let mut tier_plot_lines = Vec::new();
             let mut tier_plot_lines_length: Vec<usize> = Vec::new();
-            let mut number_of_tiers = self.tiers.len();
-            //let mut colors = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];
+            let number_of_tiers = self.tiers.len();
+           
 
             
             let mut position: Option<PlotPoint> =None;
@@ -160,6 +159,13 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let plot_width = 1800.0;
             let plot_height = 600.0;
 
+            let fill_line_id = ui.id().with("line_filled");
+            let mut fill_plot_line = ui.data_mut(|d| d.get_temp::<bool>(fill_line_id).unwrap_or(false));
+
+            let lines_width_id = ui.id().with("lines_width_id");
+            let mut lines_width = ui.data_mut(|d| d.get_temp::<f32>(lines_width_id).unwrap_or(2.0));
+
+
             let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
             //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
@@ -167,11 +173,16 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 let line_id = format!("Tier {}", i+1);
                 let values = tier.read().unwrap().get_means(); 
                 tier_plot_lines_length.push(values.len());  //want to store length of each line
-                let line = Line::new(values)
-                .width(2.0)
+                let mut line = Line::new(values)
+                .width(lines_width)
                 .color(color)
                 .name(&line_id)
                 .id(egui::Id::new(i));
+
+                if fill_plot_line {
+                    line = line.fill(0.0);
+                }
+
 
             tier_plot_lines.push(line);
             }
@@ -226,13 +237,23 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             });
 
 
-            let styling_area_pos = egui::pos2(1600.0, 630.0);
+            let styling_area_pos = egui::pos2(1500.0, 630.0);
             egui::Area::new("Styling area")
             .fixed_pos(styling_area_pos)
             .show(ui.ctx(), |ui| {
                 ui.heading(egui::RichText::new("Plot Styling Options").strong().size(20.0));
 
-                egui::ComboBox::from_label("Select a tier to style")
+                if ui.button("Fill Lines").clicked() {
+                    fill_plot_line = !fill_plot_line;
+                    ui.data_mut(|d: &mut egui::util::IdTypeMap| d.insert_temp(fill_line_id, fill_plot_line));
+                    
+                }
+
+                /*Slider to adjust width, using  'lines_width' variable created above*/
+                ui.add(egui::Slider::new(&mut lines_width, 0.0..=10.0).text("Lines width"));
+                ui.data_mut(|d| d.insert_temp(lines_width_id, lines_width));
+
+                egui::ComboBox::from_label("Select a tier to change colour")
                 .selected_text(format!("Tier {}", self.selected_line_index + 1))
                 .show_ui(ui, |ui| {
                     for i in 0..number_of_tiers {
@@ -240,29 +261,33 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                             self.selected_line_index = i;
                         }
                     }
-                });
+                }); 
+                egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);
+                
+                /*
+                let toggle_id = ui.id().with("color_picker_toggle"); //create unique identifier in this context
+                /*
+                This is confusing, is way of storing values between egui frames, so basically
+                ui.data_mut - access to egui temporary storage
+                d.get_temp::<bool>(toggle_id) - retrieves the value with the id 'toggle_id', returns type is bool wrapped in Option
+                unwrap_or(false) - if no value returned, default to false
 
-                let toggle_id = ui.id().with("color_picker_toggle");
-                let mut show_color_picker = ui.data_mut(|d| d.get_temp::<bool>(toggle_id).unwrap_or(false));
+                 */
+                let mut show_color_picker = ui.data_mut(|d| d.get_temp::<bool>(toggle_id).unwrap_or(false)); 
 
-                if ui.button("Toggle Color Picker").clicked() {
+                if ui.button("Colour").clicked() {
                     show_color_picker = !show_color_picker;
-                    ui.data_mut(|d| d.insert_temp(toggle_id, show_color_picker));
+                    /*To write to temporary memory
+                    ui.data_mut(|d: &mut egui::util::IdTypeMap| - get access to temporary memory
+                    d.insert_temp(toggle_id, show_color_picker) - insert current value of 'show_color_picker' to id 'toggle_id'
+                    */
+                    ui.data_mut(|d: &mut egui::util::IdTypeMap| d.insert_temp(toggle_id, show_color_picker));
                 }
 
                 if show_color_picker {
                     egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);
-                }
-                
-                //egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);
-
-
-
-
-            
-            //Alpha::OnlyBlend - 
-            //egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend)
-        
+                }*/
+    
         });
 
         });
