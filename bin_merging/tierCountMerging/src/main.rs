@@ -7,8 +7,8 @@ use std::fmt::format;
 use std::process::id;
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
-use egui::{Style, Visuals, ViewportBuilder};
-use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, LineStyle, Plot, PlotPoint, PlotResponse};
+use egui::{Style, Visuals, ViewportBuilder, Slider};
+use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, LineStyle, Plot, PlotPoint, PlotResponse, log_grid_spacer};
 use egui::{Vec2, CentralPanel, Id};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
@@ -194,16 +194,21 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             //Plot axis are updated on each frame, given the default name 'X/Y axis', have to be sure to check for single line respose to ensure defautl values to don't overide text input on each frame update
             let x_axis_label_id = ui.id().with("x_axis_label_id");
             let y_axis_label_id = ui.id().with("y_axis_label_id");
-
             let mut x_axis_label = ui.data_mut(|d| d.get_temp::<String>(x_axis_label_id).unwrap_or("X Axis".to_string()));
             let mut y_axis_label = ui.data_mut(|d| d.get_temp::<String>(y_axis_label_id).unwrap_or("Y Axis".to_string()));
+
+            let axis_log_base_id = ui.id().with("axis_log_base_id");
+
+            let mut axis_log_base = ui.data_mut(|d| d.get_temp::<i64>(axis_log_base_id).unwrap_or(10)); //fdefault base 10
             
 
             let mut plot = Plot::new("plot")
             .width(plot_width).height(plot_height)
             .legend(Legend::default())
             .x_axis_label(&x_axis_label)
-            .y_axis_label(&y_axis_label);
+            .y_axis_label(&y_axis_label)
+            .x_grid_spacer(log_grid_spacer(axis_log_base))
+            .y_grid_spacer(log_grid_spacer(axis_log_base));
 
 
             let plot_responese: PlotResponse<()> = plot.show(ui, |plot_ui| {
@@ -275,8 +280,13 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     
                 }
 
+                if ui.add(Slider::new(&mut axis_log_base, 2..=20).text("Log scale, defualt is 10")).changed() {
+                    ui.data_mut(|d| d.insert_temp(axis_log_base_id, axis_log_base));
+
+                }
+
                 /*Slider to adjust width, using  'lines_width' variable created above*/
-                ui.add(egui::Slider::new(&mut lines_width, 0.0..=10.0).text("Lines width"));
+                ui.add(Slider::new(&mut lines_width, 0.0..=10.0).text("Lines width"));
                 ui.data_mut(|d| d.insert_temp(lines_width_id, lines_width));
 
                 egui::ComboBox::from_label("Select a tier to change colour")
