@@ -144,17 +144,7 @@ fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize, us
 
     let condition = condition_str.parse::<usize>().unwrap_or_default();
 
-    /*
-    if chunk_size == 0 {
-        eprintln!("Final tier chunk size cannot be 0");
-        std::process::exit(1); // Exits the program
-    }
-
-    if chunk_size == 1 {
-        println!("Warning: final tier chunk size is 1, instead make it \"0C\""); //Put this on egui if don't want to exit
-        std::process::exit(1);
-    }*/
-
+    
     if condition == 0 {
         catch_all_policy = false;
     } else if chunk_size == 0 {

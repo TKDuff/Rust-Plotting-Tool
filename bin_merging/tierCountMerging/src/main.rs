@@ -3,6 +3,7 @@
 use nix::libc::ARPD_FLUSH;
 //Remove warning, be sure to remove this
 use project_library::{CountRawData, DataStrategy, TierData, Bin, main_threads, process_tier, setup_my_app};
+use std::any::Any;
 use std::fmt::format;
 use std::process::id;
 use std::{num, thread, usize};
@@ -160,15 +161,15 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let plot_height = 600.0;
 
             let fill_line_id = ui.id().with("line_filled");
-            let mut fill_plot_line = ui.data_mut(|d| d.get_temp::<bool>(fill_line_id).unwrap_or(false));
+            let mut fill_plot_line = ui.data_mut(|d| d.get_temp::<bool>(fill_line_id).unwrap_or(true));
 
             let lines_width_id = ui.id().with("lines_width_id");
             let mut lines_width = ui.data_mut(|d| d.get_temp::<f32>(lines_width_id).unwrap_or(2.0));
 
-
-            let mut raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(lines_width).color(self.colours[0]).name("Stdin Data");
-
-
+            let raw_data = self.raw_data.read().unwrap().get_raw_data();
+            tier_plot_lines_length.push(raw_data.len());                                    //store length of Stdin data line
+            let mut raw_plot_line = Line::new(raw_data).width(lines_width).color(self.colours[0]).name("Stdin Data");
+            
 
             //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
@@ -176,6 +177,9 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 let line_id = format!("Tier {}", i+1);
                 let values = tier.read().unwrap().get_means(); 
                 tier_plot_lines_length.push(values.len());  //want to store length of each line
+                
+
+
                 let mut line = Line::new(values)
                 .width(lines_width)
                 .color(color)
@@ -241,9 +245,15 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             egui::Area::new("Bin Information Area")
             .fixed_pos(bin_info_area_pos) // Position the area as desired
             .show(ui.ctx(), |ui| {
-                for i in 0..number_of_tiers {
-                    ui.label(format!("Tier {} length {}", i+1, tier_plot_lines_length[i]));
-                }
+                
+                egui::CollapsingHeader::new("Tier Lengths").default_open(true)
+                .default_open(true) // You can set this to false if you want it to start collapsed
+                .show(ui, |ui| {
+                    ui.add(egui::Label::new(formatted_label(&format!("Stdin data: {}", tier_plot_lines_length[0]), Color32::BLACK, 16.0 )));
+                    for i in 1..=number_of_tiers {   //have to increment by 1 for case when there is only single catch all
+                        ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 )));
+                    }});
+
 
                 if let Some((x_bin, y_bin)) = self.clicked_bin {
                     // Only display the information if clicked_info is Some
@@ -336,6 +346,14 @@ fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>) -> Op
         })
         .map(|(x_closest, y_closest)| (*x_closest, *y_closest)) //map extracts pair from the find, return them as a tuple
 } 
+
+//Helper function, to format line length text
+fn formatted_label(text: &str, color: Color32, size: f32) -> egui::RichText {
+    egui::RichText::new(text)
+        .color(egui::Color32::BLACK)
+        .size(16.0)
+        .strong()
+}
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window
