@@ -128,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
 
     let native_options = NativeOptions{
-        viewport: egui::ViewportBuilder::default().with_inner_size([1900.0, 800.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([1900.0, 1000.0]),
         ..Default::default()
     };
 
@@ -186,13 +186,25 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             tier_plot_lines.push(line);
             }
-
-            let mut plot = Plot::new("plot").width(plot_width).height(plot_height).legend(Legend::default()).coordinates_formatter(Corner::LeftBottom, CoordinatesFormatter::default());
-
             
             if ui.button("Halt Processing").clicked() {
                 self.should_halt.store(true, Ordering::SeqCst);
             }
+
+            //Plot axis are updated on each frame, given the default name 'X/Y axis', have to be sure to check for single line respose to ensure defautl values to don't overide text input on each frame update
+            let x_axis_label_id = ui.id().with("x_axis_label_id");
+            let y_axis_label_id = ui.id().with("y_axis_label_id");
+
+            let mut x_axis_label = ui.data_mut(|d| d.get_temp::<String>(x_axis_label_id).unwrap_or("X Axis".to_string()));
+            let mut y_axis_label = ui.data_mut(|d| d.get_temp::<String>(y_axis_label_id).unwrap_or("Y Axis".to_string()));
+            
+
+            let mut plot = Plot::new("plot")
+            .width(plot_width).height(plot_height)
+            .legend(Legend::default())
+            .x_axis_label(&x_axis_label)
+            .y_axis_label(&y_axis_label);
+
 
             let plot_responese: PlotResponse<()> = plot.show(ui, |plot_ui| {
                  plot_ui.line(raw_plot_line);
@@ -242,6 +254,20 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             .fixed_pos(styling_area_pos)
             .show(ui.ctx(), |ui| {
                 ui.heading(egui::RichText::new("Plot Styling Options").strong().size(20.0));
+                
+
+                //Box to edit axis name, store the edited name  
+                let edit_x_axis_name = ui.add(egui::TextEdit::singleline(&mut x_axis_label));
+                let edit_y_axis_name = ui.add(egui::TextEdit::singleline(&mut y_axis_label));
+                
+
+                //If the x axis name has been edited (changed() function checks this), then write it to egui memory. Cannot use changed() on lines, since not interactive elements, can only use it on buttons
+                if edit_x_axis_name.changed() {
+                    ui.data_mut(|d| d.insert_temp(x_axis_label_id, x_axis_label.clone()));
+                }
+                if edit_y_axis_name.changed() {
+                    ui.data_mut(|d| d.insert_temp(y_axis_label_id, y_axis_label.clone()));
+                }
 
                 if ui.button("Fill Lines").clicked() {
                     fill_plot_line = !fill_plot_line;
@@ -262,33 +288,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                         }
                     }
                 }); 
-                egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);
-                
-                /*
-                let toggle_id = ui.id().with("color_picker_toggle"); //create unique identifier in this context
-                /*
-                This is confusing, is way of storing values between egui frames, so basically
-                ui.data_mut - access to egui temporary storage
-                d.get_temp::<bool>(toggle_id) - retrieves the value with the id 'toggle_id', returns type is bool wrapped in Option
-                unwrap_or(false) - if no value returned, default to false
-
-                 */
-                let mut show_color_picker = ui.data_mut(|d| d.get_temp::<bool>(toggle_id).unwrap_or(false)); 
-
-                if ui.button("Colour").clicked() {
-                    show_color_picker = !show_color_picker;
-                    /*To write to temporary memory
-                    ui.data_mut(|d: &mut egui::util::IdTypeMap| - get access to temporary memory
-                    d.insert_temp(toggle_id, show_color_picker) - insert current value of 'show_color_picker' to id 'toggle_id'
-                    */
-                    ui.data_mut(|d: &mut egui::util::IdTypeMap| d.insert_temp(toggle_id, show_color_picker));
-                }
-
-                if show_color_picker {
-                    egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);
-                }*/
-    
-        });
+                egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);    
+            });
 
         });
         ctx.request_repaint();
