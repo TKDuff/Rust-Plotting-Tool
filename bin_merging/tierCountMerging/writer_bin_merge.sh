@@ -1,7 +1,7 @@
 #!/bin/bash
 #Change the argument after count to set the tiers
 
-(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "5" "5" "5" "5" "0C0"  )
+(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "70" "5" "5" "5" "0C0"  )
 #(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "4S" "8S" "1MC2"  )
 
 

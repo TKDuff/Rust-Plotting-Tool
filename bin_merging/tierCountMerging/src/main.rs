@@ -1,5 +1,5 @@
 
-#![allow(warnings)] use egui::color_picker::color_picker_color32;
+#![allow(warnings)] 
 use nix::libc::ARPD_FLUSH;
 //Remove warning, be sure to remove this
 use project_library::{CountRawData, DataStrategy, TierData, Bin, main_threads, process_tier, setup_my_app};
@@ -7,9 +7,8 @@ use std::fmt::format;
 use std::process::id;
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
-use egui::{Style, Visuals, ViewportBuilder, Slider};
+use egui::{Style, Visuals, ViewportBuilder, Slider, Color32, Vec2, CentralPanel, Id};
 use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, LineStyle, Plot, PlotPoint, PlotResponse, log_grid_spacer};
-use egui::{Vec2, CentralPanel, Id};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
 use tokio::runtime::Runtime;
@@ -22,6 +21,7 @@ use std::time::{ Instant};
 use rayon::{prelude::*, ThreadPool};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::error::Error;
+use egui::color_picker::color_picker_color32;
 
 
 struct MyApp {
@@ -29,7 +29,7 @@ struct MyApp {
     tiers: Vec<Arc<RwLock<TierData>>>,
     should_halt: Arc<AtomicBool>,
     clicked_bin:  Option<(Bin, Bin)>,
-    colours: [egui::Color32; 5],    //maintain line colours between repaints
+    colours: [Color32; 6],    //maintain line colours between repaints
     selected_line_index: usize,
 }
 
@@ -41,7 +41,7 @@ impl MyApp {
         should_halt: Arc<AtomicBool>,
         clicked_bin:  Option<(Bin, Bin)>,
         selected_line_index: usize,
-        colours: [egui::Color32; 5],
+        colours: [Color32; 6],
 
         
     ) -> Self {
@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
 
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
-    let mut colours = [egui::Color32::BLUE, egui::Color32::GREEN, egui::Color32::BLACK, egui::Color32::BROWN, egui::Color32::YELLOW];
+    let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::BLACK, Color32::BROWN, Color32::YELLOW];
     let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None, 0, colours);
 
 
@@ -166,10 +166,13 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let mut lines_width = ui.data_mut(|d| d.get_temp::<f32>(lines_width_id).unwrap_or(2.0));
 
 
-            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
+            let mut raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(lines_width).color(self.colours[0]).name("Stdin Data");
+
+
+
             //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
-                let color = self.colours[i];
+                let color = self.colours[i+1];  //increment as colurs vector first element is Stdin data line colour, red
                 let line_id = format!("Tier {}", i+1);
                 let values = tier.read().unwrap().get_means(); 
                 tier_plot_lines_length.push(values.len());  //want to store length of each line
@@ -179,8 +182,10 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 .name(&line_id)
                 .id(egui::Id::new(i));
 
+                //if user wants to fill line, do so for both tiers and raw data
                 if fill_plot_line {
                     line = line.fill(0.0);
+                    raw_plot_line = raw_plot_line.fill(0.0);
                 }
 
 
@@ -289,13 +294,23 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 ui.add(Slider::new(&mut lines_width, 0.0..=10.0).text("Lines width"));
                 ui.data_mut(|d| d.insert_temp(lines_width_id, lines_width));
 
+                /*To change line colur, remember stdin data not included in vector of tier lines, thus it has to manually be checked and colour changed */
                 egui::ComboBox::from_label("Select a tier to change colour")
-                .selected_text(format!("Tier {}", self.selected_line_index + 1))
+                .selected_text( 
+                    if self.selected_line_index == 0 {
+                        format!("Stdin Data")
+                    } else {
+                        format!("Tier {}", self.selected_line_index)
+                    }
+                 )
                 .show_ui(ui, |ui| {
-                    for i in 0..number_of_tiers {
-                        if ui.selectable_label(self.selected_line_index == i, format!("Tier {}", i + 1)).clicked() {
+                    if ui.selectable_label( self.selected_line_index == 0, "Stdin Data").clicked() {
+                        self.selected_line_index = 0;
+                    }
+                    for i in 1..number_of_tiers+1 {
+                        if ui.selectable_label(self.selected_line_index == i, format!("Tier {}", i)).clicked() {
                             self.selected_line_index = i;
-                        }
+                        } 
                     }
                 }); 
                 egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);    
