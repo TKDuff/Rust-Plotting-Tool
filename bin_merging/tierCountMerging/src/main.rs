@@ -249,16 +249,14 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let click = ctx.input(|i| i.pointer.any_click());
 
+            //refactor this
             if click {
                 let tier_index = plot_responese.hovered_plot_item
                 .and_then(|id| (0..self.tiers.len()).find(|&i| id == egui::Id::new(i)))
                 .unwrap_or_else(|| usize::MAX);
             
                 if tier_index != usize::MAX {
-                //self.clicked_bin = find_closest(position, &self.tiers[tier_index], tier_index)
-
                 if let Some(new_clicked_bin) = find_closest(position, &self.tiers[tier_index], tier_index) {
-                    println!("Changing bin {}", new_clicked_bin.1);
                     self.clicked_bin = Some(new_clicked_bin);
                 }
                 }
@@ -268,30 +266,25 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             egui::Area::new("Bin Information Area")
             .fixed_pos(bin_info_area_pos)
             .show(ui.ctx(), |ui| {
-                
-                
                 ui.heading(formatted_label("  Selected Bin Information", Color32::LIGHT_YELLOW, 20.0, true));
-
                 if let Some(((x_bin, y_bin), tier_index)) = self.clicked_bin {
-                    println!("Changing bin {}", tier_index);
                     let colour = self.colours[tier_index + 1];
-                    bin_grid_helper(ui, &x_bin, &y_bin, colour);
+                    bin_grid_helper(ui, &x_bin, &y_bin, colour, tier_index+1); //lazy to increment one twice, but the function does not have a reference to self, so need pass colour
                 } 
-
             });
 
 
-            let styling_area_pos = egui::pos2(1500.0, 630.0);
-            egui::Area::new("Styling area")
-            .fixed_pos(styling_area_pos)
+            let plot_styling_area_pos = egui::pos2(1375.0, 630.0);
+            egui::Area::new("plot_styling area")
+            .fixed_pos(plot_styling_area_pos)
             .show(ui.ctx(), |ui| {
-                //ui.heading(egui::RichText::new("Plot Styling Options").strong().size(20.0));
                 ui.heading(formatted_label("Plot Styling Options", Color32::BLACK, 20.0, true));
                 
 
-                //Box to edit axis name, store the edited name  
-                let edit_x_axis_name = ui.add(egui::TextEdit::singleline(&mut x_axis_label));
-                let edit_y_axis_name = ui.add(egui::TextEdit::singleline(&mut y_axis_label));
+                //Box to edit axis name, store the edited name 
+                ui.label("Change axis name"); 
+                let edit_x_axis_name = ui.add(egui::TextEdit::singleline(&mut x_axis_label).desired_width(70.0));
+                let edit_y_axis_name = ui.add(egui::TextEdit::singleline(&mut y_axis_label).desired_width(70.0));
                 
 
                 //If the x axis name has been edited (changed() function checks this), then write it to egui memory. Cannot use changed() on lines, since not interactive elements, can only use it on buttons
@@ -301,15 +294,25 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 if edit_y_axis_name.changed() {
                     ui.data_mut(|d| d.insert_temp(y_axis_label_id, y_axis_label.clone()));
                 }
+                ui.add_space(10.0);
+                ui.label("Change plot log scale");
+                if ui.add(Slider::new(&mut axis_log_base, 2..=20)).changed() {
+                    ui.data_mut(|d| d.insert_temp(axis_log_base_id, axis_log_base));
+
+                }
+   
+            });
+
+            let line_styling_area_pos = egui::pos2(1550.0, 630.0);
+            egui::Area::new("line_styling_area")
+            .fixed_pos(line_styling_area_pos)
+            .show(ui.ctx(), |ui| {
+                ui.heading(formatted_label("Line Styling Options", Color32::BLACK, 20.0, true));
+
                 if ui.button("Fill Lines").clicked() {
                     fill_plot_line = !fill_plot_line;
                     ui.data_mut(|d: &mut egui::util::IdTypeMap| d.insert_temp(fill_line_id, fill_plot_line));
                     
-                }
-
-                if ui.add(Slider::new(&mut axis_log_base, 2..=20).text("Log scale, defualt is 10")).changed() {
-                    ui.data_mut(|d| d.insert_temp(axis_log_base_id, axis_log_base));
-
                 }
 
                 /*Slider to adjust width, using  'lines_width' variable created above*/
@@ -317,7 +320,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 ui.data_mut(|d| d.insert_temp(lines_width_id, lines_width));
 
                 /*To change line colur, remember stdin data not included in vector of tier lines, thus it has to manually be checked and colour changed */
-                egui::ComboBox::from_label("Select a tier to change colour")
+                egui::ComboBox::from_label("Select a line to change colour")
                 .selected_text( 
                     if self.selected_line_index == 0 {
                         format!("Stdin Data")
@@ -335,9 +338,9 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                         } 
                     }
                 }); 
-                egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend);    
-            });
+                egui::color_picker::color_picker_color32(ui, &mut self.colours[self.selected_line_index], egui::widgets::color_picker::Alpha::OnlyBlend); 
 
+            })
         });
         ctx.request_repaint();
     }
@@ -345,21 +348,18 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
 
 fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_index: usize) -> Option<((Bin, Bin), usize)> {
-    if let Some(plot_point) = position {
-        let x = plot_point.x;
-        let y = plot_point.y;
-        let tier_data = tier.read().unwrap();
+    let plot_point = position?;
+    let x = plot_point.x;
+    let y = plot_point.y;
+    let tier_data = tier.read().unwrap();
 
-        let tolerance = 5.0;
-        tier_data.x_stats.iter().zip(tier_data.y_stats.iter())
-            .find(|&(x_bin, y_bin)| {
-                (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
-            })
-            .map(|(x_closest, y_closest)| ((*x_closest, *y_closest), tier_index))
-    } else {
-        None
-    }
-}   
+    let tolerance = 5.0;
+    tier_data.x_stats.iter().zip(tier_data.y_stats.iter())
+        .find(|&(x_bin, y_bin)| {
+            (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
+        })
+        .map(|(x_closest, y_closest)| ((*x_closest, *y_closest), tier_index))
+}  
 
 
     /*
@@ -385,7 +385,7 @@ fn formatted_label(text: &str, color: Color32, size: f32, bold: bool) -> egui::R
     text
 }
 
-fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32) {
+fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32, tier_index: usize) {
     let even_row_transparent = Color32::from_rgba_premultiplied(colour.r(), colour.g(), colour.b(), 64); // 50% opacity
     let odd_row_transparent = Color32::from_rgba_premultiplied(colour.r(), colour.g(), colour.b(), 128); // 50% opacity
 
@@ -402,6 +402,9 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32)
         }
     })
     .show(ui, |ui| {
+        ui.label(formatted_label(&format!("\t\t\t\t\t\t\tTier {}", tier_index), Color32::BLACK, 16.0, true));
+        ui.end_row();
+
         ui.label(formatted_label("X Values", Color32::BLACK, 16.0, true));
         ui.label(formatted_label("Y Values", Color32::BLACK, 16.0, true));
         ui.end_row();
