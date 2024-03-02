@@ -29,7 +29,7 @@ struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     tiers: Vec<Arc<RwLock<TierData>>>,
     should_halt: Arc<AtomicBool>,
-    clicked_bin:  Option<(Bin, Bin)>,
+    clicked_bin:  Option<((Bin, Bin), usize)>,
     colours: [Color32; 6],    //maintain line colours between repaints
     selected_line_index: usize,
 }
@@ -40,13 +40,18 @@ impl MyApp {
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
         tiers: Vec<Arc<RwLock<TierData>>>,
         should_halt: Arc<AtomicBool>,
-        clicked_bin:  Option<(Bin, Bin)>,
         selected_line_index: usize,
         colours: [Color32; 6],
-
-        
     ) -> Self {
-        Self { raw_data, tiers ,should_halt, clicked_bin, selected_line_index, colours }
+        let default_bin = Bin { 
+            mean: 0.0,
+            sum: 0.0,
+            min: 0.0,
+            max: 0.0,
+            count: 0,
+        };
+
+        Self { raw_data, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), selected_line_index, colours }
     }
 }
 
@@ -56,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
     let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::BLACK, Color32::BROWN, Color32::YELLOW];
-    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, None, 0, colours);
+    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, 0, colours);
 
 
 
@@ -228,6 +233,20 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                  position = plot_ui.pointer_coordinate();
             });
 
+            let line_length_area_pos = egui::pos2(40.0, 630.0);
+            egui::Area::new("Line Length")
+            .fixed_pos(line_length_area_pos) // Position the area as desired
+            .show(ui.ctx(), |ui| {
+                
+                egui::CollapsingHeader::new("Tier Lengths").default_open(true)
+                .default_open(true) // You can set this to false if you want it to start collapsed
+                .show(ui, |ui| {
+                    ui.add(egui::Label::new(formatted_label(&format!("Stdin data: {}", tier_plot_lines_length[0]), Color32::BLACK, 16.0 , false)));
+                    for i in 1..=number_of_tiers {   //have to increment by 1 for case when there is only single catch all
+                        ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 , false)));
+                    }});
+            });
+
             let click = ctx.input(|i| i.pointer.any_click());
 
             if click {
@@ -236,36 +255,29 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 .unwrap_or_else(|| usize::MAX);
             
                 if tier_index != usize::MAX {
-                self.clicked_bin = find_closest(position, &self.tiers[tier_index])
+                //self.clicked_bin = find_closest(position, &self.tiers[tier_index], tier_index)
+
+                if let Some(new_clicked_bin) = find_closest(position, &self.tiers[tier_index], tier_index) {
+                    println!("Changing bin {}", new_clicked_bin.1);
+                    self.clicked_bin = Some(new_clicked_bin);
+                }
                 }
             }
 
-            let plot_top_left = egui::pos2(10.0, 50.0); 
-            let bin_info_area_pos = egui::pos2(plot_top_left.x, plot_top_left.y + plot_height);
+            let bin_info_area_pos = egui::pos2(800.0, 630.0);
             egui::Area::new("Bin Information Area")
-            .fixed_pos(bin_info_area_pos) // Position the area as desired
+            .fixed_pos(bin_info_area_pos)
             .show(ui.ctx(), |ui| {
                 
-                egui::CollapsingHeader::new("Tier Lengths").default_open(true)
-                .default_open(true) // You can set this to false if you want it to start collapsed
-                .show(ui, |ui| {
-                    ui.add(egui::Label::new(formatted_label(&format!("Stdin data: {}", tier_plot_lines_length[0]), Color32::BLACK, 16.0 )));
-                    for i in 1..=number_of_tiers {   //have to increment by 1 for case when there is only single catch all
-                        ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 )));
-                    }});
+                
+                ui.heading(formatted_label("  Selected Bin Information", Color32::LIGHT_YELLOW, 20.0, true));
 
+                if let Some(((x_bin, y_bin), tier_index)) = self.clicked_bin {
+                    println!("Changing bin {}", tier_index);
+                    let colour = self.colours[tier_index + 1];
+                    bin_grid_helper(ui, &x_bin, &y_bin, colour);
+                } 
 
-                if let Some((x_bin, y_bin)) = self.clicked_bin {
-                    // Only display the information if clicked_info is Some
-                    ui.label(format!("X: Mean = {:.2}", x_bin.mean));
-                    ui.label(format!("X: Sum = {:.2}", x_bin.sum));
-                    ui.label(format!("X: Min = {:.2}", x_bin.min));
-                    ui.label(format!("X: Max = {:.2}", x_bin.max));
-                    ui.label(format!("X: Count = {:.2}", x_bin.count));
-                } else {
-                    // Display some default text or leave it empty
-                    ui.label("Click on a plot point");
-                }
             });
 
 
@@ -273,7 +285,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             egui::Area::new("Styling area")
             .fixed_pos(styling_area_pos)
             .show(ui.ctx(), |ui| {
-                ui.heading(egui::RichText::new("Plot Styling Options").strong().size(20.0));
+                //ui.heading(egui::RichText::new("Plot Styling Options").strong().size(20.0));
+                ui.heading(formatted_label("Plot Styling Options", Color32::BLACK, 20.0, true));
                 
 
                 //Box to edit axis name, store the edited name  
@@ -288,7 +301,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 if edit_y_axis_name.changed() {
                     ui.data_mut(|d| d.insert_temp(y_axis_label_id, y_axis_label.clone()));
                 }
-
                 if ui.button("Fill Lines").clicked() {
                     fill_plot_line = !fill_plot_line;
                     ui.data_mut(|d: &mut egui::util::IdTypeMap| d.insert_temp(fill_line_id, fill_plot_line));
@@ -332,28 +344,92 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 }
 
 
-fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>) -> Option<(Bin, Bin)>  {
-    let plot_point = position?;// ? returns None is position is None, no need to check via 'Some' statement
+fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_index: usize) -> Option<((Bin, Bin), usize)> {
+    if let Some(plot_point) = position {
+        let x = plot_point.x;
+        let y = plot_point.y;
+        let tier_data = tier.read().unwrap();
 
-    let x = plot_point.x;
-    let y = plot_point.y;
-    let tier_data = tier.read().unwrap();
+        let tolerance = 5.0;
+        tier_data.x_stats.iter().zip(tier_data.y_stats.iter())
+            .find(|&(x_bin, y_bin)| {
+                (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
+            })
+            .map(|(x_closest, y_closest)| ((*x_closest, *y_closest), tier_index))
+    } else {
+        None
+    }
+}   
 
-    let tolerance = 5.0;
-    tier_data.x_stats.iter().zip(tier_data.y_stats.iter())  //combine x_stats and y_stats iterator via zip
-        .find(|&(x_bin, y_bin)| {   //find takes x_bin and y_bin which is each element, used to get absolute difference of means
-            (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance //get absolute diff of means and check they are within tolerance 
-        })
-        .map(|(x_closest, y_closest)| (*x_closest, *y_closest)) //map extracts pair from the find, return them as a tuple
-} 
 
-//Helper function, to format line length text
-fn formatted_label(text: &str, color: Color32, size: f32) -> egui::RichText {
-    egui::RichText::new(text)
+    /*
+    Bug occurs with select bin, if click but not in threshold, will return defualt bin, thus set the grid to initial values. In order to overcome this, if no threshold is found.
+    Want to make it that the bin grid updates only when succesfly click on other bin. Can solve this by not returning anything if nothing found. 
+     */
+
+
+/*Helper function, to format line length text
+Is a 'builder' function, as it creates rich text label but can format the style upon each call based on the passed in parameters
+* color
+* size
+* bold*/
+fn formatted_label(text: &str, color: Color32, size: f32, bold: bool) -> egui::RichText {
+    let mut text = egui::RichText::new(text)
         .color(egui::Color32::BLACK)
-        .size(16.0)
-        .strong()
+        .size(16.0);
+
+    if bold {
+        text = text.strong()
+    }
+    
+    text
 }
+
+fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32) {
+    let even_row_transparent = Color32::from_rgba_premultiplied(colour.r(), colour.g(), colour.b(), 64); // 50% opacity
+    let odd_row_transparent = Color32::from_rgba_premultiplied(colour.r(), colour.g(), colour.b(), 128); // 50% opacity
+
+    egui::Grid::new("bin_info_grid")
+    .striped(true)
+    .num_columns(2)
+    .spacing([40.0, 4.0])
+    //this makes the row have a different colour depending on whether odd or even 
+    .with_row_color(move |row_index, _style| {
+        if row_index % 2 == 0 {
+            Some(even_row_transparent)
+        } else {
+            Some(odd_row_transparent)
+        }
+    })
+    .show(ui, |ui| {
+        ui.label(formatted_label("X Values", Color32::BLACK, 16.0, true));
+        ui.label(formatted_label("Y Values", Color32::BLACK, 16.0, true));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Mean: {:.2}", x_bin.mean), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Mean: {:.2}", y_bin.mean), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Sum: {:.2}", x_bin.sum), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Sum: {:.2}", y_bin.sum), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Min: {:.2}", x_bin.min), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Min: {:.2}", y_bin.min), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Max: {:.2}", x_bin.max), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Max: {:.2}", y_bin.max), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Count: {}", x_bin.count), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Count: {}", y_bin.count), Color32::BLACK, 16.0, false));
+
+        ui.end_row();
+});
+}
+
+
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window
