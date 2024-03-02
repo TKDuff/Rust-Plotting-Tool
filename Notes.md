@@ -652,3 +652,21 @@ Going to test if actually fits between pipes
 For interval, going to make time interval seconds, hour or minutes. Must be done in increasing order. 
 
 Looked into using clap, to parse and validate command-line arguments. Defines arguments program accepts. Whether rquired or optonal
+
+* Let user choose plot width/height. When choosen, wrap the eframe width/height around it. 
+* Line width, colour, fill (or fill all)
+* Night or day mode
+* Grid lines yes or no
+* Axis labels
+* Plot titles
+* Plot size, so how much of the screen it should take up
+
+Get UI done, then see if change tier merge sizes
+Can allow user to set log axis - 
+
+Be sure to stratigically place request reptains, don't need to repaint entire frame. Seems that when the length is only 1, then the CPU is hogged, computer makes lots of noise
+
+## 01-03-24
+Finished with changing the UI of the program, still want to add
+* Option to set size of plot in command line, and the program wraps around this selected size, have min size
+* Maybe some other things, stopping for now to benchmark, see what finally needs to be added

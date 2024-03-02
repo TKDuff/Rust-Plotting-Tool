@@ -108,7 +108,12 @@ impl eframe::App for MyApp {    //implementing the App trait for the MyApp type,
             let id = ui.make_persistent_id("interaction_demo");
 
 
-            let plot = Plot::new("plot").width(1300.0).height(600.0).legend(Legend::default()).id(id);
+            let plot = Plot::new("plot").width(1300.0).height(600.0)
+            .legend(Legend::default()).id(id)
+            .x_grid_spacer(egui_plot::log_grid_spacer(20))
+            .y_grid_spacer(egui_plot::log_grid_spacer(20));
+
+            
             
 
             ui.vertical(|ui| {
