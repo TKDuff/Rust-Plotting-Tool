@@ -670,3 +670,17 @@ Be sure to stratigically place request reptains, don't need to repaint entire fr
 Finished with changing the UI of the program, still want to add
 * Option to set size of plot in command line, and the program wraps around this selected size, have min size
 * Maybe some other things, stopping for now to benchmark, see what finally needs to be added
+
+
+## 03-03-24
+* No tiering option, so empty command line argument 
+* Check if thread pool does infact speed up processing
+* Adwin first tier only
+
+Changed name of 'setup_my_app' to 'setup_my_app_tiering' as want to call this function only when have tiers\
+When no tiering, just create my_app with
+* Dummy tier
+* Manually check condition in the egui script, that if the num tiers  or something is a condition, then don't draw the tier lines
+* Is a bad solution, but is the only way possible without refactoring the code
+
+Seems to lag at 2 miliseconds when there is no tiering, could be to do with constant repaints with 100,000 points, like the screen lags
