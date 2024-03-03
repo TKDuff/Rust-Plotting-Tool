@@ -63,8 +63,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::BLACK, Color32::BROWN, Color32::YELLOW];
     let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, 0, colours);
 
+    /*If no strategy selected, so just the raw data, then don't need to run all this code, can just run the tokio thread to read in raw data */
 
-
+    
     let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread_for_setup = my_app.raw_data.clone();
     
@@ -72,28 +73,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let initial_tier_accessor = my_app.tiers[0].clone();
     let tier_vector = my_app.tiers.clone();
 
+    let raw_data_accessor_for_thread = my_app.raw_data.clone();
+    let initial_tier_accessor_for_thread = my_app.tiers[0].clone();
+
     //create the thread to handle tier merging
     if strategy == "count" {
         setup_count(raw_data_accessor, initial_tier_accessor, num_tiers, catch_all_policy, tier_vector);
-    } else {
-        setup_interval(raw_data_accessor, initial_tier_accessor, num_tiers, catch_all_policy, tier_vector)
+        //create thread to handle the live data being pushed to the initial tier
+        main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor_for_thread, initial_tier_accessor_for_thread);
+    } else if strategy == "interval"{
+        setup_interval(raw_data_accessor, initial_tier_accessor, num_tiers, catch_all_policy, tier_vector);
+        //create thread to handle the live data being pushed to the initial tier
+        main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor_for_thread, initial_tier_accessor_for_thread);
     }
+   
 
-    let raw_data_accessor_for_thread = my_app.raw_data.clone();
-    let initial_tier_accessor_for_thread = my_app.tiers[0].clone();
-    //create thread to handle the live data being pushed to the initial tier
-    main_threads::create_raw_data_to_initial_tier(hd_receiver, raw_data_accessor_for_thread, initial_tier_accessor_for_thread);
 
     let rt = Runtime::new().unwrap();
     let raw_data_thread = my_app.raw_data.clone();
     //create tokio thread to read in standard input, then append to live data vector
+    match strategy.as_str() {
+        "count" => main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender),
+        "interval" => main_threads::create_interval_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender),
+        _ => main_threads::crate_none_stdin_read(&rt, should_halt_clone, raw_data_thread),
+    }
+    //create threads in reverse order of who access live data. Tokio last, as want other merging threads to be ready to handle aggregate live data
+
+    /*
     if strategy == "count" {
         main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
     } else {
         main_threads::create_interval_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
-    }
-    //create threads in reverse order of who access live data. Tokio last, as want other merging threads to be ready to handle aggregate live data
-
+    }*/
+    
 
 
     fn setup_count(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
@@ -216,11 +228,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let mut axis_log_base = ui.data_mut(|d| d.get_temp::<i64>(axis_log_base_id).unwrap_or(10)); //fdefault base 10
             
 
-            let mut plot = Plot::new("plot")
-            .width(plot_width).height(plot_height)
-            .legend(Legend::default())
-            .x_axis_label(&x_axis_label)
-            .y_axis_label(&y_axis_label)
+            let mut plot = Plot::new("plot").width(plot_width).height(plot_height).legend(Legend::default()).x_axis_label(&x_axis_label).y_axis_label(&y_axis_label)
             .x_grid_spacer(log_grid_spacer(axis_log_base))
             .y_grid_spacer(log_grid_spacer(axis_log_base));
 
@@ -431,8 +439,6 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32,
         ui.end_row();
 });
 }
-
-
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window

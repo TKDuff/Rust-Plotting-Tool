@@ -73,7 +73,28 @@ pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBoo
     });
 }
 
-
+pub fn crate_none_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, raw_data_thread: Arc<RwLock<dyn DataStrategy + Send + Sync>>) {
+    rt.spawn(async move {
+        println!("create_count_stdin_read");
+        let stdin = io::stdin();
+        let reader = BufReader::new(stdin);
+        let mut lines = reader.lines();
+        loop {
+            if should_halt_clone.load(Ordering::SeqCst) {
+                break; // Exit the loop if the atomic bool is true
+            }
+            tokio::select! {
+                line = lines.next_line() => {
+                    if let Ok(Some(line)) = line {
+                        raw_data_thread.write().unwrap().append_str(line);
+                    } else {
+                        break;
+                    }
+                }, 
+            }
+        }
+    });
+}
 
 pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>> )   {
     thread::spawn(move || {

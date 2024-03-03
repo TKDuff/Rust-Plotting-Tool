@@ -38,12 +38,20 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
 
 pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, String, Vec<Arc<RwLock<TierData>>>, bool, Arc<AtomicBool>, usize), String> {
     let args: Vec<String> = env::args().collect();
-    let data_strategy = args[1].clone();
-
+    let mut data_strategy: String;
     let raw_data_aggregation_condition: usize; 
 
-    let num_tiers = args.len(); //= args[2].parse::<usize>().unwrap_or_default();
 
+    /*Case when user does not any tiering*/
+    if args.len() == 1 {
+        println!("No arguments");
+        data_strategy = "None".to_string();
+    } else {
+        data_strategy = args[1].clone();
+    }
+
+        
+    let num_tiers = args.len();
     let should_halt = Arc::new(AtomicBool::new(false));
 
     let (tiers, catch_all_policy, raw_data_aggregation_condition) = match data_strategy.as_str() {
@@ -57,6 +65,11 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
             raw_data_aggregation_condition = convert_time_unit(&args[2]).unwrap_or_default();
             (tiers, catch_all_policy, raw_data_aggregation_condition)
         },
+        "None" => {
+            let (tiers, catch_all_policy) = create_dummy_tier();
+            (tiers, catch_all_policy, 0)
+
+        },
         _ => return Err("Provide a valid data strategy".to_string()),
     };
 
@@ -64,17 +77,10 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
     let aggregation_strategy: Arc<RwLock<dyn DataStrategy + Send + Sync>> = match data_strategy.as_str() {
         "count" => Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
         "interval" => Arc::new(RwLock::new(IntervalRawData::new(raw_data_aggregation_condition))),
+        "None" => Arc::new(RwLock::new(CountRawData::new(raw_data_aggregation_condition))),
         _ => return Err("Provide a valid data strategy".to_string()),
     };
 
-
-    /*
-    for tier in tiers {
-        println!("{}", tier.read().unwrap().condition);
-        println!("{}", tier.read().unwrap().chunk_size);
-        println!("");
-    }
-    println!("{}", catch_all_policy);*/
 
     Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy ,should_halt, num_tiers))
 }
@@ -135,6 +141,11 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
     (tiers, catch_all_policy)
 }
 
+fn create_dummy_tier () -> (Vec<Arc<RwLock<TierData>>>, bool) {
+    let tiers = vec![Arc::new(RwLock::new(TierData::new(0, 0)))]; 
+
+    (tiers, true)
+}
 
 fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize, usize, bool) {
     let mut catch_all_policy = true;
