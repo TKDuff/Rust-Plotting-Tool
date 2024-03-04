@@ -29,6 +29,7 @@ struct MyApp {
     raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     tiers: Vec<Arc<RwLock<TierData>>>,
     should_halt: Arc<AtomicBool>,
+    line_plot: bool,
     clicked_bin:  Option<((Bin, Bin), usize)>,
     colours: [Color32; 6],    //maintain line colours between repaints
     selected_line_index: usize,
@@ -40,6 +41,7 @@ impl MyApp {
         raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
         tiers: Vec<Arc<RwLock<TierData>>>,
         should_halt: Arc<AtomicBool>,
+        line_plot: bool,
         selected_line_index: usize,
         colours: [Color32; 6],
     ) -> Self {
@@ -54,7 +56,7 @@ impl MyApp {
             standard_deviation: 0.0,
         };
 
-        Self { raw_data, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), selected_line_index, colours }
+        Self { raw_data, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
     }
 }
 
@@ -64,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
     let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::BLACK, Color32::BROWN, Color32::YELLOW];
-    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, 0, colours);
+    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, true,0, colours);
 
     /*If no strategy selected, so just the raw data, then don't need to run all this code, can just run the tokio thread to read in raw data */
 
@@ -170,13 +172,14 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
         egui::CentralPanel::default().show(ctx, |ui| { 
             ctx.set_visuals(Visuals::light());
 
+            ui.radio_value(&mut self.line_plot, true, "Line Plot");
+            ui.radio_value(&mut self.line_plot, false, "Box Plot");
 
             let mut tier_plot_lines = Vec::new();
             let mut tier_plot_lines_length: Vec<usize> = Vec::new();
             let number_of_tiers = self.tiers.len();
            
 
-            
             let mut position: Option<PlotPoint> =None;
             let mut hovered_item: Option<String> = None;
 
@@ -193,31 +196,12 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let raw_data = self.raw_data.read().unwrap().get_raw_data();
             tier_plot_lines_length.push(raw_data.len());                                    //store length of Stdin data line
             let mut raw_plot_line = Line::new(raw_data).width(lines_width).color(self.colours[0]).name("Stdin Data");
+            if fill_plot_line { raw_plot_line = raw_plot_line.fill(0.0)}
             
-
-            //to exclude final catch-all line use this self.tiers.iter().take(self.tiers.len() - 1).enumerate()
             for (i, tier) in self.tiers.iter().enumerate() {
-                let color = self.colours[i+1];  //increment as colurs vector first element is Stdin data line colour, red
-                let line_id = format!("Tier {}", i+1);
-                let values = tier.read().unwrap().get_means(); 
-                tier_plot_lines_length.push(values.len());  //want to store length of each line
-                
+                //increment as colurs vector first element is Stdin data line colour, red. Since colour not used, pass in argument directly 
+                create_tier_lines(i, tier, lines_width, self.colours[i+1], fill_plot_line, &mut tier_plot_lines_length, &mut tier_plot_lines)
 
-
-                let mut line = Line::new(values)
-                .width(lines_width)
-                .color(color)
-                .name(&line_id)
-                .id(egui::Id::new(i));
-
-                //if user wants to fill line, do so for both tiers and raw data
-                if fill_plot_line {
-                    line = line.fill(0.0);
-                    raw_plot_line = raw_plot_line.fill(0.0);
-                }
-
-
-            tier_plot_lines.push(line);
             }
             
             if ui.button("Halt Processing").clicked() {
@@ -458,6 +442,30 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32,
         ui.end_row();
 });
 }
+
+
+//vectors passed by reference, not by value, so can modify them in the functions 
+fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , color: Color32, fill_plot_line: bool, tier_plot_lines_length: &mut Vec<usize>,tier_plot_lines: &mut Vec<Line>) {
+    let line_id = format!("Tier {}", i+1);
+    let values = tier.read().unwrap().get_means(); 
+    tier_plot_lines_length.push(values.len());  //want to store length of each line
+    
+
+
+    let mut line = Line::new(values)
+    .width(lines_width)
+    .color(color)
+    .name(&line_id)
+    .id(egui::Id::new(i));
+
+    //if user wants to fill line, do so for both tiers and raw data
+    if fill_plot_line {
+        line = line.fill(0.0);
+    }
+    
+    tier_plot_lines.push(line);
+}
+
 
 /*
 - MyApp<T> is a generic struct, T is a type that implements the DataStrategy trait. T can be either StdinData or ADWIN_window
