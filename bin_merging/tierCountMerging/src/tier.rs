@@ -144,9 +144,23 @@ impl TierData {
             .collect()
     }
 
-    pub fn get_box_plot_stats(&self) -> Vec<(f64, f64, f64, f64, f64)> {
-        self.x_stats.iter()
-            .map(|bin| (bin.mean, bin.min, bin.max, bin.estimated_q1, bin.estimated_q2))
-            .collect()
+    /*If x_plots true return attributes in order to create box plot 
+    Notice, how the x_stats is returned as the final value in both cases. This is specific scenario when creating the y_stats box plots
+    Since y values can be the same value, it means the plots will be ontop of each other.
+    To ensrue y box plots not overlapping, will position them using the x_stats means, which do not overlap
+    Since the y box plots have x co-ord of x_stats means and y co-ord of y stats mean, should be like a line plot
+    */
+    pub fn get_box_plot_stats(&self, x_plots: bool) -> Vec<(f64, f64, f64, f64, f64, f64)> {
+        if x_plots {
+            // When x_plots is true, use x_stats for the stats and repeat x_stats mean
+            self.x_stats.iter()
+                .map(|bin| (bin.mean, bin.min, bin.max, bin.estimated_q1, bin.estimated_q2, bin.mean))
+                .collect()
+        } else {
+            // When x_plots is false, use y_stats for the stats but include x_stats mean as the last element
+            self.y_stats.iter().zip(self.x_stats.iter())
+                .map(|(y_bin, x_bin)| (y_bin.mean, y_bin.min, y_bin.max, y_bin.estimated_q1, y_bin.estimated_q2, x_bin.mean))
+                .collect()
+        }
     }
 }

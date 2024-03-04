@@ -223,7 +223,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     },
                     false => {
                         for (i, tier) in self.tiers.iter().enumerate() {
-                            create_x_box_plots(i, tier, lines_width, self.colours[i+1],&mut tier_plot_lines_length, &mut tier_box_plots); 
+                            create_box_plots(i, tier, lines_width, self.colours[i+1],&mut tier_plot_lines_length, &mut tier_box_plots, false); 
                         }
                         for box_plot in tier_box_plots {
                             plot_ui.box_plot(box_plot)
@@ -478,13 +478,16 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
     tier_plot_lines.push(line);
 }
 
-fn create_x_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
+
+
+//Generic function to create line of box plots, depending on whether 'x_plots' boolean true of false returns x or y
+fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>, x_plots: bool) {
     let mut box_elems = Vec::new();
-
-
     let box_id = format!("Tier {}", i+1);
-    let box_stats = tier.read().unwrap().get_box_plot_stats();
-    tier_plot_lines_length.push(box_stats    .len());
+    
+
+    let box_stats = tier.read().unwrap().get_box_plot_stats(x_plots);
+    tier_plot_lines_length.push(box_stats.len());
 
     for (index, stats) in box_stats.iter().enumerate() {
         let spread = BoxSpread {
@@ -495,7 +498,7 @@ fn create_x_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , c
             upper_whisker: stats.2, // max
         };
 
-        let elem = BoxElem::new(stats.0, spread)
+        let elem = BoxElem::new(stats.5, spread)
         .name(&format!("{} {}", box_id, index))
         .stroke(Stroke::new(1.5, colour))
         .fill(colour.linear_multiply(0.2))
