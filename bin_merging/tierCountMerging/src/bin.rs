@@ -10,15 +10,15 @@ pub struct Bin {
     pub standard_deviation: f64,
     pub range: f64,
     pub estimated_q1: f64,
-    pub estimated_q2: f64,
+    pub estimated_q3: f64,
 }
 
 impl Bin {
     pub fn new(mean: f64, sum: f64, min: f64, max: f64, count: usize, sum_of_squares: f64, variance: f64) -> Self {
 
         let range = max - min;
-        let estimated_q1 = min + (0.25 * range);
-        let estimated_q2 = max + (0.75 * range);
+        let estimated_q1 = mean - (0.25 * range);
+        let estimated_q3 = mean + (0.25 * range);
         let standard_deviation = variance.sqrt();
 
         Bin {
@@ -32,7 +32,7 @@ impl Bin {
             standard_deviation,
             range,
             estimated_q1, // Exclude as per your request
-            estimated_q2, // Exclude as per your request
+            estimated_q3, // Exclude as per your request
         }
     }
 

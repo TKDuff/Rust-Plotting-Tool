@@ -205,6 +205,16 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             .y_grid_spacer(log_grid_spacer(axis_log_base));
 
 
+            /*
+            By default upon hovering over a box plot egui shows the max,min, median, Q1 and Q3.
+            However, in this program the min, max, mean, and esitamed Q1 and Q3 is shown
+            Thus, have to hide the hover hints, so user does not think the median is shown when infact the mean is actually used
+            When click on strock, they can see the information. 
+             */
+            if !self.line_plot {
+                plot = plot.show_y(false);
+            }
+
             let plot_responese: PlotResponse<()> = plot.show(ui, |plot_ui| {
                 match self.line_plot {
                     true => {
@@ -230,21 +240,11 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                         }
                     }
                 }
-
-                /*
-                 plot_ui.line(raw_plot_line);
-                 for line in tier_plot_lines {
-                    plot_ui.line(line);
-                 }
-                 position = plot_ui.pointer_coordinate();*/
                 position = plot_ui.pointer_coordinate();
             });
-
-            let line_length_area_pos = egui::pos2(40.0, 630.0);
-            
-            
+           
             egui::Area::new("Line Length")
-            .fixed_pos(line_length_area_pos) // Position the area as desired
+            .fixed_pos(egui::pos2(40.0, 630.0)) //line_length_area_pos
             .show(ui.ctx(), |ui| {
                 
                 egui::CollapsingHeader::new("Tier Lengths").default_open(true)
@@ -271,9 +271,9 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 }
             }
 
-            let bin_info_area_pos = egui::pos2(800.0, 630.0);
+
             egui::Area::new("Bin Information Area")
-            .fixed_pos(bin_info_area_pos)
+            .fixed_pos(egui::pos2(400.0, 630.0))
             .show(ui.ctx(), |ui| {
                 ui.heading(formatted_label("  Selected Bin Information", Color32::LIGHT_YELLOW, 20.0, true));
                 if let Some(((x_bin, y_bin), tier_index)) = self.clicked_bin {
@@ -283,9 +283,9 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             });
 
 
-            let plot_styling_area_pos = egui::pos2(1375.0, 630.0);
+
             egui::Area::new("plot_styling area")
-            .fixed_pos(plot_styling_area_pos)
+            .fixed_pos(egui::pos2(1375.0, 630.0))
             .show(ui.ctx(), |ui| {
                 ui.heading(formatted_label("Plot Styling Options", Color32::BLACK, 20.0, true));
                 
@@ -315,9 +315,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
    
             });
 
-            let line_styling_area_pos = egui::pos2(1550.0, 630.0);
             egui::Area::new("line_styling_area")
-            .fixed_pos(line_styling_area_pos)
+            .fixed_pos(egui::pos2(1550.0, 630.0))
             .show(ui.ctx(), |ui| {
                 ui.heading(formatted_label("Line Styling Options", Color32::BLACK, 20.0, true));
 
@@ -437,21 +436,32 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32,
         ui.label(formatted_label(&format!("Max: {:.2}", y_bin.max), Color32::BLACK, 16.0, false));
         ui.end_row();
 
-        ui.label(formatted_label(&format!("Count: {}", x_bin.count), Color32::BLACK, 16.0, false));
-        ui.label(formatted_label(&format!("Count: {}", y_bin.count), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Range: {}", x_bin.range), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Range: {}", y_bin.range), Color32::BLACK, 16.0, false));
         ui.end_row();
 
+        ui.label(formatted_label(&format!("Count: {:.2}", x_bin.count), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Count: {:.2}", y_bin.count), Color32::BLACK, 16.0, false));
+        ui.end_row();
         
-        ui.label(formatted_label(&format!("Variance: {}", x_bin.variance), Color32::BLACK, 16.0, false));
-        ui.label(formatted_label(&format!("Variance: {}", y_bin.variance), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Variance: {:.2}", x_bin.variance), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Variance: {:.2}", y_bin.variance), Color32::BLACK, 16.0, false));
         ui.end_row();
 
-        ui.label(formatted_label(&format!("SoS: {}", x_bin.sum_of_squares), Color32::BLACK, 16.0, false));
-        ui.label(formatted_label(&format!("SoS: {}", y_bin.sum_of_squares), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("SoS: {:.2}", x_bin.sum_of_squares), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("SoS: {:.2}", y_bin.sum_of_squares), Color32::BLACK, 16.0, false));
         ui.end_row();
 
-        ui.label(formatted_label(&format!("Std Dev: {}", x_bin.standard_deviation), Color32::BLACK, 16.0, false));
-        ui.label(formatted_label(&format!("Std Dev: {}", y_bin.standard_deviation), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Std Dev: {:.2}", x_bin.standard_deviation), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Std Dev: {:.2}", y_bin.standard_deviation), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Q1 (approx): {:.2}", x_bin.estimated_q1), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Q1 (approx): {:.2}", y_bin.estimated_q1), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Q3 (approx): {:.2}", x_bin.estimated_q3), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Q3 (approx): {:.2}", y_bin.estimated_q3), Color32::BLACK, 16.0, false));
         ui.end_row();
 });
 }
@@ -477,8 +487,6 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
     
     tier_plot_lines.push(line);
 }
-
-
 
 //Generic function to create line of box plots, depending on whether 'x_plots' boolean true of false returns x or y
 fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
