@@ -193,21 +193,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let lines_width_id = ui.id().with("lines_width_id");
             let mut lines_width = ui.data_mut(|d| d.get_temp::<f32>(lines_width_id).unwrap_or(2.0));
 
-            let raw_data = self.raw_data.read().unwrap().get_raw_data();
-            tier_plot_lines_length.push(raw_data.len());                                    //store length of Stdin data line
-            let mut raw_plot_line = Line::new(raw_data).width(lines_width).color(self.colours[0]).name("Stdin Data");
-            if fill_plot_line { raw_plot_line = raw_plot_line.fill(0.0)}
-            
-            for (i, tier) in self.tiers.iter().enumerate() {
-                //increment as colurs vector first element is Stdin data line colour, red. Since colour not used, pass in argument directly 
-                create_tier_lines(i, tier, lines_width, self.colours[i+1], fill_plot_line, &mut tier_plot_lines_length, &mut tier_plot_lines)
-
-            }
-            
-            if ui.button("Halt Processing").clicked() {
-                self.should_halt.store(true, Ordering::SeqCst);
-            }
-
             //Plot axis are updated on each frame, given the default name 'X/Y axis', have to be sure to check for single line respose to ensure defautl values to don't overide text input on each frame update
             let x_axis_label_id = ui.id().with("x_axis_label_id");
             let y_axis_label_id = ui.id().with("y_axis_label_id");
@@ -217,7 +202,18 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let axis_log_base_id = ui.id().with("axis_log_base_id");
 
             let mut axis_log_base = ui.data_mut(|d| d.get_temp::<i64>(axis_log_base_id).unwrap_or(10)); //fdefault base 10
+
+            if ui.button("Halt Processing").clicked() {
+                self.should_halt.store(true, Ordering::SeqCst);
+            }
+
+            let raw_data = self.raw_data.read().unwrap().get_raw_data();
+            tier_plot_lines_length.push(raw_data.len());     
             
+            
+            
+            
+                    
 
             let mut plot = Plot::new("plot").width(plot_width).height(plot_height).legend(Legend::default()).x_axis_label(&x_axis_label).y_axis_label(&y_axis_label)
             .x_grid_spacer(log_grid_spacer(axis_log_base))
@@ -225,11 +221,33 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
 
             let plot_responese: PlotResponse<()> = plot.show(ui, |plot_ui| {
+                match self.line_plot {
+                    true => {
+                        //store length of Stdin data line
+                        let mut raw_plot_line = Line::new(raw_data).width(lines_width).color(self.colours[0]).name("Stdin Data");
+                        if fill_plot_line { raw_plot_line = raw_plot_line.fill(0.0)}
+
+                        for (i, tier) in self.tiers.iter().enumerate() {
+                            //increment as colurs vector first element is Stdin data line colour, red. Since colour not used, pass in argument directly 
+                            create_tier_lines(i, tier, lines_width, self.colours[i+1], fill_plot_line, &mut tier_plot_lines_length, &mut tier_plot_lines)
+                        } 
+                        plot_ui.line(raw_plot_line);
+                        for line in tier_plot_lines {
+                            plot_ui.line(line);
+                        }
+                    },
+                    false => {
+
+                    }
+                }
+
+                /*
                  plot_ui.line(raw_plot_line);
                  for line in tier_plot_lines {
                     plot_ui.line(line);
                  }
-                 position = plot_ui.pointer_coordinate();
+                 position = plot_ui.pointer_coordinate();*/
+                position = plot_ui.pointer_coordinate();
             });
 
             let line_length_area_pos = egui::pos2(40.0, 630.0);
