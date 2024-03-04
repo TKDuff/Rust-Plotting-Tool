@@ -1,5 +1,5 @@
 use incr_stats::incr::Stats;
-use std::io::{self, BufRead};
+use std::{io::{self, BufRead}};
 use average::Variance;
 
 
@@ -28,6 +28,8 @@ fn main() {
     println!("Variance of Bin 1: {}", variance1);
     println!("Variance of Bin 2: {}", variance2);
     println!("Combined Variance: {}", combined_variance);
+    println!("Standard Deviation: {}", combined_variance.sqrt());
+    Sos(&bin2);
 
 }
 
@@ -35,4 +37,10 @@ fn calculate_variance(data: &[f64]) -> f64 {
     let mean: f64 = data.iter().sum::<f64>() / data.len() as f64;
     let sum_of_squares: f64 = data.iter().map(|&value| (value - mean).powi(2)).sum();
     sum_of_squares / (data.len() as f64 - 1.0)
+}
+
+fn Sos(data: &[f64]){
+    let m: f64 = data.iter().sum::<f64>() / data.len() as f64;
+    let sum: f64 = data.iter().map(|&value| (value - m).powi(2)).sum();
+    println!("SOS {}", sum);
 }

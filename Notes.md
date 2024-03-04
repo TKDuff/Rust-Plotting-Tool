@@ -684,3 +684,12 @@ When no tiering, just create my_app with
 * Is a bad solution, but is the only way possible without refactoring the code
 
 Seems to lag at 2 miliseconds when there is no tiering, could be to do with constant repaints with 100,000 points, like the screen lags
+
+Can have more statistics
+* Range
+* Using sample variance, as each bin contain a snapshot of data for entire streaming in dataset. portion of the ongoing stream
+* Coefficient of Variation
+* Range
+* For box plots, will use (mean - standard deviation) for Q1 and (mean + standard deviation) for Q3
+  
+
