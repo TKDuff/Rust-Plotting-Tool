@@ -8,7 +8,7 @@ use std::fmt::format;
 use std::process::id;
 use std::{num, thread, usize};
 use eframe::{egui, NativeOptions, App}; 
-use egui::{Style, Visuals, ViewportBuilder, Slider, Color32, Vec2, CentralPanel, Id};
+use egui::{CentralPanel, Color32, Id, Slider, Stroke, Style, Vec2, ViewportBuilder, Visuals};
 use egui_plot :: {BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter, Corner, Legend, Line, LineStyle, Plot, PlotPoint, PlotResponse, log_grid_spacer};
 use std::sync::{Arc, RwLock};
 use crossbeam::channel;
@@ -160,11 +160,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyApp provides concrete implementations for the methods defined in the App
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) { //'update()' is the method being implemented 
         egui::CentralPanel::default().show(ctx, |ui| { 
-            ctx.set_visuals(Visuals::light());
-
-            ui.radio_value(&mut self.line_plot, true, "Line Plot");
-            ui.radio_value(&mut self.line_plot, false, "Box Plot");
-           
+            ctx.set_visuals(Visuals::light());           
 
             let mut position: Option<PlotPoint> =None;
             let mut hovered_item: Option<String> = None;
@@ -227,16 +223,11 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     },
                     false => {
                         for (i, tier) in self.tiers.iter().enumerate() {
-                            create_x_box_plots(i, tier, &mut tier_plot_lines_length, &mut tier_box_plots); 
+                            create_x_box_plots(i, tier, lines_width, self.colours[i+1],&mut tier_plot_lines_length, &mut tier_box_plots); 
                         }
                         for box_plot in tier_box_plots {
                             plot_ui.box_plot(box_plot)
                         }
-                        /*
-                        let tier1_box = create_x_box_plots(0, &self.tiers[0], &mut tier_plot_lines_length);
-                        let tier2_box = create_x_box_plots(0, &self.tiers[1], &mut tier_plot_lines_length);
-                        plot_ui.box_plot(tier2_box);
-                        plot_ui.box_plot(tier1_box);*/
                     }
                 }
 
@@ -251,7 +242,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             let line_length_area_pos = egui::pos2(40.0, 630.0);
             
-            /*
+            
             egui::Area::new("Line Length")
             .fixed_pos(line_length_area_pos) // Position the area as desired
             .show(ui.ctx(), |ui| {
@@ -263,7 +254,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     for i in 1..=number_of_tiers {   //have to increment by 1 for case when there is only single catch all
                         ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 , false)));
                     }});
-            });*/
+            });
 
             let click = ctx.input(|i| i.pointer.any_click());
 
@@ -318,6 +309,9 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     ui.data_mut(|d| d.insert_temp(axis_log_base_id, axis_log_base));
 
                 }
+
+                ui.radio_value(&mut self.line_plot, true, "Line Plot");
+                ui.radio_value(&mut self.line_plot, false, "Box Plot");
    
             });
 
@@ -391,7 +385,7 @@ Is a 'builder' function, as it creates rich text label but can format the style 
 * color
 * size
 * bold*/
-fn formatted_label(text: &str, color: Color32, size: f32, bold: bool) -> egui::RichText {
+fn formatted_label(text: &str, colour: Color32, size: f32, bold: bool) -> egui::RichText {
     let mut text = egui::RichText::new(text)
         .color(egui::Color32::BLACK)
         .size(16.0);
@@ -463,7 +457,7 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32,
 }
 
 //vectors passed by reference, not by value, so can modify them in the functions 
-fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , color: Color32, fill_plot_line: bool, tier_plot_lines_length: &mut Vec<usize>,tier_plot_lines: &mut Vec<Line>) {
+fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , colour: Color32, fill_plot_line: bool, tier_plot_lines_length: &mut Vec<usize>,tier_plot_lines: &mut Vec<Line>) {
     let line_id = format!("Tier {}", i+1);
     let values = tier.read().unwrap().get_means(); 
     tier_plot_lines_length.push(values.len());  //want to store length of each line
@@ -472,7 +466,7 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
 
     let mut line = Line::new(values)
     .width(lines_width)
-    .color(color)
+    .color(colour)
     .name(&line_id)
     .id(egui::Id::new(i));
 
@@ -484,7 +478,7 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
     tier_plot_lines.push(line);
 }
 
-fn create_x_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
+fn create_x_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
     let mut box_elems = Vec::new();
 
 
@@ -501,7 +495,12 @@ fn create_x_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, tier_plot_lines_le
             upper_whisker: stats.2, // max
         };
 
-        let elem = BoxElem::new(stats.0, spread).name(&format!("{} {}", box_id, index));
+        let elem = BoxElem::new(stats.0, spread)
+        .name(&format!("{} {}", box_id, index))
+        .stroke(Stroke::new(1.5, colour))
+        .fill(colour.linear_multiply(0.2))
+        .box_width(box_width as f64);
+        ;
         box_elems.push(elem)
     }
 
