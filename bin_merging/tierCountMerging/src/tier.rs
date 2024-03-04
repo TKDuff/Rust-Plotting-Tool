@@ -54,12 +54,6 @@ impl TierData {
         self.y_stats.extend(y_bins);
     }
 
-    pub fn get_means(&self) -> Vec<[f64; 2]> {
-        self.x_stats.iter().zip(self.y_stats.iter())
-            .map(|(x, y)| [x.mean, y.mean]) // Assuming index 5 is the mean
-            .collect()
-    }
-
     pub fn print_x_means(&self, word: &str) {
         print!("{}", word);
         for bin in &self.x_stats {
@@ -144,4 +138,15 @@ impl TierData {
         to_merge[to_merge.len()-1]        
     }
 
+    pub fn get_means(&self) -> Vec<[f64; 2]> {
+        self.x_stats.iter().zip(self.y_stats.iter())
+            .map(|(x, y)| [x.mean, y.mean]) // Assuming index 5 is the mean
+            .collect()
+    }
+
+    pub fn get_box_plot_stats(&self) -> Vec<(f64, f64, f64, f64, f64)> {
+        self.x_stats.iter()
+            .map(|bin| (bin.mean, bin.min, bin.max, bin.estimated_q1, bin.estimated_q2))
+            .collect()
+    }
 }

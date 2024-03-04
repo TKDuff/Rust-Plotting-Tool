@@ -46,8 +46,6 @@ impl MyApp {
         colours: [Color32; 6],
     ) -> Self {
         let default_bin = Bin::new(0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0);
-
-
         Self { raw_data, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
     }
 }
@@ -58,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
     let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::BLACK, Color32::BROWN, Color32::YELLOW];
-    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, true,0, colours);
+    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, false,0, colours);
 
     /*If no strategy selected, so just the raw data, then don't need to run all this code, can just run the tokio thread to read in raw data */
 
@@ -166,10 +164,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
             ui.radio_value(&mut self.line_plot, true, "Line Plot");
             ui.radio_value(&mut self.line_plot, false, "Box Plot");
-
-            let mut tier_plot_lines = Vec::new();
-            let mut tier_plot_lines_length: Vec<usize> = Vec::new();
-            let number_of_tiers = self.tiers.len();
            
 
             let mut position: Option<PlotPoint> =None;
@@ -199,12 +193,15 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 self.should_halt.store(true, Ordering::SeqCst);
             }
 
+
+            let mut tier_plot_lines = Vec::new();
+            let mut tier_box_plots = Vec::new();
+            let mut tier_plot_lines_length: Vec<usize> = Vec::new();
+            let number_of_tiers = self.tiers.len();
+
             let raw_data = self.raw_data.read().unwrap().get_raw_data();
             tier_plot_lines_length.push(raw_data.len());     
-            
-            
-            
-            
+                        
                     
 
             let mut plot = Plot::new("plot").width(plot_width).height(plot_height).legend(Legend::default()).x_axis_label(&x_axis_label).y_axis_label(&y_axis_label)
@@ -229,7 +226,17 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                         }
                     },
                     false => {
-
+                        for (i, tier) in self.tiers.iter().enumerate() {
+                            create_x_box_plots(i, tier, &mut tier_plot_lines_length, &mut tier_box_plots); 
+                        }
+                        for box_plot in tier_box_plots {
+                            plot_ui.box_plot(box_plot)
+                        }
+                        /*
+                        let tier1_box = create_x_box_plots(0, &self.tiers[0], &mut tier_plot_lines_length);
+                        let tier2_box = create_x_box_plots(0, &self.tiers[1], &mut tier_plot_lines_length);
+                        plot_ui.box_plot(tier2_box);
+                        plot_ui.box_plot(tier1_box);*/
                     }
                 }
 
@@ -243,6 +250,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             });
 
             let line_length_area_pos = egui::pos2(40.0, 630.0);
+            
+            /*
             egui::Area::new("Line Length")
             .fixed_pos(line_length_area_pos) // Position the area as desired
             .show(ui.ctx(), |ui| {
@@ -254,7 +263,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     for i in 1..=number_of_tiers {   //have to increment by 1 for case when there is only single catch all
                         ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 , false)));
                     }});
-            });
+            });*/
 
             let click = ctx.input(|i| i.pointer.any_click());
 
@@ -368,13 +377,13 @@ fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_
             (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
         })
         .map(|(x_closest, y_closest)| ((*x_closest, *y_closest), tier_index))
+
+        /*
+        Bug occurs with select bin, if click but not in threshold, will return defualt bin, thus set the grid to initial values. In order to overcome this, if no threshold is found.
+        Want to make it that the bin grid updates only when succesfly click on other bin. Can solve this by not returning anything if nothing found. 
+        */
 }  
 
-
-    /*
-    Bug occurs with select bin, if click but not in threshold, will return defualt bin, thus set the grid to initial values. In order to overcome this, if no threshold is found.
-    Want to make it that the bin grid updates only when succesfly click on other bin. Can solve this by not returning anything if nothing found. 
-     */
 
 
 /*Helper function, to format line length text
@@ -453,7 +462,6 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32,
 });
 }
 
-
 //vectors passed by reference, not by value, so can modify them in the functions 
 fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , color: Color32, fill_plot_line: bool, tier_plot_lines_length: &mut Vec<usize>,tier_plot_lines: &mut Vec<Line>) {
     let line_id = format!("Tier {}", i+1);
@@ -474,6 +482,30 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
     }
     
     tier_plot_lines.push(line);
+}
+
+fn create_x_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
+    let mut box_elems = Vec::new();
+
+
+    let box_id = format!("Tier {}", i+1);
+    let box_stats = tier.read().unwrap().get_box_plot_stats();
+    tier_plot_lines_length.push(box_stats    .len());
+
+    for (index, stats) in box_stats.iter().enumerate() {
+        let spread = BoxSpread {
+            lower_whisker: stats.1, // min
+            quartile1: stats.3,     // estimated_q1
+            median: stats.0,        // mean
+            quartile3: stats.4,     // estimated_q2
+            upper_whisker: stats.2, // max
+        };
+
+        let elem = BoxElem::new(stats.0, spread).name(&format!("{} {}", box_id, index));
+        box_elems.push(elem)
+    }
+
+    tier_box_plots.push(BoxPlot::new(box_elems).name(&box_id).id(egui::Id::new(i)));
 }
 
 
