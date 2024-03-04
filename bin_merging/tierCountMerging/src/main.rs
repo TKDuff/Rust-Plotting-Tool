@@ -223,7 +223,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     },
                     false => {
                         for (i, tier) in self.tiers.iter().enumerate() {
-                            create_box_plots(i, tier, lines_width, self.colours[i+1],&mut tier_plot_lines_length, &mut tier_box_plots, false); 
+                            create_box_plots(i, tier, lines_width, self.colours[i+1],&mut tier_plot_lines_length, &mut tier_box_plots); 
                         }
                         for box_plot in tier_box_plots {
                             plot_ui.box_plot(box_plot)
@@ -481,12 +481,12 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
 
 
 //Generic function to create line of box plots, depending on whether 'x_plots' boolean true of false returns x or y
-fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>, x_plots: bool) {
+fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
     let mut box_elems = Vec::new();
     let box_id = format!("Tier {}", i+1);
     
 
-    let box_stats = tier.read().unwrap().get_box_plot_stats(x_plots);
+    let box_stats = tier.read().unwrap().get_box_plot_stats();
     tier_plot_lines_length.push(box_stats.len());
 
     for (index, stats) in box_stats.iter().enumerate() {
