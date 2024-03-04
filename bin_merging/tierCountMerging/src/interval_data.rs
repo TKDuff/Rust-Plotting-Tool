@@ -42,14 +42,18 @@ impl DataStrategy for IntervalRawData {
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
 
+        let x_sum_of_squares: f64 = x_vec.iter().map(|&x| (x - x_mean).powi(2)).sum();
+        let y_sum_of_squares: f64 = y_vec.iter().map(|&y| (y - y_mean).powi(2)).sum();
+
+        //Sample variance, not the population variance
+        let x_variance: f64 = x_sum_of_squares / (x.len() as f64 - 1.0);
+        let y_variance: f64 = y_sum_of_squares / (x.len() as f64 - 1.0);
+
+
         let y_sum: f64 = y_vec.iter().sum();
-        
 
-        //self.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() });
-        //self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() });
-
-        let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() };
-        let agg_y_bin = Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() };
+        let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), sum_of_squares: x_sum_of_squares, variance: x_variance, standard_deviation: x_variance.sqrt() };
+        let agg_y_bin = Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len(), sum_of_squares: y_sum_of_squares, variance: y_variance, standard_deviation: y_variance.sqrt() };
 
         //println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
         let last_elem_x_bin = Bin {
@@ -58,6 +62,9 @@ impl DataStrategy for IntervalRawData {
             min: 0.0,
             max: 0.0,
             count: 0,
+            sum_of_squares: 0.0,
+            variance: 0.0,
+            standard_deviation: 0.0,
         };
     
         let last_elem_y_bin = Bin {
@@ -66,6 +73,9 @@ impl DataStrategy for IntervalRawData {
             min: 0.0,
             max: 0.0,
             count: 0,
+            sum_of_squares: 0.0,
+            variance: 0.0,
+            standard_deviation: 0.0,
         };
 
         //println!("last X {:?}\nlast Y {:?}\nMerged X {:?}\nMerged Y {:?}", last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin);

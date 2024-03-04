@@ -49,6 +49,9 @@ impl MyApp {
             min: 0.0,
             max: 0.0,
             count: 0,
+            sum_of_squares: 0.0,
+            variance: 0.0,
+            standard_deviation: 0.0,
         };
 
         Self { raw_data, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), selected_line_index, colours }
@@ -76,7 +79,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let raw_data_accessor_for_thread = my_app.raw_data.clone();
     let initial_tier_accessor_for_thread = my_app.tiers[0].clone();
 
-    //create the thread to handle tier merging
+    /*
+    create the thread to handle tier merging
+    both branches create thread to move live data to initial, tier 1
+    Both branches do it since if no aggregation, no need to create this thread
+    */
     if strategy == "count" {
         setup_count(raw_data_accessor, initial_tier_accessor, num_tiers, catch_all_policy, tier_vector);
         //create thread to handle the live data being pushed to the initial tier
@@ -435,7 +442,19 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32,
 
         ui.label(formatted_label(&format!("Count: {}", x_bin.count), Color32::BLACK, 16.0, false));
         ui.label(formatted_label(&format!("Count: {}", y_bin.count), Color32::BLACK, 16.0, false));
+        ui.end_row();
 
+        
+        ui.label(formatted_label(&format!("Variance: {}", x_bin.variance), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Variance: {}", y_bin.variance), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("SoS: {}", x_bin.sum_of_squares), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("SoS: {}", y_bin.sum_of_squares), Color32::BLACK, 16.0, false));
+        ui.end_row();
+
+        ui.label(formatted_label(&format!("Std Dev: {}", x_bin.standard_deviation), Color32::BLACK, 16.0, false));
+        ui.label(formatted_label(&format!("Std Dev: {}", y_bin.standard_deviation), Color32::BLACK, 16.0, false));
         ui.end_row();
 });
 }

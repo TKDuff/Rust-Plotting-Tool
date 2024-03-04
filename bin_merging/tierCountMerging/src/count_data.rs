@@ -22,7 +22,6 @@ impl CountRawData {
 impl DataStrategy for CountRawData {
 
     fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (Bin, Bin, Bin, Bin) {
-        //let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter().map(|&[x, y]| (x, y)).unzip();
         //println!("Aggregating this chunk {:?}\n", chunk); 
 
         let chunk_len = chunk.len();
@@ -32,23 +31,22 @@ impl DataStrategy for CountRawData {
                                                 .map(|&[x, y]| (x, y))
                                                 .unzip();
 
-        //println!("\nAggregating this chunk {:?}", x_vec);                            
-
-
         let x = Data::new(x_vec.clone());   
         let y = Data::new(y_vec.clone());
 
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
 
+        let x_sum_of_squares: f64 = x_vec.iter().map(|&x| (x - x_mean).powi(2)).sum();
+        let y_sum_of_squares: f64 = y_vec.iter().map(|&y| (y - y_mean).powi(2)).sum();
+
+        let x_variance: f64 = x_sum_of_squares / (x.len() as f64 - 1.0);
+        let y_variance: f64 = y_sum_of_squares / (x.len() as f64 - 1.0);
+
         let y_sum: f64 = y_vec.iter().sum();
-        
 
-        //self.x_stats.push(Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() });
-        //self.y_stats.push(Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() });
-
-        let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len() };
-        let agg_y_bin = Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len() };
+        let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), sum_of_squares: x_sum_of_squares, variance: x_variance, standard_deviation: x_variance.sqrt() };
+        let agg_y_bin = Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len(), sum_of_squares: y_sum_of_squares, variance: y_variance, standard_deviation: y_variance.sqrt() };
 
         //println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
         let last_elem_x_bin = Bin {
@@ -57,6 +55,9 @@ impl DataStrategy for CountRawData {
             min: 0.0,
             max: 0.0,
             count: 0,
+            sum_of_squares: 0.0,
+            variance: 0.0,
+            standard_deviation: 0.0,
         };
     
         let last_elem_y_bin = Bin {
@@ -65,14 +66,11 @@ impl DataStrategy for CountRawData {
             min: 0.0,
             max: 0.0,
             count: 0,
+            sum_of_squares: 0.0,
+            variance: 0.0,
+            standard_deviation: 0.0,
         };
-
-        //println!("The last r.d element is {}", last_elem_x_bin.mean);
-        
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
-
-        //println!("X means {:?}", self.get_x_means());
-
     }
 
     fn append_str(&mut self, line:String) {
@@ -133,5 +131,6 @@ impl DataStrategy for CountRawData {
     fn get_condition(&self) -> usize {
         self.condition
     }
+
 
 }

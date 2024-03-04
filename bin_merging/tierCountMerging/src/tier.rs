@@ -29,7 +29,17 @@ impl TierData {
         let chunk_min = bins.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
         let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
         let chunk_mean = chunk_sum / chunk_count as f64;
-        temp_bin =  Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count};
+
+        let combined_variance: f64 = bins.iter().fold(0.0, |acc, bin| {
+            acc + (bin.variance * (bin.count as f64 - 1.0))
+        }) / (chunk_count as f64 - 1.0);
+
+        //Sum of Squares = Variance * (N - 1)
+        let combined_sum_of_squares: f64 = combined_variance * (chunk_count as f64 - 1.0);
+
+
+
+        temp_bin =  Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: combined_sum_of_squares, variance: combined_variance, standard_deviation: combined_variance.sqrt()};
 
         //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
      
@@ -108,7 +118,18 @@ impl TierData {
             let chunk_max = chunk.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
             let chunk_mean:f64 = if chunk_count > 0 { chunk_sum / chunk_count as f64 } else { 0.0 };
 
-            Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count}
+            let chunk_variance: f64 = if chunk_count > 1 {
+                let sum_variance: f64 = chunk.iter().map(|bin| bin.variance * (bin.count as f64 - 1.0)).sum();
+                sum_variance / (chunk_count as f64 - 1.0)
+            } else {
+                0.0
+            };
+
+
+            let chunk_sum_of_squares: f64 = chunk_variance * (chunk_count as f64 - 1.0);
+    
+
+            Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: chunk_sum_of_squares, variance: chunk_variance, standard_deviation: chunk_variance.sqrt()}
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
         
         
