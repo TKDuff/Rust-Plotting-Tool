@@ -45,16 +45,8 @@ impl MyApp {
         selected_line_index: usize,
         colours: [Color32; 6],
     ) -> Self {
-        let default_bin = Bin { 
-            mean: 0.0,
-            sum: 0.0,
-            min: 0.0,
-            max: 0.0,
-            count: 0,
-            sum_of_squares: 0.0,
-            variance: 0.0,
-            standard_deviation: 0.0,
-        };
+        let default_bin = Bin::new(0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0);
+
 
         Self { raw_data, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
     }

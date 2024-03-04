@@ -139,28 +139,26 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
 
 
                 new_bin_x = chunk.iter()
-                .map(|&[x_mean, _]| Bin {
-                    mean: x_mean,
-                    sum: x_mean,
-                    min: x_mean,
-                    max: x_mean,
-                    count: 1,
-                    sum_of_squares: 0.0, //sum of squares for a single point is 0, mean is eqaul to that point thus no deviation
-                    variance: 0.0,
-                    standard_deviation: 0.0,
-                }).collect();
+                .map(|&[x_mean, _]| Bin::new(
+                    x_mean, 
+                    x_mean, 
+                    x_mean, 
+                    x_mean, 
+                    1,   
+                    0.0, 
+                    0.0   
+                )).collect();
 
                 new_bin_y = chunk.iter()
-                .map(|&[_, y_mean]| Bin {
-                    mean: y_mean,
-                    sum: y_mean,
-                    min: y_mean,
-                    max: y_mean,
-                    count: 1,
-                    sum_of_squares: 0.0,
-                    variance: 0.0,
-                    standard_deviation: 0.0,
-                }).collect();
+                .map(|&[_, y_mean]| Bin::new(
+                    y_mean, // mean
+                    y_mean, // sum
+                    y_mean, // min
+                    y_mean, // max
+                    1,      // count
+                    0.0,    // sum_of_squares
+                    0.0     // variance
+                )).collect();
             }
 
             {

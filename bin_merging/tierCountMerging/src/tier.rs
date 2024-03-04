@@ -39,7 +39,7 @@ impl TierData {
 
 
 
-        temp_bin =  Bin {mean: chunk_mean, sum: chunk_sum , min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: combined_sum_of_squares, variance: combined_variance, standard_deviation: combined_variance.sqrt()};
+        temp_bin =  Bin::new(chunk_mean, chunk_sum ,chunk_min, chunk_max, chunk_count, combined_sum_of_squares, combined_variance, );
 
         //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
      
@@ -129,7 +129,8 @@ impl TierData {
             let chunk_sum_of_squares: f64 = chunk_variance * (chunk_count as f64 - 1.0);
     
 
-            Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: chunk_sum_of_squares, variance: chunk_variance, standard_deviation: chunk_variance.sqrt()}
+            //Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: chunk_sum_of_squares, variance: chunk_variance, standard_deviation: chunk_variance.sqrt()}
+            Bin::new(chunk_mean, chunk_sum, chunk_min, chunk_max, chunk_count, chunk_sum_of_squares, chunk_variance,)
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
         
         

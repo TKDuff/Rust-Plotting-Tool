@@ -52,31 +52,13 @@ impl DataStrategy for IntervalRawData {
 
         let y_sum: f64 = y_vec.iter().sum();
 
-        let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), sum_of_squares: x_sum_of_squares, variance: x_variance, standard_deviation: x_variance.sqrt() };
-        let agg_y_bin = Bin {mean: y_mean, sum: y.iter().sum() , min: y.min(), max: y.max(), count: y.len(), sum_of_squares: y_sum_of_squares, variance: y_variance, standard_deviation: y_variance.sqrt() };
+        //let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), sum_of_squares: x_sum_of_squares, variance: x_variance, standard_deviation: x_variance.sqrt() };
+        let agg_x_bin = Bin::new(x_mean, x.iter().sum() , x.min(), x.max(), x.len(), x_sum_of_squares, x_variance );
+        let agg_y_bin = Bin::new(y_mean, y.iter().sum() , y.min(), y.max(), y.len(), y_sum_of_squares, y_variance ); 
 
-        //println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
-        let last_elem_x_bin = Bin {
-            mean: chunk[chunk_len-1][0],
-            sum: 0.0,
-            min: 0.0,
-            max: 0.0,
-            count: 0,
-            sum_of_squares: 0.0,
-            variance: 0.0,
-            standard_deviation: 0.0,
-        };
-    
-        let last_elem_y_bin = Bin {
-            mean: chunk[chunk_len-1][1],
-            sum: 0.0,
-            min: 0.0,
-            max: 0.0,
-            count: 0,
-            sum_of_squares: 0.0,
-            variance: 0.0,
-            standard_deviation: 0.0,
-        };
+        
+        let last_elem_x_bin = Bin::new(chunk[chunk_len-1][0], 0.0, 0.0, 0.0, 0, 0.0, 0.0);
+        let last_elem_y_bin = Bin::new(chunk[chunk_len-1][1], 0.0, 0.0, 0.0, 0, 0.0, 0.0);
 
         //println!("last X {:?}\nlast Y {:?}\nMerged X {:?}\nMerged Y {:?}", last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin);
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
