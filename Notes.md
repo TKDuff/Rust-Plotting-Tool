@@ -693,3 +693,31 @@ Can have more statistics
 * For box plots, will use (mean - standard deviation) for Q1 and (mean + standard deviation) for Q3
   
 
+## 04-03-24
+Adding box plot today, BoxSpread contained in BoxPlot, BoxPlot contained in BoxElem
+Have to estimate Q1 and Q3
+* Q1 = min + 0.25 * (range)
+* Q3 = max + 0.25 * (range)
+Does not work well for outliers but is the best I can do
+
+Can happen that box plots overlap, but hey, thats policy. If the user wants to see box plots then they get box plots
+I.E for y values, when I test on my data the plots will more than likely overlap
+
+
+BoxPlot
+* On click show information about box plot - grid remains the same, find closest is different
+
+Deciding for now, box each box plot will be positioned using x,y co-ords, so will follow same direction as line plot
+For box plot, need to swich off hover information. 
+
+Decided for grid bin information to print to fourth decimal
+Changed method to estimate quartile, in using the method above resulted in Q3 always being greater than the max, this approach\
+**let estimated_q1 = mean - (0.25 * range);**\
+**let estimated_q3 = mean + (0.25 * range);**\
+Always ensures the max is visible 
+
+Finished box plots for now, only thing I can think to add is stdin data live box plotting but that would be super hard as stdin has no bin\
+Could optimise, but have working version now.
+
+Maybe give the line and box plots each their own seperate width variable, that would be nice. 
+Done that, to potentially give user more control, could let user specidy size, instead of using a slider
