@@ -1,6 +1,4 @@
 use crate::bin::Bin;
-use std::mem;
-use std::sync::{Arc, RwLock};
 
 pub struct TierData {
     pub x_stats: Vec<Bin>,
@@ -21,7 +19,7 @@ impl TierData {
 
     pub fn merge_vector_bins(&self, bins: &[Bin]/*, c: i32*/) -> Bin {
 
-        let mut temp_bin;// Vec<Bin> = Vec::new();
+        let temp_bin;// Vec<Bin> = Vec::new();
         
         // Calculate the sum and count for the current chunk
         let chunk_count: usize = bins.iter().map(|bin| bin.count).sum();

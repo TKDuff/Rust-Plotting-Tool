@@ -169,12 +169,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let plot_width = 1800.0;
             let plot_height = 600.0;
 
-            let fill_line_id = ui.id().with("line_filled");
-            let mut fill_plot_line = ui.data_mut(|d| d.get_temp::<bool>(fill_line_id).unwrap_or(true));
-
-            let lines_width_id = ui.id().with("lines_width_id");
-            let mut lines_width = ui.data_mut(|d| d.get_temp::<f32>(lines_width_id).unwrap_or(2.0));
-
             //Plot axis are updated on each frame, given the default name 'X/Y axis', have to be sure to check for single line respose to ensure defautl values to don't overide text input on each frame update
             let x_axis_label_id = ui.id().with("x_axis_label_id");
             let y_axis_label_id = ui.id().with("y_axis_label_id");
@@ -188,6 +182,15 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             if ui.button("Halt Processing").clicked() {
                 self.should_halt.store(true, Ordering::SeqCst);
             }
+
+            let fill_line_id = ui.id().with("line_filled");
+            let mut fill_plot_line = ui.data_mut(|d| d.get_temp::<bool>(fill_line_id).unwrap_or(true));
+
+            let lines_width_id = ui.id().with("lines_width_id");
+            let mut lines_width = ui.data_mut(|d| d.get_temp::<f32>(lines_width_id).unwrap_or(2.0));
+
+            let box_width_id = ui.id().with("box_width_id");
+            let mut box_width = ui.data_mut(|d| d.get_temp::<f64>(box_width_id).unwrap_or(5.0));
 
 
             let mut tier_plot_lines = Vec::new();
@@ -233,7 +236,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     },
                     false => {
                         for (i, tier) in self.tiers.iter().enumerate() {
-                            create_box_plots(i, tier, lines_width, self.colours[i+1],&mut tier_plot_lines_length, &mut tier_box_plots); 
+                            create_box_plots(i, tier, box_width, self.colours[i+1],&mut tier_plot_lines_length, &mut tier_box_plots); 
                         }
                         for box_plot in tier_box_plots {
                             plot_ui.box_plot(box_plot)
@@ -242,7 +245,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 }
                 position = plot_ui.pointer_coordinate();
             });
-           
+            let lines_width_id = ui.id().with("lines_width_id");
+            let mut lines_width = ui.data_mut(|d| d.get_temp::<f32>(lines_width_id).unwrap_or(2.0));
             egui::Area::new("Line Length")
             .fixed_pos(egui::pos2(40.0, 630.0)) //line_length_area_pos
             .show(ui.ctx(), |ui| {
@@ -326,9 +330,15 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                     
                 }
 
-                /*Slider to adjust width, using  'lines_width' variable created above*/
-                ui.add(Slider::new(&mut lines_width, 0.0..=10.0).text("Lines width"));
-                ui.data_mut(|d| d.insert_temp(lines_width_id, lines_width));
+                if self.line_plot {
+                    /*Slider to adjust width, using  'lines_width' variable created above*/
+                    ui.add(Slider::new(&mut lines_width, 0.0..=10.0).text("Lines width"));
+                    ui.data_mut(|d| d.insert_temp(lines_width_id, lines_width));
+                } else {
+                    ui.add(Slider::new(&mut box_width, 0.0..=10.0).text("Box Plots width"));
+                    ui.data_mut(|d| d.insert_temp(box_width_id, box_width));
+                }
+
 
                 /*To change line colur, remember stdin data not included in vector of tier lines, thus it has to manually be checked and colour changed */
                 egui::ComboBox::from_label("Select a line to change colour")
@@ -489,7 +499,7 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
 }
 
 //Generic function to create line of box plots, depending on whether 'x_plots' boolean true of false returns x or y
-fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
+fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f64 , colour:Color32 ,tier_plot_lines_length: &mut Vec<usize>, tier_box_plots: &mut Vec<BoxPlot>) {
     let mut box_elems = Vec::new();
     let box_id = format!("Tier {}", i+1);
     
@@ -510,7 +520,7 @@ fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f32 , col
         .name(&format!("{} {}", box_id, index))
         .stroke(Stroke::new(1.5, colour))
         .fill(colour.linear_multiply(0.2))
-        .box_width(box_width as f64);
+        .box_width(box_width);
         ;
         box_elems.push(elem)
     }
