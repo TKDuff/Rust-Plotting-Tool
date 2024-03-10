@@ -118,7 +118,8 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
                 initial_tier_lock.x_stats[length] = aggregated_raw_data.2;
                 initial_tier_lock.y_stats[length] = aggregated_raw_data.3;
 
-                //println!("R.D last element {}", aggregated_raw_data.0.mean);
+                println!("R.D last element {}", aggregated_raw_data.0.mean);
+                println!("R.D last element {}", aggregated_raw_data.1.mean);
                 initial_tier_lock.x_stats.push(aggregated_raw_data.0);
                 initial_tier_lock.y_stats.push(aggregated_raw_data.1);
             }

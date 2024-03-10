@@ -50,6 +50,8 @@ impl DataStrategy for CountRawData {
         let agg_x_bin = Bin::new(x_mean, x.iter().sum() , x.min(), x.max(), x.len(), x_sum_of_squares, x_variance );
         let agg_y_bin = Bin::new(y_mean, y.iter().sum() , y.min(), y.max(), y.len(), y_sum_of_squares, y_variance ); 
 
+        //println!("{} {} {} {} {} {} {} {} {} {} {}", agg_x_bin.mean, agg_x_bin.sum, agg_x_bin.min, agg_x_bin.max, agg_x_bin.count, agg_x_bin.sum_of_squares, agg_x_bin.variance, agg_x_bin.standard_deviation, agg_x_bin.range, agg_x_bin.estimated_q1, agg_x_bin.estimated_q3);
+
         
         let last_elem_x_bin = Bin::new(chunk[chunk_len-1][0], 0.0, 0.0, 0.0, 0, 0.0, 0.0);
         let last_elem_y_bin = Bin::new(chunk[chunk_len-1][1], 0.0, 0.0, 0.0, 0, 0.0, 0.0);
@@ -65,7 +67,7 @@ impl DataStrategy for CountRawData {
 
         match values_result {
             Ok(values) => {
-                //println!("{} {}", values[0], values[1]);
+                println!("{} {}", values[0], values[1]);
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {

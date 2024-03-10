@@ -52,30 +52,6 @@ impl TierData {
         self.y_stats.extend(y_bins);
     }
 
-    pub fn print_x_means(&self, word: &str) {
-        print!("{}", word);
-        for bin in &self.x_stats {
-            print!("{}, ", bin.mean);
-        }
-        println!("");
-    }
-
-    pub fn print_y_means(&self) {
-        print!("Y Means:");
-        for bin in &self.y_stats {
-            print!("{:.2}, ", bin.mean);
-        }
-    }
-
-    pub fn drain_x_vector(& mut self, range: usize) {
-        self.x_stats.drain(0..range);
-
-        print!("Post merge Vector:");
-        for bin in &self.x_stats {
-            print!("{}, ", bin.get_mean());
-        }  
-    }
-
     pub fn get_slices(&self, length: usize) -> (&[Bin], &[Bin])  {
         let x_slice = &self.x_stats[1..std::cmp::min(length, self.x_stats.len() - 1)];
         let y_slice = &self.y_stats[1..std::cmp::min(length, self.y_stats.len() - 1)];
