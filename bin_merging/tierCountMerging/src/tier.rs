@@ -59,7 +59,6 @@ impl TierData {
         (x_slice, y_slice)
     }
 
-
     pub fn print_means_of_bin(&self, bins: Vec<Bin>) {
         for bin in bins {
             print!("{}, ", bin.mean);
