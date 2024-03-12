@@ -128,26 +128,48 @@ mod tests {
 
     #[test]
     fn test_append_chunk_aggregate_statistics() {
-        // Setup
         let test_data = vec![
-            [1.0, 2.0], // Include a set of predefined data points
-            // ...
+            [-3.040, -2.727],
+            [-1.292, -1.127],
+            [0.063, 1.512],
+            [3.596, -2.051],
+            [-4.049, 0.037],
+            [2.733, -3.023],
+            [-1.836, -3.216],
+            [-0.795, -2.082],
+            [1.842, 2.255],
+            [-0.908, 4.849],
+            [0.0, 0.0],
+            [3.333, 3.333],
+            [-2.222, -2.222],
+            [1000.123, 2000.321],
+            [1.111, 0.0],  //this element is excluded from the calculations, but still passed to the metho
         ];
+
         let mut stdin_tier_instance = CountRawData::new(0);
-
-        let test_data = vec![
-            [1.0, 2.0], // Include a set of predefined data points
-        ];
-
 
         // Act
         let (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin) = stdin_tier_instance.append_chunk_aggregate_statistics(test_data);
 
         // Assert
-        // Replace the following with actual expected values
-        assert_eq!(agg_x_bin.mean, 1.0);
-        assert_eq!(agg_x_bin.sum, 1.0);
-        // ... More assertions for each field
-        // Repeat for agg_y_bin, last_elem_x_bin, last_elem_y_bin
+        assert!((agg_x_bin.mean -  71.253).abs() < 1e-3); //check for assert with condition that floats are within tolerance of 0.001
+        assert_eq!(agg_x_bin.sum, 997.548);
+        assert_eq!(agg_x_bin.min, -4.049);
+        assert_eq!(agg_x_bin.max, 1000.123);
+        assert_eq!(agg_x_bin.count, 14);
+        assert!((agg_x_bin.sum_of_squares - 929239.27623).abs() < 1e-3);
+        assert!((agg_x_bin.variance - 71479.944).abs() < 1e-3);
+        assert!((agg_x_bin.standard_deviation - 267.35733).abs() < 1e-3);
+        assert!((agg_x_bin.range - 1004.172).abs() < 1e-3);
+
+        assert!((agg_y_bin.mean -  142.561).abs() < 1e-3);
+        assert_eq!(agg_y_bin.sum, 1995.859);
+        assert_eq!(agg_y_bin.min, -3.216);
+        assert_eq!(agg_y_bin.max, 2000.321);
+        assert_eq!(agg_y_bin.count, 14);
+        assert!((agg_y_bin.sum_of_squares - 3716835.396).abs() < 1e-3);
+        assert!((agg_y_bin.variance - 285910.415).abs() < 1e-3);
+        assert!((agg_y_bin.standard_deviation - 534.706).abs() < 1e-3);
+        assert!((agg_y_bin.range - 2003.537).abs() < 1e-3);
     }
 }
