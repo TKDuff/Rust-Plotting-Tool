@@ -159,7 +159,7 @@ fn main() {
                     }
                 }           
 
-                thread::sleep(Duration::from_millis(50));
+                thread::sleep(Duration::from_millis(100));
             }
 
             }

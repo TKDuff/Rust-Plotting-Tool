@@ -53,6 +53,10 @@ impl TierData {
     }
 
     pub fn get_slices(&self, length: usize) -> (&[Bin], &[Bin])  {
+        println!("\n");
+        self.print_x_means_in_range(0, self.x_stats.len());
+        self.print_x_means_in_range(1, self.x_stats.len() - 1);
+        println!("\n");
         let x_slice = &self.x_stats[1..std::cmp::min(length, self.x_stats.len() - 1)];
         let y_slice = &self.y_stats[1..std::cmp::min(length, self.y_stats.len() - 1)];
 
@@ -129,4 +133,16 @@ impl TierData {
             .map(|(y_bin, x_bin)| (y_bin.mean, y_bin.min, y_bin.max, y_bin.estimated_q1, y_bin.estimated_q3, x_bin.mean))
             .collect()
         }
+
+        pub fn print_x_means_in_range(&self, start: usize, end: usize) {
+            //let end_index = std::cmp::min(end, self.x_stats.len());
+            //let start_index = std::cmp::max(start, 0);
+
+            println!("Mean: ");
+            for bin in &self.x_stats[start..end] {
+                print!("{}, ", bin.mean);
+            }
+            println!("\n");
+        }
+    
 }

@@ -21,7 +21,11 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
         vec_len = current_tier_lock.x_stats.len();
 
         current_tier_lock.x_stats[0] = current_tier_x_average;
+        println!("The merged x stat is {}", current_tier_x_average.mean);
         current_tier_lock.x_stats.drain(1..vec_len-1);
+        print!("After merge: ");
+        current_tier_lock.print_x_means_in_range(0, 2);
+        
 
         current_tier_lock.y_stats[0] = current_tier_y_average;
         current_tier_lock.y_stats.drain(1..vec_len-1);

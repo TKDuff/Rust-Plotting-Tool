@@ -26,7 +26,7 @@ use egui::color_picker::color_picker_color32;
 
 
 struct MyApp {
-    raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
+    stdin_tier: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     tiers: Vec<Arc<RwLock<TierData>>>,
     should_halt: Arc<AtomicBool>,
     line_plot: bool,
@@ -38,7 +38,7 @@ struct MyApp {
 impl MyApp {
 
     pub fn new(
-        raw_data: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
+        stdin_tier: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
         tiers: Vec<Arc<RwLock<TierData>>>,
         should_halt: Arc<AtomicBool>,
         line_plot: bool,
@@ -46,7 +46,7 @@ impl MyApp {
         colours: [Color32; 6],
     ) -> Self {
         let default_bin = Bin::new(0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0);
-        Self { raw_data, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
+        Self { stdin_tier, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
     }
 }
 
@@ -62,13 +62,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
     let should_halt_clone = my_app.should_halt.clone();
-    let raw_data_thread_for_setup = my_app.raw_data.clone();
+    let raw_data_thread_for_setup = my_app.stdin_tier.clone();
     
-    let raw_data_accessor = my_app.raw_data.clone();
+    let raw_data_accessor = my_app.stdin_tier.clone();
     let initial_tier_accessor = my_app.tiers[0].clone();
     let tier_vector = my_app.tiers.clone();
 
-    let raw_data_accessor_for_thread = my_app.raw_data.clone();
+    let raw_data_accessor_for_thread = my_app.stdin_tier.clone();
     let initial_tier_accessor_for_thread = my_app.tiers[0].clone();
 
     /*
@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     let rt = Runtime::new().unwrap();
-    let raw_data_thread = my_app.raw_data.clone();
+    let raw_data_thread = my_app.stdin_tier.clone();
     //create tokio thread to read in standard input, then append to live data vector
     match strategy.as_str() {
         "count" => main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender),
@@ -198,8 +198,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let mut tier_plot_lines_length: Vec<usize> = Vec::new();
             let number_of_tiers = self.tiers.len();
 
-            let raw_data = self.raw_data.read().unwrap().get_raw_data();
-            tier_plot_lines_length.push(raw_data.len());     
+            let stdin_tier = self.stdin_tier.read().unwrap().get_raw_data();
+            tier_plot_lines_length.push(stdin_tier.len());     
                         
                     
 
@@ -222,7 +222,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 match self.line_plot {
                     true => {
                         //store length of Stdin data line
-                        let mut raw_plot_line = Line::new(raw_data).width(lines_width).color(self.colours[0]).name("Stdin Data");
+                        let mut raw_plot_line = Line::new(stdin_tier).width(lines_width).color(self.colours[0]).name("Stdin Data");
                         if fill_plot_line { raw_plot_line = raw_plot_line.fill(0.0)}
 
                         for (i, tier) in self.tiers.iter().enumerate() {

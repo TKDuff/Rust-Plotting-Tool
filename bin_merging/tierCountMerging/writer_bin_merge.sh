@@ -2,9 +2,9 @@
 #Change the argument after count to set the tiers
 
 #(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging)
-(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "5" "0C0"  )
-#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "10" "10" "10" "10" "10C2"  )
-#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "4S" "8S" "1MC2"  )
+#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "5" "5" "5" "0C0"  )
+(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "20" "6" "6" "10C2"  )
+#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "4S" "5S" "1MC2"  )
 
 
 
