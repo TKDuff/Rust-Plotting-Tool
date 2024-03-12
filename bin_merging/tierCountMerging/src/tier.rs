@@ -53,10 +53,10 @@ impl TierData {
     }
 
     pub fn get_slices(&self, length: usize) -> (&[Bin], &[Bin])  {
-        println!("\n");
-        self.print_x_means_in_range(0, self.x_stats.len());
-        self.print_x_means_in_range(1, self.x_stats.len() - 1);
-        println!("\n");
+        //println!("\n");
+        //self.print_x_means_in_range(0, self.x_stats.len());
+        //self.print_x_means_in_range(1, self.x_stats.len() - 1);
+        //println!("\n");
         let x_slice = &self.x_stats[1..std::cmp::min(length, self.x_stats.len() - 1)];
         let y_slice = &self.y_stats[1..std::cmp::min(length, self.y_stats.len() - 1)];
 
@@ -134,7 +134,7 @@ impl TierData {
             .collect()
         }
 
-        pub fn print_x_means_in_range(&self, start: usize, end: usize) {
+    pub fn print_x_means_in_range(&self, start: usize, end: usize) {
             //let end_index = std::cmp::min(end, self.x_stats.len());
             //let start_index = std::cmp::max(start, 0);
 
@@ -144,5 +144,40 @@ impl TierData {
             }
             println!("\n");
         }
-    
+        
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_vector_bins() {
+        let bins = vec![
+            Bin::new(-10.527, 150.754, -20.321, 0.125, 15, 300.512, 2.147),
+            Bin::new(30.214, 60.468, 25.135, 35.356, 2, 120.832, 3.578),
+            Bin::new(100.125, 200.256, 90.432, 110.654, 2, 400.876, 5.012),
+            Bin::new(-5.543, -55.786, -15.214, 4.678, 10, -110.532, 1.098),
+            Bin::new(500.786, 1000.321, 450.543, 550.876, 2, 2000.654, 25.432),
+            Bin::new(0.753, 15.784, -1.987, 2.546, 20, 30.214, 0.789),
+            Bin::new(-100.432, -200.876, -150.654, -50.123, 2, -400.456, 10.321),
+            Bin::new(200.654, 400.789, 150.321, 250.987, 2, 800.123, 6.542),
+            Bin::new(1.345, 10.786, 0.543, 1.678, 10, 20.987, 0.432),
+            Bin::new(3000.876, 6000.321, 2500.654, 3500.789, 2, 12000.543, 50.987),
+            
+        ];
+
+        let tier_data = TierData::new(0, 0);
+        let merged_bin = tier_data.merge_vector_bins(&bins);
+
+        assert_eq!(merged_bin.mean,  113.17637313432836);
+        assert_eq!(merged_bin.sum, 7582.817);
+        assert_eq!(merged_bin.count, 67); 
+        assert_eq!(merged_bin.min, -150.654);
+        assert_eq!(merged_bin.max, 3500.789);
+        assert_eq!(merged_bin.variance, 2.4347121212121214);
+        assert_eq!(merged_bin.sum_of_squares, 160.691);
+    }
+
 }

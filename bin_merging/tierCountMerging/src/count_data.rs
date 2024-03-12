@@ -121,3 +121,33 @@ impl DataStrategy for CountRawData {
 
 
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_append_chunk_aggregate_statistics() {
+        // Setup
+        let test_data = vec![
+            [1.0, 2.0], // Include a set of predefined data points
+            // ...
+        ];
+        let mut stdin_tier_instance = CountRawData::new(0);
+
+        let test_data = vec![
+            [1.0, 2.0], // Include a set of predefined data points
+        ];
+
+
+        // Act
+        let (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin) = stdin_tier_instance.append_chunk_aggregate_statistics(test_data);
+
+        // Assert
+        // Replace the following with actual expected values
+        assert_eq!(agg_x_bin.mean, 1.0);
+        assert_eq!(agg_x_bin.sum, 1.0);
+        // ... More assertions for each field
+        // Repeat for agg_y_bin, last_elem_x_bin, last_elem_y_bin
+    }
+}
