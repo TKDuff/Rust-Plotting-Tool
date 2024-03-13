@@ -18,14 +18,14 @@ pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>,
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
+        let mut total_duration = std::time::Duration::new(0, 0);
+        let line_count = 0;
         loop {
-            if should_halt_clone.load(Ordering::SeqCst) {
-                break; // Exit the loop if the atomic bool is true
-            }
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        raw_data_thread.write().unwrap().append_str(line);
+                        let start = std::time::Instant::now(); // Start timing
+                        raw_data_thread.write().unwrap().append_str(line, start, &mut total_duration);
                         if let Some(cut_index) = raw_data_thread.write().unwrap().check_cut() {
                             rd_sender.send(cut_index).unwrap();
                         }
@@ -35,6 +35,7 @@ pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>,
                     }
                 }, 
             }
+
         }
     });
 }
@@ -51,6 +52,7 @@ pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBoo
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
+        let mut total_duration = std::time::Duration::new(0, 0);
 
         loop {
             if should_halt_clone.load(Ordering::SeqCst) {
@@ -59,7 +61,8 @@ pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBoo
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        raw_data_thread.write().unwrap().append_str(line);
+                        let start = std::time::Instant::now(); // Start timing
+                        raw_data_thread.write().unwrap().append_str(line, start,&mut total_duration);
                     } else {
                         break;
                     }
@@ -79,6 +82,8 @@ pub fn crate_none_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, r
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
+        let mut total_duration = std::time::Duration::new(0, 0);
+
         loop {
             if should_halt_clone.load(Ordering::SeqCst) {
                 break; // Exit the loop if the atomic bool is true
@@ -86,7 +91,8 @@ pub fn crate_none_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, r
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        raw_data_thread.write().unwrap().append_str(line);
+                        let start = std::time::Instant::now();
+                        raw_data_thread.write().unwrap().append_str(line, start, &mut total_duration);
                     } else {
                         break;
                     }

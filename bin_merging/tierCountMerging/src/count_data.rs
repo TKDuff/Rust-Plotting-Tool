@@ -60,15 +60,23 @@ impl DataStrategy for CountRawData {
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
     }
 
-    fn append_str(&mut self, line:String) {
+    fn append_str(&mut self, line:String, start: std::time::Instant, total_duration: &mut std::time::Duration) {
+        println!("{}", line);
+
+        //let duration = start.elapsed();
+        //println!("Total processing time: {:?}", duration);
+        *total_duration+= start.elapsed();
+
         let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
         .collect();
 
         match values_result {
             Ok(values) => {
-                println!("{} {}", values[0], values[1]);
                 self.append_point(values[0], values[1]);
+                if values[0] == 99999.0 {
+                    println!("{:?}", total_duration.as_nanos());
+                }
             }
             Err(err) => {
                 println!("Error parsing values: {:?}", err);

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::data_strategy::DataStrategy;
 use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
 use crate::bin::Bin;
@@ -69,7 +71,7 @@ impl DataStrategy for IntervalRawData {
 
 
 
-    fn append_str(&mut self, line:String) {
+    fn append_str(&mut self, line:String, start: std::time::Instant, total_duration: &mut std::time::Duration) {
         let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
         .collect();
