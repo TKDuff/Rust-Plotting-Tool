@@ -211,14 +211,74 @@ fn convert_time_unit(time_str: &str) -> Result<usize, String> {
     }
 }
 
-
-
-
-
 fn extract_after_c(input: &str) -> Option<String> {
     input.find('C').map(|index| input[index + 1..].to_string())
 }
 
 fn extract_before_c(input: &str) -> Option<String> {
     input.find('C').map(|index| input[..index].to_string())
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Bin;
+
+    #[test]
+    fn test_process_tier() {
+        let mut current_tier_data = Arc::new(RwLock::new(TierData::new(0, 0)));
+        let mut previous_tier_data = Arc::new(RwLock::new(TierData::new(0, 0)));
+        let x_dummy_bins = Bin::create_uniform_bins(5.0, 10); // for example: 5 bins with all values set to 5.0
+        current_tier_data.write().unwrap().x_stats = x_dummy_bins.clone();
+        current_tier_data.write().unwrap().y_stats = x_dummy_bins;
+
+        let y_dummy_bins = Bin::create_uniform_bins(5.0, 10);
+        previous_tier_data.write().unwrap().x_stats = y_dummy_bins.clone();
+        previous_tier_data.write().unwrap().y_stats = y_dummy_bins;
+
+        assert_eq!(current_tier_data.read().unwrap().x_stats.len(), 10);
+
+        process_tier(&current_tier_data, &previous_tier_data, 10);
+
+        //Verify the length of current_tier's x_stats and y_stats after drain
+        assert_eq!(current_tier_data.read().unwrap().x_stats.len(), 2); // Assuming it gets reduced to 2
+        assert_eq!(current_tier_data.read().unwrap().y_stats.len(), 2); // Assuming it gets reduced to 2
+
+
+        //first element x_stats, y_stats is averaged bin
+        assert_eq!(current_tier_data.read().unwrap().x_stats[0].mean, 5.0);
+        assert_eq!(current_tier_data.read().unwrap().y_stats[0].mean, 5.0);
+
+        //last element previous_tier x_stats, y_stats is average from current_tier (pushed to previour tier)
+        assert_eq!(previous_tier_data.read().unwrap().x_stats[5].mean, 5.0);
+        assert_eq!(previous_tier_data.read().unwrap().y_stats[5].mean, 5.0);
+
+        /*
+        // Setup test data
+        let current_tier_data = TierData::new(); // Populate this with test data
+        let previous_tier_data = TierData::new(); // Populate this if necessary
+        let current_tier = Arc::new(RwLock::new(current_tier_data));
+        let previous_tier = Arc::new(RwLock::new(previous_tier_data));
+        let cut_length = 5; // Example value
+
+        // Call the function
+        process_tier(&current_tier, &previous_tier, cut_length);
+
+        // Verify the results
+        {
+            let current_tier_lock = current_tier.read().unwrap();
+            let previous_tier_lock = previous_tier.read().unwrap();
+
+            // Assertions go here
+            // Example:
+            // assert_eq!(current_tier_lock.x_stats.len(), expected_length);
+            // assert_eq!(previous_tier_lock.y_stats.last(), Some(&current_tier_y_average));
+            // ...
+        }*/
+    }
+
+
+    
 }

@@ -78,10 +78,6 @@ impl TierData {
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
         let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
 
-        println!("Going to merge");
-        for bin in &to_merge[..length].to_vec() {
-            println!("{} and the sum is {} and the count is {} ", bin.mean, bin.sum, bin.count);
-        }
         let temp_bins = to_merge[..length].chunks(chunk_size).map(|chunk| {
             let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
             let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
@@ -96,19 +92,17 @@ impl TierData {
                 0.0
             };
 
-
-            let chunk_sum_of_squares: f64 = chunk_variance * (chunk_count as f64 - 1.0);
-    
+            let chunk_sum_of_squares: f64 = if chunk.len() > 1 {
+                // For chunks with more than one bin, recalculate sum of squares
+                chunk_variance * (chunk_count as f64 - 1.0)
+            } else {
+                //when only single bin, use the same sum of squares
+                chunk.first().map_or(0.0, |bin| bin.sum_of_squares)
+            };    
 
             //Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: chunk_sum_of_squares, variance: chunk_variance, standard_deviation: chunk_variance.sqrt()}
             Bin::new(chunk_mean, chunk_sum, chunk_min, chunk_max, chunk_count, chunk_sum_of_squares, chunk_variance,)
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
-        
-        
-        println!("What");
-        for bin in &temp_bins {
-            println!("{:?}", bin);
-        }
 
         to_merge.drain(0..length);
         to_merge.splice(0..0, temp_bins);
@@ -154,6 +148,7 @@ mod tests {
 
     #[test]
     fn test_merge_vector_bins() {
+        
         let bins = vec![
             Bin::new(-10.527, 150.754, -20.321, 0.125, 15, 300.512, 2.147),
             Bin::new(30.214, 60.468, 25.135, 35.356, 2, 120.832, 3.578),
@@ -180,4 +175,73 @@ mod tests {
         assert_eq!(merged_bin.sum_of_squares, 160.691);
     }
 
+    #[test]
+    fn test_merge_final_tier_vector_bins() {
+        let bins = vec![
+            Bin::new(-10.527, 150.754, -20.321, 0.125, 15, 300.512, 2.147),
+            Bin::new(30.214, 60.468, 25.135, 35.356, 2, 120.832, 3.578),
+            Bin::new(100.125, 200.256, 90.432, 110.654, 2, 400.876, 5.012),
+            Bin::new(-5.543, -55.786, -15.214, 4.678, 10, -110.532, 1.098),
+            Bin::new(500.786, 1000.321, 450.543, 550.876, 2, 2000.654, 25.432),
+            Bin::new(0.753, 15.784, -1.987, 2.546, 20, 30.214, 0.789),
+            Bin::new(-100.432, -200.876, -150.654, -50.123, 2, -400.456, 10.321),
+            Bin::new(200.654, 400.789, 150.321, 250.987, 2, 800.123, 6.542),
+            Bin::new(1.345, 10.786, 0.543, 1.678, 10, 20.987, 0.432),
+            Bin::new(3000.876, 6000.321, 2500.654, 3500.789, 2, 12000.543, 50.987),    
+        ];  
+
+        let mut tier_data = TierData::new(0, 0);
+        tier_data.x_stats = bins.clone();
+        tier_data.y_stats = bins;
+        let merged_x_bin = tier_data.merge_final_tier_vector_bins(3, 10, true); //test for merging the tier x bin vector
+        let merged_y_bin = tier_data.merge_final_tier_vector_bins(3, 10, false);
+
+        //remember, the mean is Mean of Merged Bins, not mean of means
+        assert!((tier_data.x_stats[0].mean - 21.656).abs() < 1e-3);
+        assert!((tier_data.x_stats[0].sum - 411.477).abs() < 1e-3);
+        assert_eq!(tier_data.x_stats[0].min, -20.321);
+        assert_eq!(tier_data.x_stats[0].max, 110.654);
+        assert_eq!(tier_data.x_stats[0].count, 19);
+        assert!((tier_data.x_stats[0].sum_of_squares - 38.647).abs() < 1e-3);
+        assert!((tier_data.x_stats[0].variance - 2.147).abs() < 1e-3);
+        assert!((tier_data.x_stats[0].standard_deviation - 1.465).abs() < 1e-3);
+        assert!((tier_data.x_stats[0].range - 130.975).abs() < 1e-3);
+        assert!((tier_data.x_stats[0].estimated_q1 - -11.0870).abs() < 1e-3);
+        assert!((tier_data.x_stats[0].estimated_q3 - 54.4004).abs() < 1e-3);
+
+        //values should be the same for the y bin of the tier, double checking works on y bin
+        assert!((tier_data.y_stats[0].mean - 21.656).abs() < 1e-3);
+        assert!((tier_data.y_stats[0].sum - 411.477).abs() < 1e-3);
+        assert_eq!(tier_data.y_stats[0].min, -20.321);
+        assert_eq!(tier_data.y_stats[0].max, 110.654);
+        assert_eq!(tier_data.y_stats[0].count, 19);
+        assert!((tier_data.y_stats[0].sum_of_squares - 38.647).abs() < 1e-3);
+        assert!((tier_data.y_stats[0].variance - 2.147).abs() < 1e-3);
+        assert!((tier_data.y_stats[0].standard_deviation - 1.465).abs() < 1e-3);
+        assert!((tier_data.y_stats[0].range - 130.975).abs() < 1e-3);
+        assert!((tier_data.y_stats[0].estimated_q1 - -11.0870).abs() < 1e-3);
+        assert!((tier_data.y_stats[0].estimated_q3 - 54.4004).abs() < 1e-3);
+
+        //10 in chunks of 3 results in 3 with remainder 1, so 4 elements
+        assert_eq!(tier_data.x_stats.len(), 4);
+        assert_eq!(tier_data.y_stats.len(), 4);
+
+        assert_eq!(tier_data.y_stats[3].count, 2);
+
+        //ensure the final element of the now merged tier vector is the remainder. 10 into chunks of 3 leave remainder 1 un-merged
+        assert_eq!(merged_x_bin.mean, 3000.1605); //although the mean ends in .876, the sum/count mean remainder is .1605
+        assert_eq!(merged_x_bin.sum, 6000.321);
+        assert_eq!(merged_x_bin.min, 2500.654);
+        assert_eq!(merged_x_bin.max, 3500.789);
+        assert_eq!(merged_x_bin.count, 2);
+        assert_eq!(merged_x_bin.sum_of_squares, 12000.543);
+        assert_eq!(merged_x_bin.variance, 50.987);
+        assert!((merged_x_bin.range - 1000.135).abs() < 1e-3);
+        assert!((merged_x_bin.estimated_q1 - 2750.126).abs() < 1e-3);
+        assert!((merged_x_bin.estimated_q3 - 3250.194).abs() < 1e-3);
+
+
+    }
+
 }
+

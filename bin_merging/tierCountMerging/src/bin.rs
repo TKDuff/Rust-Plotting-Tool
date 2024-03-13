@@ -39,9 +39,20 @@ impl Bin {
     pub fn print(&self) {
         println!("Mean {}\nSum {}\n Min {}\nMax {}\nCount {}Sum of Squares {}",self.mean, self.sum, self.min, self.max, self.count, self.sum_of_squares);
     }
+
     pub fn get_mean(&self) -> f64 {
         self.mean
     }
 
+    pub fn create_uniform_bins(value: f64, number_of_bins: usize) -> Vec<Bin> {
+        let mut bins = Vec::with_capacity(number_of_bins);
+
+        for _ in 0..number_of_bins {
+            let bin = Bin::new(value, value, value, value, 1, 0.0, 0.0);
+            bins.push(bin);
+        }
+
+        bins
+    }
 
 }

@@ -161,6 +161,8 @@ mod tests {
         assert!((agg_x_bin.variance - 71479.944).abs() < 1e-3);
         assert!((agg_x_bin.standard_deviation - 267.35733).abs() < 1e-3);
         assert!((agg_x_bin.range - 1004.172).abs() < 1e-3);
+        assert!((agg_x_bin.estimated_q1 - -179.78957).abs() < 1e-3);
+        assert!((agg_x_bin.estimated_q3 - 322.2964).abs() < 1e-3);
 
         assert!((agg_y_bin.mean -  142.561).abs() < 1e-3);
         assert_eq!(agg_y_bin.sum, 1995.859);
@@ -171,5 +173,10 @@ mod tests {
         assert!((agg_y_bin.variance - 285910.415).abs() < 1e-3);
         assert!((agg_y_bin.standard_deviation - 534.706).abs() < 1e-3);
         assert!((agg_y_bin.range - 2003.537).abs() < 1e-3);
+        assert!((agg_y_bin.estimated_q1 - -358.32289).abs() < 1e-3);
+        assert!((agg_y_bin.estimated_q3 - 643.44560).abs() < 1e-3);
     }
 }
+
+//-358.3228928571428 q1
+// 643.4456071428572 q3
