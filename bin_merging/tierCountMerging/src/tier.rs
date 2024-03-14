@@ -28,6 +28,13 @@ impl TierData {
         let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
         let chunk_mean = chunk_sum / chunk_count as f64;
 
+        /*using clousre here
+        start at 0.0, create accumulator to store accumulated variance, iterate over every bin
+        For every bin, apply formula (variance * count - 1)/total count
+        Sum all thse values to accumulator, set to combined variance
+        NEED TO DOUBLE CHECK
+        */
+
         let combined_variance: f64 = bins.iter().fold(0.0, |acc, bin| {
             acc + (bin.variance * (bin.count as f64 - 1.0))
         }) / (chunk_count as f64 - 1.0);

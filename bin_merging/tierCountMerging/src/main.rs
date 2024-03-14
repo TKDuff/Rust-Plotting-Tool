@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
     let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::BLACK, Color32::BROWN, Color32::YELLOW];
-    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, false,0, colours);
+    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, true,0, colours);
 
     /*If no strategy selected, so just the raw data, then don't need to run all this code, can just run the tokio thread to read in raw data */
 
