@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let record: Record = result?;
         println!("{} {}", record.x_col, record.y_col);
         //thread::sleep(Duration::from_nanos(1000));
-        thread::sleep(Duration::from_millis(5));
+        thread::sleep(Duration::from_nanos(0));
     }
 
     Ok(())

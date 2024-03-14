@@ -119,7 +119,6 @@ impl DataStrategy for CountRawData {
     }
 
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-
         self.points[0..count+1].to_vec()
     }
 
