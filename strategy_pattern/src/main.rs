@@ -168,8 +168,9 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
         egui::CentralPanel::default().show(ctx, |ui| { 
             ctx.set_visuals(Visuals::light());
 
-            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0);
-            let historic_plot_line = Line::new(self.aggregate_data.read().unwrap().get_means()).width(2.0);
+            let raw_plot_line = Line::new(self.raw_data.read().unwrap().get_raw_data()).width(2.0).color(egui::Color32::RED);
+            let historic_plot_line = Line::new(self.aggregate_data.read().unwrap().get_means()).width(2.0).color(egui::Color32::BLUE);
+            let r_p_l = Line::new(self.raw_data.read().unwrap().get_values_two()).width(0.5).color(egui::Color32::LIGHT_GREEN);
 
             let plot = Plot::new("plot")
             .min_size(Vec2::new(800.0, 600.0));
@@ -177,6 +178,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             plot.show(ui, |plot_ui| {
                 plot_ui.line(historic_plot_line);
                 plot_ui.line(raw_plot_line);
+                plot_ui.line(r_p_l);
             });
 
         });

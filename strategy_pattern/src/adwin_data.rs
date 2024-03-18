@@ -3,13 +3,15 @@ use crate::data_strategy::DataStrategy;
 pub struct AdwinRawData {
     pub delta: f64,
     pub points: Vec<[f64;2]>,
+    pub points_two: Vec<[f64;2]>
 }
 
 impl AdwinRawData {
     pub fn new() -> Self {
         Self { 
-            delta: 0.000000000000000000000000000001,
-            points: vec![[0.0, 0.0]]
+            delta: 0.000000000000000000000000000000000000000000000000000000000000000000000000011,
+            points: vec![[0.0, 0.0]],
+            points_two: vec![[0.0, 0.0]]
         }
     }
 
@@ -30,7 +32,8 @@ impl AdwinRawData {
         (1.0 / (2.0 * n1) * (4.0 / self.delta).ln()).sqrt() + 
         (1.0 / (2.0 * n2) * (4.0 / self.delta).ln()).sqrt()
     }
-}
+
+    }
 
 impl DataStrategy for AdwinRawData {
     fn append_str(&mut self, line:String) {
@@ -52,8 +55,13 @@ impl DataStrategy for AdwinRawData {
         self.points.clone().into_iter().collect()
     }
 
+    fn get_values_two(&self) -> Vec<[f64; 2]> {
+        self.points_two.clone().into_iter().collect()
+    }
+
     fn append_point(&mut self, x_value: f64, y_value: f64) {
         self.points.push([x_value, y_value]);
+        self.points_two.push([x_value, y_value]);
     }
 
     fn requires_external_trigger(&self) -> bool {

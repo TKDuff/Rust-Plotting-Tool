@@ -41,6 +41,10 @@ impl DataStrategy for CountRawData {
         self.points.push([x_value, y_value]);
     }
 
+    fn get_values_two(&self) -> Vec<[f64; 2]> {
+        self.points.clone().into_iter().collect()
+    }
+
     fn requires_external_trigger(&self) -> bool {
         false
     }

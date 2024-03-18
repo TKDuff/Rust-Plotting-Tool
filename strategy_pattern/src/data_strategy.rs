@@ -7,4 +7,5 @@ pub trait DataStrategy: Send + Sync {
     fn remove_chunk(&mut self, count:usize, point_means: (f64, f64));
     fn check_cut(&self) -> Option<usize>;
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]>;
+    fn get_values_two(&self) -> Vec<[f64; 2]>;
 }

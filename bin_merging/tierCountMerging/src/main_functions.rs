@@ -50,6 +50,9 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
     if args.len() == 1 {
         println!("No arguments");
         data_strategy = "None".to_string();
+    }  else if (args[1] == "--help") || (args[1] == "--h") {
+        print_help();
+        std::process::exit(0);
     } else {
         data_strategy = args[1].clone();
     }
@@ -219,7 +222,76 @@ fn extract_before_c(input: &str) -> Option<String> {
     input.find('C').map(|index| input[..index].to_string())
 }
 
+fn print_help() {
+    let help_message = r#"Usage: summarst [summarisation-policy] [stdin-data-condition] [tier-N-condition] ... [catch-all-tier]
 
+summarisation-policy:
+    Count: Aggregates elements into a bin whenever the specified number of elements is reached
+    Interval: Aggregates elements obtained in a specified time interval into a single bin
+
+stdin-data-condition:
+    Count: Specify number of x, y points required in initial 'stdin-data' tier to be aggregated into a bin
+    Example: '20' - every time 20 x, y points are plotted, aggregate them into a bin
+
+    Interval: Specify time interval for which x, y values obtained during interval are aggregated into a bin
+    Example: '2S' - when 2 seconds elapses, all the x, y points plotted in that interval are agregated
+
+tier-N-condition:
+    Tiers contain bins and up to 5 can be created (excluding the stdin-data tier and the catch all tier)
+    When a tiers specified condition is met, its bins are 'merged' (combined) into a single bin which is pushed to the next tier
+    The tier creation method depends on the chosen summarisation policy:
+
+    Count: Specify the number of bins required for merging. 
+    Example: '10 40' - when tier 1 contains 10 bins, they are merged and pushed to tier 2. When tier 2 contains 40 bins, they are merged and pushed to the next tier
+
+    Interval: Specify time interval for merging. Ensure time intervals are in an ascending order
+    Example: '30S 1M' - when 30 seconds elapses the bins in tier 1 are merged and pushed to tier 2. When 1 minute elapses the bins in tier 2 are merged and pushed to the next tier
+
+catch-all-tier:
+    Final tier, merges the bins in chunks of a specified size.
+    Created similarly to other tiers, specifying when to merge bins and the chunk size
+    Catch all tier policy MUST be included at end of tiering commands
+
+    Count: Specify the number of bins required for merging and the chunk size. Both numbers separated by 'C'
+    Example: '100C2' - every time 100 bins are obtained, merge the bins in chunks of size 2
+
+    Interval: Specify time interval for merging and chunk size. C in middle to seperate the two numbers
+    Example: '1HC10' - every hour merge the bins in chunks of size 10
+
+    None: If don't want a catch all policy put '0C0' at the end
+    Example: '0C0' - final tier won't merge in chunks, will grow over time
+
+Interval Time Options:
+    Three time durations to choose from below, smallest time interval possible is 1 second
+    S - second
+    M - minute
+    H - hour
+
+Examples:
+    summarst - no arguments, wil plot x, y values as they are received from standard input
+
+    Count:
+    summarst count 5 10 0C0 - every 5 standard input points aggregated into a bin and pushed to next tier
+                              every 10 bins obtained merged into a single bin and pushed to next final tier
+                              no policy to merge bins, collect more over time
+
+    summarst count 2 10 20C3 - every 2 standard input points aggregated into a bin and pushed to next tier
+                               every 10 bins obtained merged into a single bin and pushed to next final tier
+                               every 20 bins obtained, merge bins in chunks of size 3. Result in 6 merged bins and 1 remainder bin
+
+    Interval:
+    summarst interval 2S 0C0 - when 2 seconds elapse aggregate all x, y values obtained in time interval into a bin. Bin pushed to tier 1
+                               Tier 1 does not have a catch all policy, will grow over time
+
+    summarst interval 2S 10S 1M 10MC7 - merge points every 2 seconds and push to t1
+                                       merge bins every 10 seconds, push merged bin to t2
+                                       merge bins every 60 seconds, push merged bin to t3
+                                       merge bins in chunks of 7 every 10 minutes
+
+"#;
+
+    println!("{}", help_message);
+}
 
 #[cfg(test)]
 mod tests {

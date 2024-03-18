@@ -721,3 +721,12 @@ Could optimise, but have working version now.
 
 Maybe give the line and box plots each their own seperate width variable, that would be nice. 
 Done that, to potentially give user more control, could let user specidy size, instead of using a slider
+
+## 18-03-
+Red
+Blue
+Green
+Yellow
+Brown
+Black
+Grey
