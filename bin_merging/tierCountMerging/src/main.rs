@@ -45,7 +45,7 @@ impl MyApp {
         selected_line_index: usize,
         colours: [Color32; 6],
     ) -> Self {
-        let default_bin = Bin::new(0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0);
+        let default_bin = Bin::new(0.0, 0.0, 0.0, 0.0, 0);
         Self { stdin_tier, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
     }
 }
@@ -452,18 +452,6 @@ fn bin_grid_helper(ui: &mut egui::Ui, x_bin: &Bin, y_bin: &Bin, colour: Color32,
 
         ui.label(formatted_label(&format!("Count: {:.2}", x_bin.count), Color32::BLACK, 16.0, false));
         ui.label(formatted_label(&format!("Count: {:.2}", y_bin.count), Color32::BLACK, 16.0, false));
-        ui.end_row();
-        
-        ui.label(formatted_label(&format!("Variance: {:.2}", x_bin.variance), Color32::BLACK, 16.0, false));
-        ui.label(formatted_label(&format!("Variance: {:.2}", y_bin.variance), Color32::BLACK, 16.0, false));
-        ui.end_row();
-
-        ui.label(formatted_label(&format!("SoS: {:.2}", x_bin.sum_of_squares), Color32::BLACK, 16.0, false));
-        ui.label(formatted_label(&format!("SoS: {:.2}", y_bin.sum_of_squares), Color32::BLACK, 16.0, false));
-        ui.end_row();
-
-        ui.label(formatted_label(&format!("Std Dev: {:.2}", x_bin.standard_deviation), Color32::BLACK, 16.0, false));
-        ui.label(formatted_label(&format!("Std Dev: {:.2}", y_bin.standard_deviation), Color32::BLACK, 16.0, false));
         ui.end_row();
 
         ui.label(formatted_label(&format!("Q1 (approx): {:.2}", x_bin.estimated_q1), Color32::BLACK, 16.0, false));

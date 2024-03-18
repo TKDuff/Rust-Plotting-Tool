@@ -28,46 +28,8 @@ impl TierData {
         let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
         let chunk_mean = chunk_sum / chunk_count as f64;
 
-    /*
-        Originaly tried 'pooled variance' to combine bins variance however this broke when the number of bins was more than two, or they are large
-        Searching online, could find no results on how to merge variance of two bins which represent a different number of points, closest I found was 'Variance Sum Law'
-        Decided to use weighted average of variance, as I don't have a strong background on statistics I asked chatGPT4 to help come up with a method to combine bins
-        There is no definative way to combine the variance of two bins in such a way that the resulting variance represents the entire variance of boths bins datasets 
-        Closest can get is an estimation, which is what the weighted average formula does. 
-        The formula consists of numerator and denominator
 
-        Numerator: for every bin in the vector (tier) compute the following and sum them up ('bin' in this case is the current bin)
-        (count - 1) * variance + count * ( mean  - total mean of entire tier)^2 
-
-        (count - 1) * variance : accounts for the variance existing within each individual bin[1]
-        + count * ( mean  - total mean of entire tier)^2 : represents how much the mean of each bin deviates from the overall mean of all bins combined.[1]
-
-
-        denominator:
-        Sum of all bins counts - number of bins in tier
-        represents the total degrees of freedom across all bins, adjusting for the fact that each bin contributes one degree of freedom less than its count[1]
-
-        */
-
-        let mut within_bin_variance_sum: f64 = 0.0;
-        let mut mean_difference_sum: f64 = 0.0;
-        
-        // Calculate the within-bin variance sum and mean difference sum
-        for bin in bins {
-            let count = bin.count as f64;
-            within_bin_variance_sum += (count - 1.0) * bin.variance;
-            mean_difference_sum += count * (bin.mean - chunk_mean).powi(2);
-        }
-
-        // Combine the components and normalize by the total degrees of freedom
-        let combined_variance_numerator = within_bin_variance_sum + mean_difference_sum;
-        let total_degrees_of_freedom = chunk_count as f64 - bins.len() as f64;
-        let chunk_variance = combined_variance_numerator / total_degrees_of_freedom;
-
-        //Sum of Squares = Variance * (N - 1)
-        let combined_sum_of_squares: f64 = chunk_variance * (chunk_count as f64 - 1.0);
-
-        temp_bin =  Bin::new(chunk_mean, chunk_sum ,chunk_min, chunk_max, chunk_count, combined_sum_of_squares, chunk_variance, );
+        temp_bin =  Bin::new(chunk_mean, chunk_sum ,chunk_min, chunk_max, chunk_count);
 
         //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
      
@@ -114,24 +76,10 @@ impl TierData {
             let chunk_min = chunk.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
             let chunk_max = chunk.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
             let chunk_mean:f64 = if chunk_count > 0 { chunk_sum / chunk_count as f64 } else { 0.0 };
-
-            let chunk_variance: f64 = if chunk_count > 1 {
-                let sum_variance: f64 = chunk.iter().map(|bin| bin.variance * (bin.count as f64 - 1.0)).sum();
-                sum_variance / (chunk_count as f64 - 1.0)
-            } else {
-                0.0
-            };
-
-            let chunk_sum_of_squares: f64 = if chunk.len() > 1 {
-                // For chunks with more than one bin, recalculate sum of squares
-                chunk_variance * (chunk_count as f64 - 1.0)
-            } else {
-                //when only single bin, use the same sum of squares
-                chunk.first().map_or(0.0, |bin| bin.sum_of_squares)
-            };    
+ 
 
             //Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: chunk_sum_of_squares, variance: chunk_variance, standard_deviation: chunk_variance.sqrt()}
-            Bin::new(chunk_mean, chunk_sum, chunk_min, chunk_max, chunk_count, chunk_sum_of_squares, chunk_variance,)
+            Bin::new(chunk_mean, chunk_sum, chunk_min, chunk_max, chunk_count)
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
 
         to_merge.drain(0..length);
@@ -180,16 +128,16 @@ mod tests {
     fn test_merge_vector_bins() {
         
         let bins = vec![
-            Bin::new(-10.527, 150.754, -20.321, 0.125, 15, 300.512, 2.147),
-            Bin::new(30.214, 60.468, 25.135, 35.356, 2, 120.832, 3.578),
-            Bin::new(100.125, 200.256, 90.432, 110.654, 2, 400.876, 5.012),
-            Bin::new(-5.543, -55.786, -15.214, 4.678, 10, -110.532, 1.098),
-            Bin::new(500.786, 1000.321, 450.543, 550.876, 2, 2000.654, 25.432),
-            Bin::new(0.753, 15.784, -1.987, 2.546, 20, 30.214, 0.789),
-            Bin::new(-100.432, -200.876, -150.654, -50.123, 2, -400.456, 10.321),
-            Bin::new(200.654, 400.789, 150.321, 250.987, 2, 800.123, 6.542),
-            Bin::new(1.345, 10.786, 0.543, 1.678, 10, 20.987, 0.432),
-            Bin::new(3000.876, 6000.321, 2500.654, 3500.789, 2, 12000.543, 50.987),
+            Bin::new(-10.527, 150.754, -20.321, 0.125, 15),
+            Bin::new(30.214, 60.468, 25.135, 35.356, 2),
+            Bin::new(100.125, 200.256, 90.432, 110.654, 2),
+            Bin::new(-5.543, -55.786, -15.214, 4.678, 10),
+            Bin::new(500.786, 1000.321, 450.543, 550.876, 2),
+            Bin::new(0.753, 15.784, -1.987, 2.546, 20),
+            Bin::new(-100.432, -200.876, -150.654, -50.123, 2),
+            Bin::new(200.654, 400.789, 150.321, 250.987, 2),
+            Bin::new(1.345, 10.786, 0.543, 1.678, 10),
+            Bin::new(3000.876, 6000.321, 2500.654, 3500.789, 2),
             
         ];
 
@@ -201,23 +149,21 @@ mod tests {
         assert_eq!(merged_bin.count, 67); 
         assert_eq!(merged_bin.min, -150.654);
         assert_eq!(merged_bin.max, 3500.789);
-        assert_eq!(merged_bin.variance, 2.4347121212121214);
-        assert_eq!(merged_bin.sum_of_squares, 160.691);
     }
 
     #[test]
     fn test_merge_final_tier_vector_bins() {
         let bins = vec![
-            Bin::new(-10.527, 150.754, -20.321, 0.125, 15, 300.512, 2.147),
-            Bin::new(30.214, 60.468, 25.135, 35.356, 2, 120.832, 3.578),
-            Bin::new(100.125, 200.256, 90.432, 110.654, 2, 400.876, 5.012),
-            Bin::new(-5.543, -55.786, -15.214, 4.678, 10, -110.532, 1.098),
-            Bin::new(500.786, 1000.321, 450.543, 550.876, 2, 2000.654, 25.432),
-            Bin::new(0.753, 15.784, -1.987, 2.546, 20, 30.214, 0.789),
-            Bin::new(-100.432, -200.876, -150.654, -50.123, 2, -400.456, 10.321),
-            Bin::new(200.654, 400.789, 150.321, 250.987, 2, 800.123, 6.542),
-            Bin::new(1.345, 10.786, 0.543, 1.678, 10, 20.987, 0.432),
-            Bin::new(3000.876, 6000.321, 2500.654, 3500.789, 2, 12000.543, 50.987),    
+            Bin::new(-10.527, 150.754, -20.321, 0.125, 15),
+            Bin::new(30.214, 60.468, 25.135, 35.356, 2),
+            Bin::new(100.125, 200.256, 90.432, 110.654, 2),
+            Bin::new(-5.543, -55.786, -15.214, 4.678, 10),
+            Bin::new(500.786, 1000.321, 450.543, 550.876, 2),
+            Bin::new(0.753, 15.784, -1.987, 2.546, 20),
+            Bin::new(-100.432, -200.876, -150.654, -50.123, 2),
+            Bin::new(200.654, 400.789, 150.321, 250.987, 2),
+            Bin::new(1.345, 10.786, 0.543, 1.678, 10),
+            Bin::new(3000.876, 6000.321, 2500.654, 3500.789, 2),    
         ];  
 
         let mut tier_data = TierData::new(0, 0);
@@ -232,9 +178,6 @@ mod tests {
         assert_eq!(tier_data.x_stats[0].min, -20.321);
         assert_eq!(tier_data.x_stats[0].max, 110.654);
         assert_eq!(tier_data.x_stats[0].count, 19);
-        assert!((tier_data.x_stats[0].sum_of_squares - 38.647).abs() < 1e-3);
-        assert!((tier_data.x_stats[0].variance - 2.147).abs() < 1e-3);
-        assert!((tier_data.x_stats[0].standard_deviation - 1.465).abs() < 1e-3);
         assert!((tier_data.x_stats[0].range - 130.975).abs() < 1e-3);
         assert!((tier_data.x_stats[0].estimated_q1 - -11.0870).abs() < 1e-3);
         assert!((tier_data.x_stats[0].estimated_q3 - 54.4004).abs() < 1e-3);
@@ -245,9 +188,6 @@ mod tests {
         assert_eq!(tier_data.y_stats[0].min, -20.321);
         assert_eq!(tier_data.y_stats[0].max, 110.654);
         assert_eq!(tier_data.y_stats[0].count, 19);
-        assert!((tier_data.y_stats[0].sum_of_squares - 38.647).abs() < 1e-3);
-        assert!((tier_data.y_stats[0].variance - 2.147).abs() < 1e-3);
-        assert!((tier_data.y_stats[0].standard_deviation - 1.465).abs() < 1e-3);
         assert!((tier_data.y_stats[0].range - 130.975).abs() < 1e-3);
         assert!((tier_data.y_stats[0].estimated_q1 - -11.0870).abs() < 1e-3);
         assert!((tier_data.y_stats[0].estimated_q3 - 54.4004).abs() < 1e-3);
@@ -264,8 +204,6 @@ mod tests {
         assert_eq!(merged_x_bin.min, 2500.654);
         assert_eq!(merged_x_bin.max, 3500.789);
         assert_eq!(merged_x_bin.count, 2);
-        assert_eq!(merged_x_bin.sum_of_squares, 12000.543);
-        assert_eq!(merged_x_bin.variance, 50.987);
         assert!((merged_x_bin.range - 1000.135).abs() < 1e-3);
         assert!((merged_x_bin.estimated_q1 - 2750.126).abs() < 1e-3);
         assert!((merged_x_bin.estimated_q3 - 3250.194).abs() < 1e-3);

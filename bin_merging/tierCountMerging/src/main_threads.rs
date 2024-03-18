@@ -152,8 +152,6 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
                     x_mean, 
                     x_mean, 
                     1,   
-                    0.0, 
-                    0.0   
                 )).collect();
 
                 new_bin_y = chunk.iter()
@@ -163,8 +161,6 @@ pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_da
                     y_mean, // min
                     y_mean, // max
                     1,      // count
-                    0.0,    // sum_of_squares
-                    0.0     // variance
                 )).collect();
             }
 

@@ -47,14 +47,14 @@ impl DataStrategy for CountRawData {
         //println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
         //let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), sum_of_squares: x_sum_of_squares, variance: x_variance, standard_deviation: x_variance.sqrt() };
-        let agg_x_bin = Bin::new(x_mean, x.iter().sum() , x.min(), x.max(), x.len(), x_sum_of_squares, x_variance );
-        let agg_y_bin = Bin::new(y_mean, y.iter().sum() , y.min(), y.max(), y.len(), y_sum_of_squares, y_variance ); 
+        let agg_x_bin = Bin::new(x_mean, x.iter().sum() , x.min(), x.max(), x.len() );
+        let agg_y_bin = Bin::new(y_mean, y.iter().sum() , y.min(), y.max(), y.len() ); 
 
         //println!("{} {} {} {} {} {} {} {} {} {} {}", agg_x_bin.mean, agg_x_bin.sum, agg_x_bin.min, agg_x_bin.max, agg_x_bin.count, agg_x_bin.sum_of_squares, agg_x_bin.variance, agg_x_bin.standard_deviation, agg_x_bin.range, agg_x_bin.estimated_q1, agg_x_bin.estimated_q3);
 
         
-        let last_elem_x_bin = Bin::new(chunk[chunk_len-1][0], 0.0, 0.0, 0.0, 0, 0.0, 0.0);
-        let last_elem_y_bin = Bin::new(chunk[chunk_len-1][1], 0.0, 0.0, 0.0, 0, 0.0, 0.0);
+        let last_elem_x_bin = Bin::new(chunk[chunk_len-1][0], 0.0, 0.0, 0.0, 0);
+        let last_elem_y_bin = Bin::new(chunk[chunk_len-1][1], 0.0, 0.0, 0.0, 0);
 
 
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
@@ -164,21 +164,14 @@ mod tests {
         assert_eq!(agg_x_bin.min, -4.049);
         assert_eq!(agg_x_bin.max, 1000.123);
         assert_eq!(agg_x_bin.count, 14);
-        assert!((agg_x_bin.sum_of_squares - 929239.27623).abs() < 1e-3);
-        assert!((agg_x_bin.variance - 71479.944).abs() < 1e-3);
-        assert!((agg_x_bin.standard_deviation - 267.35733).abs() < 1e-3);
         assert!((agg_x_bin.range - 1004.172).abs() < 1e-3);
         assert!((agg_x_bin.estimated_q1 - -179.78957).abs() < 1e-3);
         assert!((agg_x_bin.estimated_q3 - 322.2964).abs() < 1e-3);
-
         assert!((agg_y_bin.mean -  142.561).abs() < 1e-3);
         assert_eq!(agg_y_bin.sum, 1995.859);
         assert_eq!(agg_y_bin.min, -3.216);
         assert_eq!(agg_y_bin.max, 2000.321);
         assert_eq!(agg_y_bin.count, 14);
-        assert!((agg_y_bin.sum_of_squares - 3716835.396).abs() < 1e-3);
-        assert!((agg_y_bin.variance - 285910.415).abs() < 1e-3);
-        assert!((agg_y_bin.standard_deviation - 534.706).abs() < 1e-3);
         assert!((agg_y_bin.range - 2003.537).abs() < 1e-3);
         assert!((agg_y_bin.estimated_q1 - -358.32289).abs() < 1e-3);
         assert!((agg_y_bin.estimated_q3 - 643.44560).abs() < 1e-3);
