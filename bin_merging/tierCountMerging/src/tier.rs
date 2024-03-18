@@ -28,23 +28,46 @@ impl TierData {
         let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
         let chunk_mean = chunk_sum / chunk_count as f64;
 
-        /*using clousre here
-        start at 0.0, create accumulator to store accumulated variance, iterate over every bin
-        For every bin, apply formula (variance * count - 1)/total count
-        Sum all thse values to accumulator, set to combined variance
-        NEED TO DOUBLE CHECK
+    /*
+        Originaly tried 'pooled variance' to combine bins variance however this broke when the number of bins was more than two, or they are large
+        Searching online, could find no results on how to merge variance of two bins which represent a different number of points, closest I found was 'Variance Sum Law'
+        Decided to use weighted average of variance, as I don't have a strong background on statistics I asked chatGPT4 to help come up with a method to combine bins
+        There is no definative way to combine the variance of two bins in such a way that the resulting variance represents the entire variance of boths bins datasets 
+        Closest can get is an estimation, which is what the weighted average formula does. 
+        The formula consists of numerator and denominator
+
+        Numerator: for every bin in the vector (tier) compute the following and sum them up ('bin' in this case is the current bin)
+        (count - 1) * variance + count * ( mean  - total mean of entire tier)^2 
+
+        (count - 1) * variance : accounts for the variance existing within each individual bin[1]
+        + count * ( mean  - total mean of entire tier)^2 : represents how much the mean of each bin deviates from the overall mean of all bins combined.[1]
+
+
+        denominator:
+        Sum of all bins counts - number of bins in tier
+        represents the total degrees of freedom across all bins, adjusting for the fact that each bin contributes one degree of freedom less than its count[1]
+
         */
 
-        let combined_variance: f64 = bins.iter().fold(0.0, |acc, bin| {
-            acc + (bin.variance * (bin.count as f64 - 1.0))
-        }) / (chunk_count as f64 - 1.0);
+        let mut within_bin_variance_sum: f64 = 0.0;
+        let mut mean_difference_sum: f64 = 0.0;
+        
+        // Calculate the within-bin variance sum and mean difference sum
+        for bin in bins {
+            let count = bin.count as f64;
+            within_bin_variance_sum += (count - 1.0) * bin.variance;
+            mean_difference_sum += count * (bin.mean - chunk_mean).powi(2);
+        }
+
+        // Combine the components and normalize by the total degrees of freedom
+        let combined_variance_numerator = within_bin_variance_sum + mean_difference_sum;
+        let total_degrees_of_freedom = chunk_count as f64 - bins.len() as f64;
+        let chunk_variance = combined_variance_numerator / total_degrees_of_freedom;
 
         //Sum of Squares = Variance * (N - 1)
-        let combined_sum_of_squares: f64 = combined_variance * (chunk_count as f64 - 1.0);
+        let combined_sum_of_squares: f64 = chunk_variance * (chunk_count as f64 - 1.0);
 
-
-
-        temp_bin =  Bin::new(chunk_mean, chunk_sum ,chunk_min, chunk_max, chunk_count, combined_sum_of_squares, combined_variance, );
+        temp_bin =  Bin::new(chunk_mean, chunk_sum ,chunk_min, chunk_max, chunk_count, combined_sum_of_squares, chunk_variance, );
 
         //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
      

@@ -730,3 +730,15 @@ Yellow
 Brown
 Black
 Grey
+
+No longer going to use pooled variance, as there is no way to combine variance of two or more bins accruately going to use a wieghted estimate.
+Pooled assumes both populations variance are the same [1], however we know bins usually don't contain same variance 
+[1] - https://link.springer.com/referenceworkentry/10.1007/978-0-387-32833-1_323
+[2] - https://faculty.washington.edu/tamre/Chapter9PooledVariances.pdf
+
+With the bins being based on time series data, we cannot assume the variance of each bins are eqaul. I found a definition from springer of pooled variance that says "The pooled variance is used to estimate the value of the variance of two or more populations when the respective variances of each population are unknown but can be considered as equal."
+Since we can't assume the variance of two bins are the same, then weighted variance must be used instead
+
+Using weighted variance instead of actual variance. Go to '~/FinalYearProject/online-graph/PythonMocking/BinMergeTesting'
+Run the python scripts 'weightedVariance4Bins.py' and 'pooledVarianceBreak4Bins.py'
+The weighted is closer than the pooled when tested, so going to go with that
