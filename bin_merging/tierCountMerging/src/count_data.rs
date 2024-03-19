@@ -60,12 +60,9 @@ impl DataStrategy for CountRawData {
         (last_elem_x_bin, last_elem_y_bin, agg_x_bin, agg_y_bin)
     }
 
-    fn append_str(&mut self, line:String, start: std::time::Instant, total_duration: &mut std::time::Duration) {
+    fn append_str(&mut self, line:String) {
         println!("{}", line);
 
-        //let duration = start.elapsed();
-        //println!("Total processing time: {:?}", duration);
-        *total_duration+= start.elapsed();
 
         let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
@@ -74,9 +71,6 @@ impl DataStrategy for CountRawData {
         match values_result {
             Ok(values) => {
                 self.append_point(values[0], values[1]);
-                if values[0] == 99999.0 {
-                    println!("{:?}", total_duration.as_nanos());
-                }
             }
             Err(err) => {
                 println!("Error parsing values: {:?}", err);
@@ -90,14 +84,6 @@ impl DataStrategy for CountRawData {
 
     fn append_point(&mut self, x_value: f64, y_value: f64) {
         self.points.push([x_value, y_value]);
-    }
-
-    fn requires_external_trigger(&self) -> bool {
-        false
-    }
-
-    fn get_values(&self) -> Vec<[f64; 2]> {
-        self.points.clone().into_iter().collect()
     }
 
     fn get_length(&self) -> usize {
@@ -124,6 +110,13 @@ impl DataStrategy for CountRawData {
 
     fn get_condition(&self) -> usize {
         self.condition
+    }
+
+    fn increment_time(&mut self) {
+        //No implementation, will never be used   
+    }
+    fn get_time(&self) -> Option<usize> {
+        None//No implementation, will never be used
     }
 
 

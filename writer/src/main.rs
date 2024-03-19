@@ -34,9 +34,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Path to the CSV file
     let file_path: &str;
     //file_path = "dataset_500.csv";
-    file_path = "dataset_5000.csv";
+    //file_path = "dataset_5000.csv";
     //file_path = "dataset_15000.csv";
-    //file_path = "dataset_100000.csv";
+    file_path = "dataset_100000.csv";
     //file_path = "random_dataset_100000.csv";
     //file_path = "variance_dataset.csv";
 
@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for result in rdr.deserialize() {
         let record: Record = result?;
         println!("{} {}", record.x_col, record.y_col);
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(5));
     }
 
     Ok(())

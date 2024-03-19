@@ -1,11 +1,10 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::{num, thread, usize};
+use std::{thread, usize};
 use crossbeam::channel::{Receiver, Sender};
 use crate::data_strategy::DataStrategy;
-use crate::interval_data;
 use crate::tier::TierData;
-use std::sync::{Arc, Condvar, RwLock};
+use std::sync::{Arc, RwLock};
 use tokio::time::{self,Duration, Instant};
 use crate::main_functions::process_tier;
 use crate::bin::Bin;
@@ -18,18 +17,15 @@ pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>,
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
-        let mut total_duration = std::time::Duration::new(0, 0);
-        let line_count = 0;
+
         loop {
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        let start = std::time::Instant::now(); // Start timing
-                        raw_data_thread.write().unwrap().append_str(line, start, &mut total_duration);
+                        raw_data_thread.write().unwrap().append_str(line);
                         if let Some(cut_index) = raw_data_thread.write().unwrap().check_cut() {
                             rd_sender.send(cut_index).unwrap();
                         }
-
                     } else {
                         break;
                     }
@@ -52,7 +48,6 @@ pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBoo
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
-        let mut total_duration = std::time::Duration::new(0, 0);
 
         loop {
             if should_halt_clone.load(Ordering::SeqCst) {
@@ -61,14 +56,14 @@ pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBoo
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        let start = std::time::Instant::now(); // Start timing
-                        raw_data_thread.write().unwrap().append_str(line, start,&mut total_duration);
+                        raw_data_thread.write().unwrap().append_str(line);
                     } else {
                         break;
                     }
                 }, 
                 _ = interval.tick() => {
                     let length = raw_data_thread.read().unwrap().get_length();
+                    raw_data_thread.write().unwrap().increment_time();//increment the time every tick
                     rd_sender.send(length).unwrap();
                 }
             }
@@ -82,7 +77,6 @@ pub fn crate_none_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, r
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
-        let mut total_duration = std::time::Duration::new(0, 0);
 
         loop {
             if should_halt_clone.load(Ordering::SeqCst) {
@@ -91,8 +85,7 @@ pub fn crate_none_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, r
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
-                        let start = std::time::Instant::now();
-                        raw_data_thread.write().unwrap().append_str(line, start, &mut total_duration);
+                        raw_data_thread.write().unwrap().append_str(line);
                     } else {
                         break;
                     }
@@ -134,55 +127,6 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
     });
 }
 
-pub fn create_raw_data_to_initial_tier_edge(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
-    thread::spawn(move || {
-        let mut chunk: Vec<[f64;2]>;
-        let mut new_bin_x: Vec<Bin>;
-        let mut new_bin_y: Vec<Bin>;
-        for message in hd_receiver {
-            {
-                let aggregate_thread_raw_data_accessor_lock = raw_data_accessor.write().unwrap();
-                chunk = aggregate_thread_raw_data_accessor_lock.get_chunk(message);
-
-
-                new_bin_x = chunk.iter()
-                .map(|&[x_mean, _]| Bin::new(
-                    x_mean, 
-                    x_mean, 
-                    x_mean, 
-                    x_mean, 
-                    1,   
-                )).collect();
-
-                new_bin_y = chunk.iter()
-                .map(|&[_, y_mean]| Bin::new(
-                    y_mean, // mean
-                    y_mean, // sum
-                    y_mean, // min
-                    y_mean, // max
-                    1,      // count
-                )).collect();
-            }
-
-            {
-                let mut initial_tier_accessor_lock = initial_tier_accessor.write().unwrap();
-                initial_tier_accessor_lock.x_stats.extend(new_bin_x);
-                initial_tier_accessor_lock.y_stats.extend(new_bin_y);
-
-                let length = initial_tier_accessor_lock.x_stats.len();
-            
-                initial_tier_accessor_lock.merge_final_tier_vector_bins(2, length-1,true);
-                initial_tier_accessor_lock.merge_final_tier_vector_bins(2, length-1,false);
-                
-            }
-
-            {
-                let mut aggregate_thread_raw_data_accessor_lock = raw_data_accessor.write().unwrap();
-                aggregate_thread_raw_data_accessor_lock.remove_chunk(message);
-            }
-        }
-    });
-}
 
 pub fn rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>) {
     println!("rd_to_ca_edge");
@@ -191,6 +135,7 @@ pub fn rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Syn
         let mut catch_all_length = 0;
         thread::sleep(Duration::from_secs(1));
         let ca_condition = initial_tier_accessor.read().unwrap().condition;
+        let ca_chunk_size: usize = initial_tier_accessor.read().unwrap().chunk_size;
 
         loop {
 
@@ -199,8 +144,8 @@ pub fn rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Syn
                 {
                 let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
                 catch_all_length = catch_all_tier_write_lock.x_stats.len();
-                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, true);
-                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, false);
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length-1, true);
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length-1, false);
                 }
             }
         seconds_passed += 1;
@@ -215,14 +160,15 @@ pub fn count_rd_to_ca_edge(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send
         let mut catch_all_length = 0;
         thread::sleep(Duration::from_secs(1));
         let ca_condition = initial_tier_accessor.read().unwrap().condition;
+        let ca_chunk_size: usize = initial_tier_accessor.read().unwrap().chunk_size;
 
         loop {
             catch_all_length = initial_tier_accessor.read().unwrap().x_stats.len();
             if catch_all_length == ca_condition {
                 {
                 let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
-                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, true);
-                catch_all_tier_write_lock.merge_final_tier_vector_bins(3, catch_all_length-1, false);
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length-1, true);
+                catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length-1, false);
                 }
             }
         }
@@ -237,6 +183,7 @@ pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
         let mut merged_CA_last_x_element;
         let mut merged_CA_last_y_element;
         let CA_condition = catch_all_tier.read().unwrap().condition;  
+        let ca_chunk_size: usize = catch_all_tier.read().unwrap().chunk_size;
         let mut catch_all_length = 0;  
 
         let mut seconds_passed:usize = 1;
@@ -254,8 +201,8 @@ pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
             catch_all_length = catch_all_tier_write_lock.x_stats.len();
              
             if seconds_passed % CA_condition == 0 {
-                merged_CA_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,catch_all_length, true);
-                merged_CA_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(3,catch_all_length, false);
+                merged_CA_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, true);
+                merged_CA_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, false);
                 //println!("Got the point {:?}", merged_CA_last_x_element);
 
                 let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();

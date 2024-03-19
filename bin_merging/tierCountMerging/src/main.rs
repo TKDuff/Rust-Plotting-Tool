@@ -198,7 +198,8 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let mut tier_plot_lines_length: Vec<usize> = Vec::new();
             let number_of_tiers = self.tiers.len();
 
-            let stdin_tier = self.stdin_tier.read().unwrap().get_raw_data();
+            let stdin_tier: Vec<[f64; 2]> = self.stdin_tier.read().unwrap().get_raw_data();
+
             tier_plot_lines_length.push(stdin_tier.len());     
                         
                     
@@ -250,7 +251,15 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             egui::Area::new("Line Length")
             .fixed_pos(egui::pos2(40.0, 630.0)) //line_length_area_pos
             .show(ui.ctx(), |ui| {
+
+
+                if let Some(time_duration) = self.stdin_tier.read().unwrap().get_time() {
+                    ui.add(egui::Label::new(formatted_label(&format!("Time elapsed in seconds {}", time_duration), Color32::BLACK, 16.0 , true)));
+                }
+
                 
+
+
                 egui::CollapsingHeader::new("Tier Lengths").default_open(true)
                 .default_open(true) // You can set this to false if you want it to start collapsed
                 .show(ui, |ui| {
@@ -380,11 +389,6 @@ fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_
             (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
         })
         .map(|(x_closest, y_closest)| ((*x_closest, *y_closest), tier_index))
-
-        /*
-        Bug occurs with select bin, if click but not in threshold, will return defualt bin, thus set the grid to initial values. In order to overcome this, if no threshold is found.
-        Want to make it that the bin grid updates only when succesfly click on other bin. Can solve this by not returning anything if nothing found. 
-        */
 }  
 
 

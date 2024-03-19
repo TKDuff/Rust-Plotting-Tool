@@ -1,12 +1,13 @@
 use std::time::Duration;
 
 use crate::data_strategy::DataStrategy;
-use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
+use statrs::statistics::{Data, Min, Max,Distribution};
 use crate::bin::Bin;
 
 pub struct IntervalRawData {
     pub condition: usize,
     pub points: Vec<[f64;2]>,
+    pub time: usize
 }
 
 impl IntervalRawData {
@@ -14,8 +15,11 @@ impl IntervalRawData {
         Self { 
             condition: condition,
             points: Vec::new(),
+            time: 0,
+
         }
     }
+
 
     pub fn get_x(&self) -> Vec<f64> {
         self.points.iter().map(|&arr| arr[0]).collect()
@@ -44,16 +48,6 @@ impl DataStrategy for IntervalRawData {
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
 
-        let x_sum_of_squares: f64 = x_vec.iter().map(|&x| (x - x_mean).powi(2)).sum();
-        let y_sum_of_squares: f64 = y_vec.iter().map(|&y| (y - y_mean).powi(2)).sum();
-
-        //Sample variance, not the population variance
-        let x_variance: f64 = x_sum_of_squares / (x.len() as f64 - 1.0);
-        let y_variance: f64 = y_sum_of_squares / (x.len() as f64 - 1.0);
-
-
-        let y_sum: f64 = y_vec.iter().sum();
-
         //let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), sum_of_squares: x_sum_of_squares, variance: x_variance, standard_deviation: x_variance.sqrt() };
         let agg_x_bin = Bin::new(x_mean, x.iter().sum() , x.min(), x.max(), x.len() );
         let agg_y_bin = Bin::new(y_mean, y.iter().sum() , y.min(), y.max(), y.len() ); 
@@ -71,7 +65,7 @@ impl DataStrategy for IntervalRawData {
 
 
 
-    fn append_str(&mut self, line:String, start: std::time::Instant, total_duration: &mut std::time::Duration) {
+    fn append_str(&mut self, line:String) {
         let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
         .collect();
@@ -86,19 +80,11 @@ impl DataStrategy for IntervalRawData {
         }
     }
 
-    fn get_raw_data(&self) -> Vec<[f64; 2]> {
-        self.points.clone().into_iter().collect()
-    }
-
     fn append_point(&mut self, x_value: f64, y_value: f64) {
         self.points.push([x_value, y_value]);
     }
 
-    fn requires_external_trigger(&self) -> bool {
-        true
-    }
-
-    fn get_values(&self) -> Vec<[f64; 2]> {
+    fn get_raw_data(&self) -> Vec<[f64; 2]> {
         self.points.clone().into_iter().collect()
     }
 
@@ -126,5 +112,13 @@ impl DataStrategy for IntervalRawData {
 
     fn get_condition(&self) -> usize {
         self.condition
+    }
+
+    fn increment_time(&mut self) {
+        self.time += 1;
+    }
+
+    fn get_time(&self) -> Option<usize> {
+        Some(self.time)
     }
 }

@@ -14,4 +14,4 @@ pub use self::interval_data::IntervalRawData;
 pub use self::data_strategy::DataStrategy;
 pub use self::tier::TierData;
 pub use self::main_functions::{process_tier, setup_my_app};
-pub use self::main_threads::{create_raw_data_to_initial_tier, count_check_cut_ca, create_raw_data_to_initial_tier_edge, create_count_stdin_read, interval_check_cut_ca, rd_to_ca_edge};
+pub use self::main_threads::{create_raw_data_to_initial_tier, count_check_cut_ca, create_count_stdin_read, interval_check_cut_ca, rd_to_ca_edge};
