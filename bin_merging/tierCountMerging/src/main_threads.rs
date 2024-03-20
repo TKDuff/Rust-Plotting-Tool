@@ -7,7 +7,6 @@ use crate::tier::TierData;
 use std::sync::{Arc, RwLock};
 use tokio::time::{self,Duration, Instant};
 use crate::main_functions::process_tier;
-use crate::bin::Bin;
 use tokio::runtime::Runtime;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 
@@ -121,7 +120,7 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
                 initial_tier_lock.x_stats.push(aggregated_raw_data.0);
                 initial_tier_lock.y_stats.push(aggregated_raw_data.1);
             }
-            println!("Initial merge second is {}", initial_tier_accessor.read().unwrap().time_passed.unwrap());
+            //println!("Initial merge second is {}", initial_tier_accessor.read().unwrap().time_passed.unwrap());
         }   
     });
 }
@@ -152,23 +151,18 @@ pub fn interval_rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
         loop {
             //if users selects '0C0' for catch-all-only edge case, no point in trying to modulo seconds passed by 0 (ca_condition in this case). This loop is polling nothing, should be removed
             if ca_condition != 0 &&  seconds_passed % ca_condition == 0 {
-                println!("merge sec {}", seconds_passed); 
+                //println!("merge sec {}", seconds_passed); 
                 {
                 let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
                 catch_all_length = catch_all_tier_write_lock.x_stats.len()-1;
                 catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, true);
                 catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, false);
-                // println!("After meging the tier it becomes");
-                // for bin in &catch_all_tier_write_lock.y_stats {
-                //     print!("{}, ", bin.mean);
-                // }
-                // println!("\n"); 
                 }
             }
         initial_tier_accessor.write().unwrap().time_passed = Some(seconds_passed);
         seconds_passed += 1;
         //println!("Seconds passed {}", seconds_passed);
-        thread::sleep(Duration::from_millis(1010));
+        thread::sleep(Duration::from_millis(1000));
         }
     });
 }
@@ -256,7 +250,7 @@ pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
             }
         catch_all_tier.write().unwrap().time_passed = Some(seconds_passed);
         seconds_passed += 1;
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_millis(1000));
     }
 });
 }

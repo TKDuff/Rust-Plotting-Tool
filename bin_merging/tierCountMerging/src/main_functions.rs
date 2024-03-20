@@ -94,11 +94,13 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
     Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy ,should_halt, num_tiers))
 }
 
+//creates the intermediate and catch all tiers based on the user command line arguments
 fn create_count_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<TierData>>>, bool) {
+    //vector that stores all the tiers
     let mut tiers = Vec::new();
-    let catch_all_policy;
+    let catch_all_policy: bool;   //flag if catch all policy 
 
-    if num_tiers == 4 { //if there is only a sinlge argument, beside the raw data argument
+    if num_tiers == 4 { //if there is only a tier argument, then only need to create the catch all
         let (condition, chunk_size, catch_all) =  create_count_catch_all(args, num_tiers-1);
         tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size, None))) );
         catch_all_policy = catch_all
