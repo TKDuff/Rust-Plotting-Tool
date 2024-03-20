@@ -127,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     fn setup_interval(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
         if num_tiers == 4 {
-            main_threads::rd_to_ca_edge(initial_tier_accessor);
+            main_threads::interval_rd_to_ca_edge(initial_tier_accessor);
         } else {
             let num_tiers = tier_vector.len();
             let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
@@ -252,10 +252,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             .fixed_pos(egui::pos2(40.0, 630.0)) //line_length_area_pos
             .show(ui.ctx(), |ui| {
 
-
-                // if let Some(time_duration) = self.stdin_tier.read().unwrap().get_time() {
-                //     ui.add(egui::Label::new(formatted_label(&format!("Time elapsed in seconds {}", time_duration), Color32::BLACK, 16.0 , true)));
-                // }
                 let seconds_passed = self.tiers[number_of_tiers-1].read().unwrap().time_passed;
                 if seconds_passed.is_some() {
                     ui.add(egui::Label::new(formatted_label(&format!("Time elapsed in seconds {}", seconds_passed.unwrap()), Color32::BLACK, 16.0 , true)));
@@ -272,7 +268,12 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                         ui.add(egui::Label::new(formatted_label(&format!("Edge case Tier {}: {}", 1, tier_plot_lines_length[1]-1), Color32::BLACK, 16.0 , false)));
                     } else {
                         for i in 1..=number_of_tiers { 
-                            ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 , false)));
+                            let display_length = if tier_plot_lines_length[i] >= 2 {
+                                tier_plot_lines_length[i] - 2
+                            } else {
+                                tier_plot_lines_length[i]
+                            };
+                            ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, display_length), Color32::BLACK, 16.0 , false)));
                         } 
                     }
                 

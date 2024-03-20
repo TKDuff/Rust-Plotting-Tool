@@ -127,8 +127,21 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
 }
 
 
-pub fn rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
-    println!("rd_to_ca_edge");
+pub fn interval_rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
+    println!("interval_rd_to_ca_edge");
+
+    /*
+    Edge case, just like count_rd_to_ca_edge
+    If user only has stdin_data tier & catch-all-tier with no intermediate tiers this thread is spawned
+    The catch-all-tier becomes the initial tier (tier 1)
+    Since t1 contains a reference to the first element of the stdin_data tier, in this case the catch-all-tier contains a reference to the first point of stdin_data
+    This catch-all-tier does not just contain bins, the final element is an un-aggregated x,y point from stdin_data
+    Different to non-edge case catch all tier which only contains bins in its tier, the last element of it is the final bin of the tier. No reference to next tier.
+
+    This difference means that the length includes an additional non-bin. 
+    As not a bin, final element of tier vector excluded. Thus the length is decremented by 1.
+    
+     */
     thread::spawn(move || {
         let mut seconds_passed: usize = 1;
         let mut catch_all_length: usize;
@@ -137,8 +150,8 @@ pub fn rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
         let ca_chunk_size: usize = initial_tier_accessor.read().unwrap().chunk_size;
 
         loop {
-            //println!("Tick {} ", seconds_passed);  
-            if seconds_passed % ca_condition == 0 {
+            //if users selects '0C0' for catch-all-only edge case, no point in trying to modulo seconds passed by 0 (ca_condition in this case). This loop is polling nothing, should be removed
+            if ca_condition != 0 &&  seconds_passed % ca_condition == 0 {
                 println!("merge sec {}", seconds_passed); 
                 {
                 let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
@@ -154,6 +167,7 @@ pub fn rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
             }
         initial_tier_accessor.write().unwrap().time_passed = Some(seconds_passed);
         seconds_passed += 1;
+        //println!("Seconds passed {}", seconds_passed);
         thread::sleep(Duration::from_secs(1));
         }
     });
@@ -239,6 +253,7 @@ pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
                 //println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.x_stats[0]);
             }
             }
+        catch_all_tier.write().unwrap().time_passed = Some(seconds_passed);
         seconds_passed += 1;
         thread::sleep(Duration::from_secs(1));
     }
