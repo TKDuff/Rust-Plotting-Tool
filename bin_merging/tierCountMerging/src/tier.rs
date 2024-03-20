@@ -71,12 +71,12 @@ impl TierData {
 
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
         
-        println!("To merge bins means are: ");
-        if x {
-            for bin in &self.y_stats {
-                print!("{}, ", bin.mean);
-            }
-        }
+        // println!("To merge bins means are: ");
+        // if x {
+        //     for bin in &self.y_stats {
+        //         print!("{}, ", bin.mean);
+        //     }
+        // }
 
 
         let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};       
@@ -102,7 +102,7 @@ impl TierData {
 
         to_merge.drain(0..length);
         to_merge.splice(0..0, temp_bins);
-        println!("\n");
+        //println!("\n");
 
         to_merge[to_merge.len()-1]        
     }

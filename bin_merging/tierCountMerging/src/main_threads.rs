@@ -121,7 +121,7 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
                 initial_tier_lock.x_stats.push(aggregated_raw_data.0);
                 initial_tier_lock.y_stats.push(aggregated_raw_data.1);
             }
-            
+            println!("Initial merge second is {}", initial_tier_accessor.read().unwrap().time_passed.unwrap());
         }   
     });
 }
@@ -158,17 +158,17 @@ pub fn interval_rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
                 catch_all_length = catch_all_tier_write_lock.x_stats.len()-1;
                 catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, true);
                 catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, false);
-                println!("After meging the tier it becomes");
-                for bin in &catch_all_tier_write_lock.y_stats {
-                    print!("{}, ", bin.mean);
-                }
-                println!("\n"); 
+                // println!("After meging the tier it becomes");
+                // for bin in &catch_all_tier_write_lock.y_stats {
+                //     print!("{}, ", bin.mean);
+                // }
+                // println!("\n"); 
                 }
             }
         initial_tier_accessor.write().unwrap().time_passed = Some(seconds_passed);
         seconds_passed += 1;
         //println!("Seconds passed {}", seconds_passed);
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_millis(1010));
         }
     });
 }
@@ -230,10 +230,11 @@ pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
         let mut seconds_passed:usize = 1;
         thread::sleep(Duration::from_secs(1));
         loop { 
-            println!("Tick {} ", seconds_passed);  
+            //println!("Tick {} ", seconds_passed);  
             for tier in 0..=(num_tiers-2) {
                 if seconds_passed % tier_vector[tier].read().unwrap().condition == 0 {
                     let tier_length = tier_vector[tier].read().unwrap().x_stats.len();
+                    println!("Tier {} and seconds passed {}", tier, seconds_passed);
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], tier_length)
                 }
             }         
