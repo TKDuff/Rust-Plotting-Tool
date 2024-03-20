@@ -5,15 +5,17 @@ pub struct TierData {
     pub y_stats: Vec<Bin>,
     pub condition: usize,
     pub chunk_size: usize,
+    pub time_passed: Option<usize>,
 }
 
 impl TierData {
-    pub fn new(condition: usize, chunk_size: usize) -> Self {
+    pub fn new(condition: usize, chunk_size: usize, time_passed: Option<usize>) -> Self {
         Self { 
             x_stats: vec![Bin::default()],
             y_stats: vec![Bin::default()],
             condition: condition,
-            chunk_size: chunk_size
+            chunk_size: chunk_size,
+            time_passed: time_passed,
         }
     }
 
@@ -68,22 +70,40 @@ impl TierData {
 
 
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
-        let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};
+        
+        println!("To merge bins means are: ");
+        if x {
+            for bin in &self.y_stats {
+                print!("{}, ", bin.mean);
+            }
+        }
 
+
+        let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};       
+
+        //this chunking does introduce a rounding error since the mean is the sum divided by the count, done each time again and again introduce the floating error
         let temp_bins = to_merge[..length].chunks(chunk_size).map(|chunk| {
             let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
             let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
             let chunk_min = chunk.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
             let chunk_max = chunk.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
             let chunk_mean:f64 = if chunk_count > 0 { chunk_sum / chunk_count as f64 } else { 0.0 };
- 
+
+            // for bin in chunk {
+            //     let bin_mean = if bin.count > 0 { bin.sum / bin.count as f64 } else { 0.0 };
+            //     println!("Bin mean: {}", bin_mean);
+            // }
+            // println!("Combined mean is {}", chunk_mean);
 
             //Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: chunk_sum_of_squares, variance: chunk_variance, standard_deviation: chunk_variance.sqrt()}
             Bin::new(chunk_mean, chunk_sum, chunk_min, chunk_max, chunk_count)
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
 
+
         to_merge.drain(0..length);
         to_merge.splice(0..0, temp_bins);
+        println!("\n");
+
         to_merge[to_merge.len()-1]        
     }
 
@@ -92,6 +112,7 @@ impl TierData {
             .map(|(x, y)| [x.mean, y.mean]) // Assuming index 5 is the mean
             .collect()
     }
+
 
     /*If x_plots true return attributes in order to create box plot 
     Notice, how the x_stats is returned as the final value in both cases. This is specific scenario when creating the y_stats box plots
@@ -115,7 +136,18 @@ impl TierData {
                 print!("{}, ", bin.mean);
             }
             println!("\n");
+    }
+
+    pub fn print_y_means_in_range(&self, start: usize, end: usize) {
+        //let end_index = std::cmp::min(end, self.x_stats.len());
+        //let start_index = std::cmp::max(start, 0);
+
+        println!("Mean: ");
+        for bin in &self.y_stats[start..end] {
+            print!("{}, ", bin.mean);
         }
+        println!("\n");
+}
         
 }
 
@@ -141,7 +173,7 @@ mod tests {
             
         ];
 
-        let tier_data = TierData::new(0, 0);
+        let tier_data = TierData::new(0, 0, None);
         let merged_bin = tier_data.merge_vector_bins(&bins);
 
         assert_eq!(merged_bin.mean,  113.17637313432836);
@@ -166,7 +198,7 @@ mod tests {
             Bin::new(3000.876, 6000.321, 2500.654, 3500.789, 2),    
         ];  
 
-        let mut tier_data = TierData::new(0, 0);
+        let mut tier_data = TierData::new(0, 0, None);
         tier_data.x_stats = bins.clone();
         tier_data.y_stats = bins;
         let merged_x_bin = tier_data.merge_final_tier_vector_bins(3, 10, true); //test for merging the tier x bin vector

@@ -66,6 +66,9 @@ impl DataStrategy for IntervalRawData {
 
 
     fn append_str(&mut self, line:String) {
+        //println!("{}", line);
+
+
         let values_result: Result<Vec<f64>, _> = line.split(' ')
         .map(|s| s.trim().parse::<f64>())
         .collect();
@@ -112,13 +115,5 @@ impl DataStrategy for IntervalRawData {
 
     fn get_condition(&self) -> usize {
         self.condition
-    }
-
-    fn increment_time(&mut self) {
-        self.time += 1;
-    }
-
-    fn get_time(&self) -> Option<usize> {
-        Some(self.time)
     }
 }

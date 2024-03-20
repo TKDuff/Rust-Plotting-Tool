@@ -112,14 +112,6 @@ impl DataStrategy for CountRawData {
         self.condition
     }
 
-    fn increment_time(&mut self) {
-        //No implementation, will never be used   
-    }
-    fn get_time(&self) -> Option<usize> {
-        None//No implementation, will never be used
-    }
-
-
 }
 
 #[cfg(test)]

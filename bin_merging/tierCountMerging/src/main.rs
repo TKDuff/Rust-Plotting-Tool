@@ -109,7 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     fn setup_count(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
         if num_tiers == 4 {
-            main_threads::count_rd_to_ca_edge(raw_data_accessor, initial_tier_accessor); 
+            main_threads::count_rd_to_ca_edge(initial_tier_accessor); 
         } else {
             let num_tiers = tier_vector.len();
             let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
@@ -127,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     fn setup_interval(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
         if num_tiers == 4 {
-            main_threads::rd_to_ca_edge(raw_data_accessor, initial_tier_accessor);
+            main_threads::rd_to_ca_edge(initial_tier_accessor);
         } else {
             let num_tiers = tier_vector.len();
             let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
@@ -253,20 +253,30 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             .show(ui.ctx(), |ui| {
 
 
-                if let Some(time_duration) = self.stdin_tier.read().unwrap().get_time() {
-                    ui.add(egui::Label::new(formatted_label(&format!("Time elapsed in seconds {}", time_duration), Color32::BLACK, 16.0 , true)));
+                // if let Some(time_duration) = self.stdin_tier.read().unwrap().get_time() {
+                //     ui.add(egui::Label::new(formatted_label(&format!("Time elapsed in seconds {}", time_duration), Color32::BLACK, 16.0 , true)));
+                // }
+                let seconds_passed = self.tiers[number_of_tiers-1].read().unwrap().time_passed;
+                if seconds_passed.is_some() {
+                    ui.add(egui::Label::new(formatted_label(&format!("Time elapsed in seconds {}", seconds_passed.unwrap()), Color32::BLACK, 16.0 , true)));
                 }
-
-                
 
 
                 egui::CollapsingHeader::new("Tier Lengths").default_open(true)
                 .default_open(true) // You can set this to false if you want it to start collapsed
                 .show(ui, |ui| {
                     ui.add(egui::Label::new(formatted_label(&format!("Stdin data: {}", tier_plot_lines_length[0]), Color32::BLACK, 16.0 , false)));
-                    for i in 1..=number_of_tiers {   //have to increment by 1 for case when there is only single catch all
-                        ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 , false)));
-                    }});
+
+
+                    if number_of_tiers == 1 {
+                        ui.add(egui::Label::new(formatted_label(&format!("Edge case Tier {}: {}", 1, tier_plot_lines_length[1]-1), Color32::BLACK, 16.0 , false)));
+                    } else {
+                        for i in 1..=number_of_tiers { 
+                            ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, tier_plot_lines_length[i]), Color32::BLACK, 16.0 , false)));
+                        } 
+                    }
+                
+                });
             });
 
             let click = ctx.input(|i| i.pointer.any_click());

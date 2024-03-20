@@ -12,6 +12,4 @@ pub trait DataStrategy: Send + Sync {
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]>;
     fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (Bin, Bin, Bin, Bin);
     fn get_condition(&self) -> usize;
-    fn increment_time(&mut self); //this function is only used for the interval_data struct, not for count_data. Not good practice to put it here. 
-    fn get_time(&self) -> Option<usize>;
 }

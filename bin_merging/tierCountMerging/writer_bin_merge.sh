@@ -1,11 +1,13 @@
 #!/bin/bash
 #Change the argument after count to set the tiers
 
-#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging "count" "40" "10" "100C2")
-#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "5" "5" "5" "0C0"  )
+(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging "count" "20" "9C3")
+#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "7" "3" "9C3"  )
+#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "7" "5" "5" "5" "0C0"  )
 #(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "count" "20" "60" "6" "10C2"  )
 #(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "0C0"  )
-(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "10SC100"  )
+#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "9SC3"  )
+#(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "10SC100"  )
 #(cd ../../writer/ && cargo run --bin writer) | (cargo run --bin tierCountMerging -- "interval" "1S" "10S" "1M" "15MC2"  )
 
 

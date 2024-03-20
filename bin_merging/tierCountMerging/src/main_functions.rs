@@ -15,6 +15,8 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
     let current_tier_y_average;
     {
         let mut current_tier_lock = current_tier.write().unwrap();
+        //print!("Before merge: ");
+        //current_tier_lock.print_y_means_in_range(0, cut_length);
         let vec_slice = current_tier_lock.get_slices(cut_length);
         current_tier_x_average = current_tier_lock.merge_vector_bins(vec_slice.0);
         current_tier_y_average = current_tier_lock.merge_vector_bins(vec_slice.1);
@@ -22,13 +24,13 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
 
         current_tier_lock.x_stats[0] = current_tier_x_average;
         //println!("The merged x stat is {}", current_tier_x_average.mean);
-        current_tier_lock.x_stats.drain(1..vec_len-1);
-        //print!("After merge: ");
-        //current_tier_lock.print_x_means_in_range(0, 2);
-        
+        current_tier_lock.x_stats.drain(1..vec_len-1);        
 
         current_tier_lock.y_stats[0] = current_tier_y_average;
         current_tier_lock.y_stats.drain(1..vec_len-1);
+
+        //print!("After merge: ");
+        //current_tier_lock.print_y_means_in_range(0, 2);
     }
 
     {
@@ -98,7 +100,7 @@ fn create_count_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<Tie
 
     if num_tiers == 4 { //if there is only a sinlge argument, beside the raw data argument
         let (condition, chunk_size, catch_all) =  create_count_catch_all(args, num_tiers-1);
-        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size))) );
+        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size, None))) );
         catch_all_policy = catch_all
     } else {
         for i in 3..num_tiers-1 {
@@ -106,10 +108,10 @@ fn create_count_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<Tie
             .and_then(|arg| arg.parse::<usize>().ok())
             .unwrap_or_default();
 
-        tiers.push( Arc::new(RwLock::new(TierData::new( condition, 0))) );
+        tiers.push( Arc::new(RwLock::new(TierData::new( condition, 0, None))) );
         }
         let (condition, chunk_size, catch_all) =  create_count_catch_all(args, num_tiers-1);
-        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size))) );
+        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size, None))) );
         catch_all_policy = catch_all
     }
 
@@ -123,7 +125,7 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
 
     if num_tiers == 4 {
         let (condition, chunk_size, catch_all) = create_interval_catch_all(args, num_tiers-1);
-        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size))) );
+        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size, Some(0)))) );
         catch_all_policy = catch_all
     } else {
         for i in 3..num_tiers - 1 {
@@ -134,7 +136,7 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
                 panic!("The intervals should be in ascending order");
             }
             previous_condition = condition;
-            tiers.push( Arc::new(RwLock::new(TierData::new( condition, 0))) );
+            tiers.push( Arc::new(RwLock::new(TierData::new( condition, 0, None))) );
         }
         let (condition, chunk_size, catch_all) = create_interval_catch_all(args, num_tiers-1);
 
@@ -142,14 +144,14 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
             panic!("The intervals should be in ascending order");
         }
     
-        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size))) );
+        tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size, Some(0)))) );
         catch_all_policy = catch_all
     }
     (tiers, catch_all_policy)
 }
 
 fn create_dummy_tier () -> (Vec<Arc<RwLock<TierData>>>, bool) {
-    let tiers = vec![Arc::new(RwLock::new(TierData::new(0, 0)))]; 
+    let tiers = vec![Arc::new(RwLock::new(TierData::new(0, 0, None)))]; 
 
     (tiers, true)
 }
@@ -300,8 +302,8 @@ mod tests {
 
     #[test]
     fn test_process_tier() {
-        let mut current_tier_data = Arc::new(RwLock::new(TierData::new(0, 0)));
-        let mut previous_tier_data = Arc::new(RwLock::new(TierData::new(0, 0)));
+        let mut current_tier_data = Arc::new(RwLock::new(TierData::new(0, 0, None)));
+        let mut previous_tier_data = Arc::new(RwLock::new(TierData::new(0, 0, None)));
         let x_dummy_bins = Bin::create_uniform_bins(5.0, 10); // for example: 5 bins with all values set to 5.0
         current_tier_data.write().unwrap().x_stats = x_dummy_bins.clone();
         current_tier_data.write().unwrap().y_stats = x_dummy_bins;
