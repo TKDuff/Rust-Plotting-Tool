@@ -727,9 +727,9 @@ Red
 Blue
 Green
 Yellow
+Purple
 Brown
 Black
-Grey
 
 No longer going to use pooled variance, as there is no way to combine variance of two or more bins accruately going to use a wieghted estimate.
 Pooled assumes both populations variance are the same [1], however we know bins usually don't contain same variance 
@@ -742,3 +742,40 @@ Since we can't assume the variance of two bins are the same, then weighted varia
 Using weighted variance instead of actual variance. Go to '~/FinalYearProject/online-graph/PythonMocking/BinMergeTesting'
 Run the python scripts 'weightedVariance4Bins.py' and 'pooledVarianceBreak4Bins.py'
 The weighted is closer than the pooled when tested, so going to go with that
+
+## 19-03 Intermediate merging conclusion
+You are going to stick with the current version of intermediate tiering despite its problem
+
+Every tier contains a reference to 
+* The last element of the tier behind them, a merged bin which was originally the bins of the current tier, in the first element
+* Thus, every tiers first element is the merged bin they produced on the last merge. 
+
+When a bin is merged, the first and last element of the tier are excluded
+1) First excluded as it belongs to the tier below them, that bin is the previous tier final bin
+2) **caveat here** Altough the final tier bin belongs to the tier, since it is also owned by the tier ahead, in order for plot consistency between the lower tier and the upper tier, it is excluded. 
+
+When the tier is merged, the middle elements are merged, excluding the first and last. 
+The last element of the tier is replaced with the newly created bin value, while the final bin remains. 
+
+The final bin (unchanged) belongs to the tier above, thus the line produced by this tier goes from the lower tier final bin (first element of current tier) to the upper tier first bin (last element of current tier)
+**The thing to keep in mind is that the first element of every tier does not belong to it, that bin is the last bin of the tier below**
+Thus, all tiers contain a merged tier bin of their respective tier.
+
+Upon merging a tier, the last tier bin is not included
+
+Minimum possible size is 3, single bin added. 
+Since mimimum size is 3, if user wants to merge bin every 1 point, 
+* increment every tier argument by 2, merge condition does not take into account tier always contain two elements
+
+
+## Catch all tier different behaviour depending on whether intermediate tiers 
+
+
+
+## Minus two from display length
+Upon merging a tier, then length by right goes to 0 
+Thus, on the GUI, when a tier is merged the length goes down to 0
+So if count merge condition is 8, then on 8th point goes to 0, so on GUI sees 7 -> 0
+The user doesn't see 8, instead 7, then merge, as 8 is what to merge on
+
+If user sets merge condition to 1, then GUI lengths always 0, as when reach 1 that is the merge, goes back to 0
