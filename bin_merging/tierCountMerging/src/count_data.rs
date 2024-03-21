@@ -61,7 +61,7 @@ impl DataStrategy for CountRawData {
     }
 
     fn append_str(&mut self, line:String) {
-        println!("{}", line);
+        //println!("{}", line);
 
 
         let values_result: Result<Vec<f64>, _> = line.split(' ')
@@ -105,7 +105,12 @@ impl DataStrategy for CountRawData {
     }
 
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-        self.points[0..count+1].to_vec()
+        // if count + 1 > self.points.len() {
+        //     //error trying to get slice that is above length 
+        //     self.points.to_vec()
+        // } else {
+            self.points[0..count + 1].to_vec()
+        // }
     }
 
     fn get_condition(&self) -> usize {

@@ -320,7 +320,7 @@ pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tie
 
             let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();
 
-            if catch_all_tier_write_lock.x_stats.len() == ca_condition {
+            if catch_all_tier_write_lock.x_stats.len() >= ca_condition {
                 
                 merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, true);
                 merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, false);

@@ -31,7 +31,7 @@ struct MyApp {
     should_halt: Arc<AtomicBool>,
     line_plot: bool,
     clicked_bin:  Option<((Bin, Bin), usize)>,
-    colours: [Color32; 6],    //maintain line colours between repaints
+    colours: [Color32; 7],    //maintain line colours between repaints
     selected_line_index: usize,
 }
 
@@ -43,7 +43,7 @@ impl MyApp {
         should_halt: Arc<AtomicBool>,
         line_plot: bool,
         selected_line_index: usize,
-        colours: [Color32; 6],
+        colours: [Color32; 7],
     ) -> Self {
         let default_bin = Bin::new(0.0, 0.0, 0.0, 0.0, 0);
         Self { stdin_tier, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
 
     let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
-    let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::BLACK, Color32::BROWN, Color32::YELLOW];
+    let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN,  Color32::YELLOW, Color32::from_rgb(128, 0, 128) ,Color32::BLACK, Color32::BROWN]; //rgb is purple
     let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, true,0, colours);
 
     /*If no strategy selected, so just the raw data, then don't need to run all this code, can just run the tokio thread to read in raw data */
@@ -274,10 +274,9 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                                 tier_plot_lines_length[i]
                             };
                             ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", i, display_length), Color32::BLACK, 16.0 , false)));
-                        } 
+                        }
+                        ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", number_of_tiers, tier_plot_lines_length[number_of_tiers]), Color32::BLACK, 16.0 , false)));
                     }
-
-                    ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", number_of_tiers, tier_plot_lines_length[number_of_tiers]), Color32::BLACK, 16.0 , false)));
                 
                 });
             });
