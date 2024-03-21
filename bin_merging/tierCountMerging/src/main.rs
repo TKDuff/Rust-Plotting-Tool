@@ -281,16 +281,30 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 });
             });
 
-            let click = ctx.input(|i| i.pointer.any_click());
+            let click = ctx.input(|i| i.pointer.any_click()); //on click listener
 
-            //refactor this
+            /*If the user clicks on either
+            1) Line plot point
+            2) Box plot middle line (mean in this case)
+            The x and y bin information for that point is shown
+            Egui does not have a built in on plot point click method, have to make it manually
+             */
             if click {
-                let tier_index = plot_responese.hovered_plot_item
-                .and_then(|id| (0..self.tiers.len()).find(|&i| id == egui::Id::new(i)))
+                /*
+                This part gets index of tier line clicked on
+                - plot_responese.hovered_plot_item gets ID of tier line clicked on, returns Option
+                - and_then executes only if plot_response not None.
+                - If some value,Find iterates over all tiers, to find tier which matches the clicked tier index ID. If not found, return None
+                - if click not on tier line return max value, could be any value
+                 */
+                let tier_index = plot_responese.hovered_plot_item   
+                .and_then(|id| (0..self.tiers.len()).find(|&i| id == egui::Id::new(i))) 
                 .unwrap_or_else(|| usize::MAX);
-            
+
+
                 if tier_index != usize::MAX {
-                if let Some(new_clicked_bin) = find_closest(position, &self.tiers[tier_index], tier_index) {
+                //call method to get specific clicked point x & bin, pass 'position' which is the mouse position at the time of clicking
+                if let Some(new_clicked_bin) = find_closest(position, &self.tiers[tier_index], tier_index, tier_plot_lines_length[tier_index]) {
                     self.clicked_bin = Some(new_clicked_bin);
                 }
                 }
@@ -301,8 +315,16 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             .fixed_pos(egui::pos2(400.0, 630.0))
             .show(ui.ctx(), |ui| {
                 ui.heading(formatted_label("  Selected Bin Information", Color32::LIGHT_YELLOW, 20.0, true));
+
+                /*Clicked bin information used here, for the statistics box
+                - Obtain the clicked x & y bin information
+                - tier_index is used to index into 'colours' array, to display the correct background colour
+                - edge case exists, if have 7 tiers (limit, only 7 colours exist in array) and click on first element of final tier (left edge of plot)
+                  due to 'final_index' condition (of find_closest() method) then index of 6 is returned, for index of previous tier, however previous tier doesn't exist
+                  Solve by ensuring if 6 is returned then don't increment by 1, so don't return index of previous tier. 
+                 */
                 if let Some(((x_bin, y_bin), tier_index)) = self.clicked_bin {
-                    let colour = self.colours[tier_index + 1];
+                    let colour = if tier_index == 6 {self.colours[tier_index]} else { self.colours[tier_index + 1]};
                     bin_grid_helper(ui, &x_bin, &y_bin, colour, tier_index+1); //lazy to increment one twice, but the function does not have a reference to self, so need pass colour
                 } 
             });
@@ -388,19 +410,45 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
     }
 }
 
-
-fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_index: usize) -> Option<((Bin, Bin), usize)> {
+/*Method  that returns clicked point bin information, arguments are...
+- mouse x,y position
+- index of tier line clicked
+- tier line vector length
+*/
+fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_index: usize, tier_length: usize) -> Option<((Bin, Bin), usize)> {
     let plot_point = position?;
     let x = plot_point.x;
     let y = plot_point.y;
     let tier_data = tier.read().unwrap();
 
-    let tolerance = 5.0;
-    tier_data.x_stats.iter().zip(tier_data.y_stats.iter())
-        .find(|&(x_bin, y_bin)| {
-            (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
-        })
-        .map(|(x_closest, y_closest)| ((*x_closest, *y_closest), tier_index))
+    let tolerance = 5.0; //since index found using mouse co-ordinates, allow tolerance for mouse that may not be exactly hovering over point
+
+    /*Key part
+    Iterates over every item in tiers x_stats and y_stats vector
+    Compares means of both vectors to corresponding mouse co-ordinates (x_stats ith element mean compared to mouse x co-ordinates, same for y )
+    The tiers bins whose x & y means are equal to mouse x,y co-ordinates (within tolerance of five) are identified as the clicked point
+    Those are the bins to display the information to the user 
+    */
+    tier_data.x_stats.iter().zip(tier_data.y_stats.iter()).enumerate()
+    .find(|&(_, (x_bin, y_bin))| {
+        (x - x_bin.get_mean()).abs() <= tolerance && (y - y_bin.get_mean()).abs() <= tolerance
+    })
+
+    /*Map chained with 'find', used to convert results of 'find' (the found x & y bin index) to different format 
+    Find function return Option<bin, bin>, have to extract bins from Response. If response contain None then nothing done
+    If Find fond the 2 bins, the this map extracts the 2 bins and the index, returning Option<((Bin, Bin), usize)>
+
+    Edge case does exist, a tier vectors first element is also the last element of previous tier, both contain the same bin information
+    If click on first point of a tier line, that is actually the last bin of the tier behind it
+    Thus, the bin information box ,'Selected Bin Information' would show the correct bin information however the colour/tier number would be for the tier infront
+    To solve this, have condition that if first element of tier vector is clicked, then return index of previous tier (the tier the bin belongs to)
+    */
+    .map(|(index, (x_closest, y_closest))| {
+        println!("You clicked on the index {}", index);
+        let final_index = if index == 0 { tier_index+1 } else { tier_index };
+        ((x_closest.clone(), y_closest.clone()), final_index)
+    })
+
 }  
 
 

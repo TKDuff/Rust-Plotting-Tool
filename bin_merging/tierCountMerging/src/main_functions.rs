@@ -15,8 +15,8 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
     let current_tier_y_average;
     {
         let mut current_tier_lock = current_tier.write().unwrap();
-        print!("Before merge: ");
-        current_tier_lock.print_y_means_in_range(0, cut_length);
+        // print!("Before merge: ");
+        // current_tier_lock.print_y_means_in_range(0, cut_length);
         let vec_slice = current_tier_lock.get_slices(cut_length);
         current_tier_x_average = current_tier_lock.merge_vector_bins(vec_slice.0);
         current_tier_y_average = current_tier_lock.merge_vector_bins(vec_slice.1);
@@ -29,8 +29,8 @@ pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<Rw
         current_tier_lock.y_stats[0] = current_tier_y_average;
         current_tier_lock.y_stats.drain(1..vec_len-1);
 
-        print!("After merge: ");
-        current_tier_lock.print_y_means_in_range(0, 2);
+        // print!("After merge: ");
+        // current_tier_lock.print_y_means_in_range(0, 2);
     }
 
     {

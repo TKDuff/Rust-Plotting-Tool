@@ -18,6 +18,9 @@ pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>,
         let mut lines = reader.lines();
 
         loop {
+            if should_halt_clone.load(Ordering::SeqCst) {
+                break; // Exit the loop if the atomic bool is true
+            }
             tokio::select! {
                 line = lines.next_line() => {
                     if let Ok(Some(line)) = line {
