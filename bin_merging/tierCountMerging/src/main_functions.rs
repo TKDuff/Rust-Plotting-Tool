@@ -46,19 +46,15 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
     let args: Vec<String> = env::args().collect();
     let mut data_strategy: String;
     let stdin_tier: usize; 
-
-    //Cannot have more than 7 tiers, see error printed for rules
-    if args.len()-2 > 7 {
-        eprint!("Error\nMaximum of 7 tiers allowed, {} were specified\nCannot have more than 5 intermediate tiers\nCan only have 1 stdin tier and final (catch all) tier\n", args.len()-2);
-        std::process::exit(1);
-    }
-
     
-    if args.len() == 1 { //Case when user does not any tiering*/
-        println!("No arguments");
+    if args.len() == 1 { //Case when user does not any tiering
+        //println!("No arguments");
         data_strategy = "None".to_string();
     }  else if (args[1] == "--help") || (args[1] == "--h") {
         print_help();
+        std::process::exit(1);
+    } else if args.len()-2 > 7 {    //Cannot have more than 7 tiers, see error printed for rules
+        eprint!("Error\nMaximum of 7 tiers allowed, {} were specified\nCannot have more than 5 intermediate tiers\nCan only have 1 stdin tier and final (catch all) tier\n", args.len()-2);
         std::process::exit(1);
     } else {
         data_strategy = args[1].clone();
@@ -153,7 +149,7 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
 
             //Ensure the current condition is greater than the previous one. Does not make sense for the times to be out of order
             if condition <= previous_condition {
-                eprintln!("Error: The intervals should be in ascending order\n");
+                eprintln!("Error: The intervals should be in ascending order\nuse the argument \"--help\" or \"-h\" to print help on how to use the application\n");
             }
             previous_condition = condition;
             tiers.push( Arc::new(RwLock::new(TierData::new( condition, 0, None))) ); //create tier, only pass condition. No need for chunk size or to record time
@@ -161,12 +157,15 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
         let (condition, chunk_size, catch_all) = create_interval_catch_all(args, num_tiers-1); //create catch-all tier after all intermediate created
 
         if condition <= previous_condition && condition != 0 { //ensure catch all interval duration greater than all other tiers (previous one). Exclude 0 for '0C0' case
-            eprintln!("Error: The intervals should be in ascending order\n");
+            eprintln!("Error: The intervals should be in ascending order\nuse the argument \"--help\" or \"-h\" to print help on how to use the application\n");
         }
     
         tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size, Some(0)))) );
         catch_all_policy = catch_all
     }
+    println!("The num tiers is {}", tiers.len());
+    println!("Tier 1 {}", tiers[0].read().unwrap().condition);
+    println!("Tier 2 {}", tiers[1].read().unwrap().condition);
     (tiers, catch_all_policy)
 }
 
@@ -187,7 +186,7 @@ fn create_count_catch_all(args: &[String], catch_all_index: usize) -> (usize, us
     if condition == 0 && chunk_size == 0 { //if "0C0" no catch all policy, set it to false
         catch_all_policy = false;
     } else if chunk_size == 0 {
-        eprintln!("Error: Final tier chunk size must be greater than 0 when condition is greater than 0, \"{}C0\"\nIf don't want to chunk final tier use \"0C0\" for tier argument\n", condition_str);
+        eprintln!("Error: Final tier chunk size must be greater than 0 when condition is greater than 0, \"{}C0\"\nIf don't want to chunk final tier use \"0C0\" for tier argument\nuse the argument \"--help\" or \"--h\" to print help on how to use the application\n", condition_str);
         std::process::exit(1);
     } else {
         condition = parse_positive_number("Final",&condition_str, Some(", condition can be 0 only if chunk size is 0, \"0C0\""));
@@ -209,7 +208,7 @@ fn create_interval_catch_all(args: &[String], catch_all_index: usize) -> (usize,
         catch_all_policy = false;
         time = 0;
     } else if chunk_size == 0 {
-        eprintln!("Error: Final tier chunk size must be greater than 0 when condition is greater than 0, \"{}C0\"\nIf don't want to chunk final tier use \"0C0\" for tier argument\n", condition_str);
+        eprintln!("Error: Final tier chunk size must be greater than 0 when condition is greater than 0, \"{}C0\"\nIf don't want to chunk final tier use \"0C0\" for tier argument\nuse the argument \"--help\" or \"--h\" to print help on how to use the application\n", condition_str);
         std::process::exit(1);
     } else {
         time = convert_time_unit(&condition_str).unwrap_or_default();   //conver the condition in to time in seconds
@@ -232,7 +231,7 @@ fn convert_time_unit(time_str: &str) -> Result<usize, String> {
     let parsed_number = match number_part.parse::<usize>() {
         Ok(num) if num > 0 => num,
         _=> {
-            eprintln!("Tier durations must be greater than 0 and contain duration symbol (S,M,H), you gave argument: {}\n", time_str);
+            eprintln!("Tier durations must be greater than 0 and contain duration symbol (S,M,H), you gave argument: {}\nuse the argument \"--help\" or \"-h\" to print help on how to use the application\n", time_str);
             std::process::exit(1);
         },
     };
@@ -256,9 +255,9 @@ fn parse_positive_number(tier:&str, arg: &str, final_tier: Option<&str>) -> usiz
         Ok(num) if num > 0 => num,
         _ => {
             if final_tier.is_some() {
-                eprintln!("Error: {} tier condition must be positive numbers greater than 0{}\n", tier, final_tier.unwrap());
+                eprintln!("Error: {} tier condition must be positive numbers greater than 0{}\nuse the argument \"--help\" or \"-h\" to print help on how to use the application\n", tier, final_tier.unwrap());
             } else {
-                eprintln!("Error: {} tier condition must be postive numbers greater than 0\n", tier);
+                eprintln!("Error: {} tier condition must be postive numbers greater than 0\nuse the argument \"--help\" or \"-h\" to print help on how to use the application\n", tier);
             }
             std::process::exit(1);
         }
@@ -269,7 +268,7 @@ fn extract_before_c(input: &str) -> String {
     match input.find('C') {
         Some(index) => input[..index].to_string(),
         None => {
-            eprintln!("Error: Final tier \"{}\" does not contain C character. Must specify final tier chunk policy with a C\n", input);
+            eprintln!("Error: Final tier \"{}\" does not contain C character. Must specify final tier chunk policy with a C\nuse the argument \"--help\" or \"-h\" to print help on how to use the application\n", input);
             std::process::exit(1);
         }
     }

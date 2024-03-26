@@ -223,14 +223,14 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                 match self.line_plot {
                     true => {
                         //store length of Stdin data line
-                        let mut raw_plot_line = Line::new(stdin_tier).width(lines_width).color(self.colours[0]).name("Stdin Data");
-                        if fill_plot_line { raw_plot_line = raw_plot_line.fill(0.0)}
+                        let mut stdin_tier_line = Line::new(stdin_tier).width(lines_width).color(self.colours[0]).name("Stdin Data");
+                        if fill_plot_line { stdin_tier_line = stdin_tier_line.fill(0.0)}
 
                         for (i, tier) in self.tiers.iter().enumerate() {
                             //increment as colurs vector first element is Stdin data line colour, red. Since colour not used, pass in argument directly 
                             create_tier_lines(i, tier, lines_width, self.colours[i+1], fill_plot_line, &mut tier_plot_lines_length, &mut tier_plot_lines)
                         } 
-                        plot_ui.line(raw_plot_line);
+                        plot_ui.line(stdin_tier_line);
                         for line in tier_plot_lines {
                             plot_ui.line(line);
                         }
@@ -533,7 +533,6 @@ fn create_tier_lines(i: usize, tier: &Arc<RwLock<TierData>>, lines_width: f32 , 
     let line_id = format!("Tier {}", i+1);
     let values = tier.read().unwrap().get_means(); 
     tier_plot_lines_length.push(values.len());  //want to store length of each line
-    
 
 
     let mut line = Line::new(values)

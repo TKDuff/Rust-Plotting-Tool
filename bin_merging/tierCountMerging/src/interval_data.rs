@@ -7,7 +7,6 @@ use crate::bin::Bin;
 pub struct IntervalRawData {
     pub condition: usize,
     pub points: Vec<[f64;2]>,
-    pub time: usize
 }
 
 impl IntervalRawData {
@@ -15,7 +14,6 @@ impl IntervalRawData {
         Self { 
             condition: condition,
             points: Vec::new(),
-            time: 0,
 
         }
     }

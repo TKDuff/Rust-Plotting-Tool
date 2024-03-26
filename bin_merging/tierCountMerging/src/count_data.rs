@@ -11,7 +11,6 @@ impl CountRawData {
     pub fn new(condition: usize) -> Self {
         Self {
 
-            //When set to 10 ecluding the last point, as that is kept for plot consistency
             condition: condition,
             points: Vec::new(),//vec![[0.0, 0.0]]
         }
@@ -61,7 +60,7 @@ impl DataStrategy for CountRawData {
     }
 
     fn append_str(&mut self, line:String) {
-        //println!("{}", line);
+        println!("{}", line);
 
 
         let values_result: Result<Vec<f64>, _> = line.split(' ')

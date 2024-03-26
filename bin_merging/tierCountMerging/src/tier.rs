@@ -23,11 +23,14 @@ impl TierData {
 
         let temp_bin;// Vec<Bin> = Vec::new();
         
-        // Calculate the sum and count for the current chunk
+        /* Calculate the sum and count for the current chunk
+        - iterates over each bin in passed in slice
+        - uses map to obtain specific field of bin, thus iterating over each bins particular field (min, max, count, sum)
+        */
         let chunk_count: usize = bins.iter().map(|bin| bin.count).sum();
         let chunk_sum: f64 = bins.iter().map(|bin| bin.sum).sum();
-        let chunk_min = bins.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min);
-        let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
+        let chunk_min = bins.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min); //using .fold to apply f64::min function find smallest value 
+        let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max); ///using .fold to find maximum value 
         let chunk_mean = chunk_sum / chunk_count as f64;
 
 

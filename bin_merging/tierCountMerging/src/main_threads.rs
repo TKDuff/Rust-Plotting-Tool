@@ -12,7 +12,7 @@ use tokio::io::{self, AsyncBufReadExt, BufReader};
 
 pub fn create_count_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, raw_data_thread: Arc<RwLock<dyn DataStrategy + Send + Sync>>, rd_sender: Sender<usize>) {
     rt.spawn(async move {
-        println!("create_count_stdin_read");
+       //println!("create_count_stdin_read");
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
@@ -75,7 +75,7 @@ pub fn create_interval_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBoo
 
 pub fn crate_none_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, raw_data_thread: Arc<RwLock<dyn DataStrategy + Send + Sync>>) {
     rt.spawn(async move {
-        println!("create_count_stdin_read");
+       //println!("create_count_stdin_read");
         let stdin = io::stdin();
         let reader = BufReader::new(stdin);
         let mut lines = reader.lines();
@@ -99,7 +99,7 @@ pub fn crate_none_stdin_read(rt: &Runtime, should_halt_clone: Arc<AtomicBool>, r
 
 pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>> )   {
     thread::spawn(move || {
-        println!("create_raw_data_to_initial_tier");
+       //println!("create_raw_data_to_initial_tier");
         let mut chunk: Vec<[f64;2]>;
         let mut aggregated_raw_data ; 
         for message in hd_receiver {
@@ -130,7 +130,7 @@ pub fn create_raw_data_to_initial_tier(hd_receiver: Receiver<usize>, raw_data_ac
 
 
 pub fn interval_rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
-    println!("interval_rd_to_ca_edge");
+   //println!("interval_rd_to_ca_edge");
 
     /*
     Edge case, just like count_rd_to_ca_edge
@@ -186,7 +186,7 @@ pub fn count_rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
     If edge case met and only stdin_tier and catch-all-tier no need to iterate over all tiers, just display length of both
     The length of the catac-all-tier on the GUI is decremented by 1 also, for the same reason. Since last point not included in chunking, should not be considered part of length.  
     */
-    println!("count_rd_to_ca_edge");
+   //println!("count_rd_to_ca_edge");
     thread::spawn(move || {
         let mut catch_all_length: usize;
         thread::sleep(Duration::from_secs(1));
@@ -196,17 +196,17 @@ pub fn count_rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
         loop {
             catch_all_length = initial_tier_accessor.read().unwrap().x_stats.len()-1;
             if catch_all_length == ca_condition {
-                println!("MERGE TICK");
+               //println!("MERGE TICK");
                 {
                 let mut catch_all_tier_write_lock = initial_tier_accessor.write().unwrap();            
                 catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, true);
                 catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size, catch_all_length, false);
 
-                println!("After meging the tier it becomes");
+               //println!("After meging the tier it becomes");
                 for bin in &catch_all_tier_write_lock.y_stats {
                     print!("{}, ", bin.mean);
                 }
-                println!("\n");
+               //println!("\n");
                 }
             }
         }
@@ -216,7 +216,7 @@ pub fn count_rd_to_ca_edge(initial_tier_accessor: Arc<RwLock<TierData>>) {
 
 
 pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
-    println!("interval_check_cut_ca");
+   //println!("interval_check_cut_ca");
     thread::spawn(move || {        
         let mut merged_CA_last_x_element;
         let mut merged_CA_last_y_element;
@@ -231,7 +231,7 @@ pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
             for tier in 0..=(num_tiers-2) {
                 if seconds_passed % tier_vector[tier].read().unwrap().condition == 0 {
                     let tier_length = tier_vector[tier].read().unwrap().x_stats.len();
-                    println!("Tier {} and seconds passed {}", tier, seconds_passed);
+                   //println!("Tier {} and seconds passed {}", tier, seconds_passed);
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], tier_length)
                 }
             }         
@@ -259,7 +259,7 @@ pub fn interval_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
 }
 
 pub fn interval_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
-    println!("interval_check_cut_no_ca");
+   //println!("interval_check_cut_no_ca");
     thread::spawn(move || {
         let mut seconds_passed:usize = 1;
         thread::sleep(Duration::from_secs(1));
@@ -280,18 +280,18 @@ pub fn interval_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_a
 
 
 pub fn count_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
-    println!("count_check_cut_no_ca");
+   //println!("count_check_cut_no_ca");
     thread::spawn(move || {
         let mut condition: usize;
         thread::sleep(Duration::from_secs(1));
-        println!("First tier interval condition {}", tier_vector[0].read().unwrap().condition);
+       //println!("First tier interval condition {}", tier_vector[0].read().unwrap().condition);
         loop {     
             for tier in 0..=(num_tiers-2) {
                 condition = tier_vector[tier].read().unwrap().condition;
                 /*THERE EXISTS AN EDGE CASE HAVE TO FIX - when launch the app, if the number of elements in the initial tier is greater than its cut condition before this thread is spawned
                 the cut condition will never be met. A quick hack solution is to check if the length is greater than or equal to the condition. Proper fix is to block standard input reading until this thread created */
                 if tier_vector[tier].read().unwrap().x_stats.len() >= condition {
-                    println!("Tier merge {}", tier+1);
+                   //println!("Tier merge {}", tier+1);
                     process_tier(&tier_vector[tier], &tier_vector[tier+1], condition);
                 }
             }     
@@ -301,7 +301,6 @@ pub fn count_check_cut_no_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_
 } 
 
 pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tier: Arc<RwLock<TierData>>, num_tiers: usize) {
-    println!("count_check_cut_ca");
     thread::spawn(move || { 
         let mut merged_ca_last_x_element;
         let mut merged_ca_last_y_element;
@@ -318,29 +317,22 @@ pub fn count_check_cut_ca(tier_vector :Vec<Arc<RwLock<TierData>>>, catch_all_tie
                 }
                 
             } 
-
             thread::sleep(Duration::from_millis(1)); 
 
             let mut catch_all_tier_write_lock = catch_all_tier.write().unwrap();
 
             if catch_all_tier_write_lock.x_stats.len() >= ca_condition {
-                
+                println!("Catch all tier merge");
                 merged_ca_last_x_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, true);
                 merged_ca_last_y_element = catch_all_tier_write_lock.merge_final_tier_vector_bins(ca_chunk_size,ca_condition, false);
-
-                println!("After meging the tier it becomes");
                 for bin in &catch_all_tier_write_lock.y_stats {
                     print!("{}, ", bin.mean);
                 }
-                println!("\n");
-                println!("Got the point {:?}", merged_ca_last_y_element.mean);
-
                 let mut tier_vector_write_lock = tier_vector[num_tiers-2].write().unwrap();
-                println!("The first elem of t2 was {:?}", tier_vector_write_lock.y_stats[0].mean);
+
                 tier_vector_write_lock.x_stats[0] = merged_ca_last_x_element;
                 tier_vector_write_lock.y_stats[0] = merged_ca_last_y_element;
-                println!("Now the first elem of t2 is {:?}", tier_vector_write_lock.y_stats[0].mean);
-                println!("\n");
+
             }   
         }
     });
