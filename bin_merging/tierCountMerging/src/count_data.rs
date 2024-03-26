@@ -1,5 +1,5 @@
 use crate::data_strategy::DataStrategy;
-use statrs::statistics::{Data, OrderStatistics, Min, Max,Distribution};
+use statrs::statistics::{Data, Min, Max,Distribution};
 use crate::bin::Bin;
 
 pub struct CountRawData {
@@ -12,7 +12,7 @@ impl CountRawData {
         Self {
 
             condition: condition,
-            points: Vec::new(),//vec![[0.0, 0.0]]
+            points: Vec::new(),
         }
     }
 
@@ -21,29 +21,25 @@ impl CountRawData {
 impl DataStrategy for CountRawData {
 
     fn append_chunk_aggregate_statistics(&mut self, chunk: Vec<[f64;2]>) -> (Bin, Bin, Bin, Bin) {
-        //println!("Aggregating this chunk {:?}\n", chunk); 
+        /*Aggregates a chunk of x,y values into two bins, x bin and y bin respectively */
 
         let chunk_len = chunk.len();
-        //let stats_len = self.x_stats.len();
-        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter()
-                                                .take(chunk_len.saturating_sub(1)) //subtract sub excludes the final point, need to return final point as bin
-                                                .map(|&[x, y]| (x, y))
-                                                .unzip();
 
+        /*Splits the 2D vector into two seperate vectors, for the x values and y values
+        It was writtein with the aid of chatGPT[1] (see reference at bottom), I changed it to work with my vector
+         */
+        let (x_vec, y_vec): (Vec<f64>, Vec<f64>) = chunk.iter() //iterate over the chunk of points
+                                                .take(chunk_len.saturating_sub(1)) //subtract sub excludes the final point, need to return final point as bin
+                                                .map(|&[x, y]| (x, y))  //map function called 2D vector, maps each x,y array element to tuple
+                                                .unzip(); //unzip seperates tuples into two seperate vectors, x_vec and y_vec
+
+        //create Data objects for statrs library
         let x = Data::new(x_vec.clone());   
         let y = Data::new(y_vec.clone());
 
+        //calculate the means
         let x_mean =  x.mean().unwrap();
         let y_mean = y.mean().unwrap();
-
-        let x_sum_of_squares: f64 = x_vec.iter().map(|&x| (x - x_mean).powi(2)).sum();
-        let y_sum_of_squares: f64 = y_vec.iter().map(|&y| (y - y_mean).powi(2)).sum();
-
-        let x_variance: f64 = x_sum_of_squares / (x.len() as f64 - 1.0);
-        let y_variance: f64 = y_sum_of_squares / (x.len() as f64 - 1.0);
-
-        let y_sum: f64 = y_vec.iter().sum();
-        //println!("The sum is: {} The length is: {}, The y mean is {}, The x mean is {}", y_sum, y.len(), y_mean, x_mean);
 
         //let agg_x_bin = Bin {mean: x_mean, sum: x.iter().sum() , min: x.min(), max: x.max(), count: x.len(), sum_of_squares: x_sum_of_squares, variance: x_variance, standard_deviation: x_variance.sqrt() };
         let agg_x_bin = Bin::new(x_mean, x.iter().sum() , x.min(), x.max(), x.len() );
@@ -51,7 +47,7 @@ impl DataStrategy for CountRawData {
 
         //println!("{} {} {} {} {} {} {} {} {} {} {}", agg_x_bin.mean, agg_x_bin.sum, agg_x_bin.min, agg_x_bin.max, agg_x_bin.count, agg_x_bin.sum_of_squares, agg_x_bin.variance, agg_x_bin.standard_deviation, agg_x_bin.range, agg_x_bin.estimated_q1, agg_x_bin.estimated_q3);
 
-        
+        //since initial tiers last element the un-aggregated x,y value, they are returned in the form of a bin to be placed in the last element of the initial tier
         let last_elem_x_bin = Bin::new(chunk[chunk_len-1][0], 0.0, 0.0, 0.0, 0);
         let last_elem_y_bin = Bin::new(chunk[chunk_len-1][1], 0.0, 0.0, 0.0, 0);
 
@@ -72,7 +68,7 @@ impl DataStrategy for CountRawData {
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {
-                println!("Error parsing values: {:?}", err);
+                println!("Error parsing x y values: {:?}", err);
             }
         }
     }
@@ -90,9 +86,7 @@ impl DataStrategy for CountRawData {
     }
 
     fn remove_chunk(&mut self, count:usize) {
-        //println!("Before removing {:?}", self.points);
         self.points.drain(..count);
-        //println!("After removing {:?}", self.points);
     }
 
     fn check_cut(&self) -> Option<usize> {
@@ -104,12 +98,7 @@ impl DataStrategy for CountRawData {
     }
 
     fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
-        // if count + 1 > self.points.len() {
-        //     //error trying to get slice that is above length 
-        //     self.points.to_vec()
-        // } else {
-            self.points[0..count + 1].to_vec()
-        // }
+        self.points[0..count + 1].to_vec()
     }
 
     fn get_condition(&self) -> usize {
@@ -167,5 +156,8 @@ mod tests {
     }
 }
 
-//-358.3228928571428 q1
-// 643.4456071428572 q3
+
+/*
+[1] - ChatGPT version 4, default setting, Prompt "In Rust, how do you split a 2 dimensional vector into two separate vectors? The vector is made up of 2D arrays, like Vec<[f64:2]>"
+
+*/

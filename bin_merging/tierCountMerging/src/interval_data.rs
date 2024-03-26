@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::data_strategy::DataStrategy;
 use statrs::statistics::{Data, Min, Max,Distribution};
 use crate::bin::Bin;
@@ -64,7 +62,7 @@ impl DataStrategy for IntervalRawData {
 
 
     fn append_str(&mut self, line:String) {
-        //println!("{}", line);
+        println!("{}", line);
 
 
         let values_result: Result<Vec<f64>, _> = line.split(' ')
@@ -76,7 +74,7 @@ impl DataStrategy for IntervalRawData {
                 self.append_point(values[0], values[1]);
             }
             Err(err) => {
-                println!("Error parsing values: {:?}", err);
+                println!("Error parsing x y values: {:?}", err);
             }
         }
     }
@@ -107,7 +105,7 @@ impl DataStrategy for IntervalRawData {
         unreachable!();
     }
 
-    fn get_chunk(&self, count:usize) -> Vec<[f64;2]> {
+    fn get_chunk(&self, _count:usize) -> Vec<[f64;2]> {
         self.points.clone().into_iter().collect()
     }
 

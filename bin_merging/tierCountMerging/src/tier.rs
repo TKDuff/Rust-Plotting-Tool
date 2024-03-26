@@ -26,18 +26,16 @@ impl TierData {
         /* Calculate the sum and count for the current chunk
         - iterates over each bin in passed in slice
         - uses map to obtain specific field of bin, thus iterating over each bins particular field (min, max, count, sum)
+        chatGPT was used to help find a way to find the minimum/maximum value for a certain field for a vector of instances (bins in this case) [1]
         */
         let chunk_count: usize = bins.iter().map(|bin| bin.count).sum();
         let chunk_sum: f64 = bins.iter().map(|bin| bin.sum).sum();
         let chunk_min = bins.iter().map(|bin| bin.min).fold(f64::INFINITY, f64::min); //using .fold to apply f64::min function find smallest value 
-        let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max); ///using .fold to find maximum value 
-        let chunk_mean = chunk_sum / chunk_count as f64;
+        let chunk_max = bins.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max); //using .fold to find maximum value 
+        let chunk_mean = chunk_sum / chunk_count as f64;    //mean is the mean of the combined bins (sum/count), not the mean of means
 
 
-        temp_bin =  Bin::new(chunk_mean, chunk_sum ,chunk_min, chunk_max, chunk_count);
-
-        //println!("{} count: {} sum: {} min {} max {} SoS {} mean {}",cc, chunk_count, chunk_sum, chunk_min, chunk_max, chunk_sum_square, chunk_mean);
-     
+        temp_bin =  Bin::new(chunk_mean, chunk_sum ,chunk_min, chunk_max, chunk_count);     
         temp_bin 
     }
 
@@ -50,41 +48,25 @@ impl TierData {
     }
 
     pub fn get_slices(&self, length: usize) -> (&[Bin], &[Bin])  {
-        //println!("\n");
-        //self.print_x_means_in_range(0, self.x_stats.len());
-        //self.print_x_means_in_range(1, self.x_stats.len() - 1);
-        //println!("\n");
         let x_slice = &self.x_stats[1..std::cmp::min(length, self.x_stats.len() - 1)];
         let y_slice = &self.y_stats[1..std::cmp::min(length, self.y_stats.len() - 1)];
 
         (x_slice, y_slice)
     }
 
-    pub fn print_means_of_bin(&self, bins: Vec<Bin>) {
-        for bin in bins {
-            print!("{}, ", bin.mean);
-        }
-        println!("\n");
-    }
-
     pub fn update_chunk_size(&mut self, new_size: usize) {
         self.chunk_size = new_size;
     }
 
-
+    //catch all tier merge bins in chunks
     pub fn merge_final_tier_vector_bins(&mut self, chunk_size: usize,length: usize,  x: bool) -> Bin {
         
-        // println!("To merge bins means are: ");
-        // if x {
-        //     for bin in &self.y_stats {
-        //         print!("{}, ", bin.mean);
-        //     }
-        // }
-
-
         let to_merge = if x {&mut self.x_stats} else {&mut self.y_stats};       
 
-        //this chunking does introduce a rounding error since the mean is the sum divided by the count, done each time again and again introduce the floating error
+        /*this chunking does introduce a rounding error since the mean is the sum divided by the count, done each time again and again introduce the floating error
+        uses the .chunks method to split the vector in chunks of a specified size
+        Any remainder bins not included in a defined chunk are merged into a single bin
+        */
         let temp_bins = to_merge[..length].chunks(chunk_size).map(|chunk| {
             let chunk_count: usize = chunk.iter().map(|bin| bin.count).sum();
             let chunk_sum: f64 = chunk.iter().map(|bin| bin.sum).sum();
@@ -92,21 +74,12 @@ impl TierData {
             let chunk_max = chunk.iter().map(|bin| bin.max).fold(f64::NEG_INFINITY, f64::max);
             let chunk_mean:f64 = if chunk_count > 0 { chunk_sum / chunk_count as f64 } else { 0.0 };
 
-            // for bin in chunk {
-            //     let bin_mean = if bin.count > 0 { bin.sum / bin.count as f64 } else { 0.0 };
-            //     println!("Bin mean: {}", bin_mean);
-            // }
-            // println!("Combined mean is {}", chunk_mean);
-
-            //Bin {mean: chunk_mean, sum: chunk_sum, min: chunk_min, max: chunk_max, count: chunk_count, sum_of_squares: chunk_sum_of_squares, variance: chunk_variance, standard_deviation: chunk_variance.sqrt()}
             Bin::new(chunk_mean, chunk_sum, chunk_min, chunk_max, chunk_count)
         }).collect::<Vec<Bin>>();   //cannot infer iterator is collecting into a Bin struct,have to explicitaly tell it to collect into Vector of Bins
 
 
         to_merge.drain(0..length);
         to_merge.splice(0..0, temp_bins);
-        //println!("\n");
-
         to_merge[to_merge.len()-1]        
     }
 
@@ -129,28 +102,6 @@ impl TierData {
             .map(|(y_bin, x_bin)| (y_bin.mean, y_bin.min, y_bin.max, y_bin.estimated_q1, y_bin.estimated_q3, x_bin.mean))
             .collect()
         }
-
-    pub fn print_x_means_in_range(&self, start: usize, end: usize) {
-            //let end_index = std::cmp::min(end, self.x_stats.len());
-            //let start_index = std::cmp::max(start, 0);
-
-            println!("Mean: ");
-            for bin in &self.x_stats[start..end] {
-                print!("{}, ", bin.mean);
-            }
-            println!("\n");
-    }
-
-    pub fn print_y_means_in_range(&self, start: usize, end: usize) {
-        //let end_index = std::cmp::min(end, self.x_stats.len());
-        //let start_index = std::cmp::max(start, 0);
-
-        println!("Mean: ");
-        for bin in &self.y_stats[start..end] {
-            print!("{}, ", bin.mean);
-        }
-        println!("\n");
-}
         
 }
 
@@ -205,7 +156,6 @@ mod tests {
         tier_data.x_stats = bins.clone();
         tier_data.y_stats = bins;
         let merged_x_bin = tier_data.merge_final_tier_vector_bins(3, 10, true); //test for merging the tier x bin vector
-        let merged_y_bin = tier_data.merge_final_tier_vector_bins(3, 10, false);
 
         //remember, the mean is Mean of Merged Bins, not mean of means
         assert!((tier_data.x_stats[0].mean - 21.656).abs() < 1e-3);
@@ -248,3 +198,6 @@ mod tests {
 
 }
 
+/*
+[1] - ChatGPT version 4, default setting, prompt "For a vector of the 'Bin' instances, how can the minimum value out of all the 'minimum' attributes be found?"
+*/

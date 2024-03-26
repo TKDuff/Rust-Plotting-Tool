@@ -28,7 +28,6 @@ use egui::color_picker::color_picker_color32;
 struct MyApp {
     stdin_tier: Arc<RwLock<dyn DataStrategy + Send + Sync>>,  //'dyn' mean 'dynamic dispatch', specified for that instance. Allow polymorphism for that instance, don't need to know concrete type at compile time
     tiers: Vec<Arc<RwLock<TierData>>>,
-    should_halt: Arc<AtomicBool>,
     line_plot: bool,
     clicked_bin:  Option<((Bin, Bin), usize)>,
     colours: [Color32; 7],    //maintain line colours between repaints
@@ -40,13 +39,12 @@ impl MyApp {
     pub fn new(
         stdin_tier: Arc<RwLock<dyn DataStrategy + Send + Sync>>, 
         tiers: Vec<Arc<RwLock<TierData>>>,
-        should_halt: Arc<AtomicBool>,
         line_plot: bool,
         selected_line_index: usize,
         colours: [Color32; 7],
     ) -> Self {
         let default_bin = Bin::new(0.0, 0.0, 0.0, 0.0, 0);
-        Self { stdin_tier, tiers ,should_halt, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
+        Self { stdin_tier, tiers, clicked_bin: Some(((default_bin, default_bin), 0)), line_plot ,selected_line_index, colours }
     }
 }
 
@@ -54,14 +52,13 @@ impl MyApp {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rd_sender, hd_receiver) = channel::unbounded();
 
-    let (aggregation_strategy, strategy, tiers, catch_all_policy, should_halt, num_tiers)  =  setup_my_app()?;
+    let (aggregation_strategy, strategy, tiers, catch_all_policy, num_tiers)  =  setup_my_app()?;
     let mut colours = [Color32::RED, Color32::BLUE, Color32::GREEN,  Color32::YELLOW, Color32::from_rgb(128, 0, 128) ,Color32::BLACK, Color32::BROWN]; //rgb is purple
-    let my_app = MyApp::new(aggregation_strategy, tiers, should_halt, true,0, colours);
+    let my_app = MyApp::new(aggregation_strategy, tiers, true,0, colours);
 
     /*If no strategy selected, so just the raw data, then don't need to run all this code, can just run the tokio thread to read in raw data */
 
     
-    let should_halt_clone = my_app.should_halt.clone();
     let raw_data_thread_for_setup = my_app.stdin_tier.clone();
     
     let raw_data_accessor = my_app.stdin_tier.clone();
@@ -92,19 +89,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let raw_data_thread = my_app.stdin_tier.clone();
     //create tokio thread to read in standard input, then append to live data vector
     match strategy.as_str() {
-        "count" => main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender),
-        "interval" => main_threads::create_interval_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender),
-        _ => main_threads::crate_none_stdin_read(&rt, should_halt_clone, raw_data_thread),
+        "count" => main_threads::create_count_stdin_read(&rt, raw_data_thread, rd_sender),
+        "interval" => main_threads::create_interval_stdin_read(&rt, raw_data_thread, rd_sender),
+        _ => main_threads::crate_none_stdin_read(&rt, raw_data_thread),
     }
     //create threads in reverse order of who access live data. Tokio last, as want other merging threads to be ready to handle aggregate live data
 
-    /*
-    if strategy == "count" {
-        main_threads::create_count_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
-    } else {
-        main_threads::create_interval_stdin_read(&rt, should_halt_clone, raw_data_thread, rd_sender);
-    }*/
-    
+
 
 
     fn setup_count(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
@@ -120,7 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if catch_all_policy {
                 main_threads::count_check_cut_ca(tier_vector, catch_all_tier, num_tiers);
             } else {
-                main_threads::count_check_cut_no_ca(tier_vector, catch_all_tier, num_tiers);
+                main_threads::count_check_cut_no_ca(tier_vector, num_tiers);
             }
         }
     }
@@ -178,10 +169,6 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
             let axis_log_base_id = ui.id().with("axis_log_base_id");
 
             let mut axis_log_base = ui.data_mut(|d| d.get_temp::<i64>(axis_log_base_id).unwrap_or(10)); //fdefault base 10
-
-            if ui.button("Halt Processing").clicked() {
-                self.should_halt.store(true, Ordering::SeqCst);
-            }
 
             let fill_line_id = ui.id().with("line_filled");
             let mut fill_plot_line = ui.data_mut(|d| d.get_temp::<bool>(fill_line_id).unwrap_or(true));
@@ -324,7 +311,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
                   Solve by ensuring if 6 is returned then don't increment by 1, so don't return index of previous tier. 
                  */
                 if let Some(((x_bin, y_bin), tier_index)) = self.clicked_bin {
-                    let colour = if tier_index == 6 {self.colours[tier_index]} else { self.colours[tier_index + 1]};
+                    let colour = if tier_index == number_of_tiers {self.colours[tier_index]} else { self.colours[tier_index + 1]};
                     bin_grid_helper(ui, &x_bin, &y_bin, colour, tier_index+1); //lazy to increment one twice, but the function does not have a reference to self, so need pass colour
                 } 
             });
@@ -428,6 +415,10 @@ fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_
     Compares means of both vectors to corresponding mouse co-ordinates (x_stats ith element mean compared to mouse x co-ordinates, same for y )
     The tiers bins whose x & y means are equal to mouse x,y co-ordinates (within tolerance of five) are identified as the clicked point
     Those are the bins to display the information to the user 
+    
+    This code was created with the help of chatGPT to know how to iterate over a 2D vector and 
+    find values the 2 elements closest to 2 values with a certain threshold, I tailored the method
+    to my scenario [1]
     */
     tier_data.x_stats.iter().zip(tier_data.y_stats.iter()).enumerate()
     .find(|&(_, (x_bin, y_bin))| {
@@ -444,7 +435,6 @@ fn find_closest(position: Option<PlotPoint>, tier: &Arc<RwLock<TierData>>, tier_
     To solve this, have condition that if first element of tier vector is clicked, then return index of previous tier (the tier the bin belongs to)
     */
     .map(|(index, (x_closest, y_closest))| {
-        println!("You clicked on the index {}", index);
         let final_index = if index == 0 { tier_index+1 } else { tier_index };
         ((x_closest.clone(), y_closest.clone()), final_index)
     })
@@ -588,4 +578,10 @@ fn create_box_plots(i: usize, tier: &Arc<RwLock<TierData>>, box_width: f64 , col
 - This trait requires you to define an update method, where you will handle drawing the UI and processing events.
 
 - 'update' function creates the Egui window and where access MyApp data and methods, allowing to interact with the underlying data (handled by T) and reflect changes in the UI.
+*/
+
+/*
+[1] - ChatGPT version 4, default settings, prompt "In rust, given 2 floats and a 2D vector of floats how do you find the index of a pair of elements
+that are the closest to the 2 floats, within a certain threshold"
+
 */

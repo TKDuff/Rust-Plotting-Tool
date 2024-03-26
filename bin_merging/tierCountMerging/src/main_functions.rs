@@ -1,6 +1,5 @@
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::{AtomicBool, Ordering};
-use crate::tier::{self, TierData};
+use crate::tier::TierData;
 
 use crate::count_data::CountRawData;
 use crate::interval_data::IntervalRawData;
@@ -9,46 +8,47 @@ use crate::interval_data::IntervalRawData;
 use crate::data_strategy::DataStrategy;
 use std::env;
 
+
 pub fn process_tier(current_tier: &Arc<RwLock<TierData>>, previous_tier: &Arc<RwLock<TierData>>, cut_length: usize) {
-    let mut vec_len: usize;
+/*
+Function that merges an intermediate tier, takes in
+- current tier to be merged
+- next tier lower in hierarchy, T+1
+- length of tier
+*/
+    let vec_len: usize;
     let current_tier_x_average;
     let current_tier_y_average;
     {
-        let mut current_tier_lock = current_tier.write().unwrap();
-        // print!("Before merge: ");
-        // current_tier_lock.print_y_means_in_range(0, cut_length);
-        let vec_slice = current_tier_lock.get_slices(cut_length);
-        current_tier_x_average = current_tier_lock.merge_vector_bins(vec_slice.0);
-        current_tier_y_average = current_tier_lock.merge_vector_bins(vec_slice.1);
+        let mut current_tier_lock = current_tier.write().unwrap();  //obtain lock on current tier
+        let vec_slice = current_tier_lock.get_slices(cut_length);                 //get the tiers bin excluding the first (last bin lower tier) and last bin (first bin of next tier)
+        current_tier_x_average = current_tier_lock.merge_vector_bins(vec_slice.0);                  //merge the x binsinto a single bin
+        current_tier_y_average = current_tier_lock.merge_vector_bins(vec_slice.1);                  //merge the y binsinto a single bin
         vec_len = current_tier_lock.x_stats.len();
 
-        current_tier_lock.x_stats[0] = current_tier_x_average;
-        //println!("The merged x stat is {}", current_tier_x_average.mean);
-        current_tier_lock.x_stats.drain(1..vec_len-1);        
+        current_tier_lock.x_stats[0] = current_tier_x_average;      //replace first element of tiers x bins vector with newly created bins
+        current_tier_lock.x_stats.drain(1..vec_len-1);        //drain the now merged bins from the tier     
 
-        current_tier_lock.y_stats[0] = current_tier_y_average;
-        current_tier_lock.y_stats.drain(1..vec_len-1);
+        current_tier_lock.y_stats[0] = current_tier_y_average;      //replace first element of tiers y bins vector with newly created bins
+        current_tier_lock.y_stats.drain(1..vec_len-1);       //drain the now merged bins from the tier
 
-        // print!("After merge: ");
-        // current_tier_lock.print_y_means_in_range(0, 2);
     }
 
     {
-        let mut previous_tier_lock = previous_tier.write().unwrap();
-        previous_tier_lock.x_stats.push(current_tier_x_average);
+        let mut previous_tier_lock = previous_tier.write().unwrap();    //aquire lock on previous tier
+        previous_tier_lock.x_stats.push(current_tier_x_average);                                        //push newly created bins to next lower tier
         previous_tier_lock.y_stats.push(current_tier_y_average);  
     }
 
 }
 
 
-pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, String, Vec<Arc<RwLock<TierData>>>, bool, Arc<AtomicBool>, usize), String> {
+pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, String, Vec<Arc<RwLock<TierData>>>, bool, usize), String> {
     let args: Vec<String> = env::args().collect();
-    let mut data_strategy: String;
+    let data_strategy: String;
     let stdin_tier: usize; 
     
     if args.len() == 1 { //Case when user does not any tiering
-        //println!("No arguments");
         data_strategy = "None".to_string();
     }  else if (args[1] == "--help") || (args[1] == "--h") {
         print_help();
@@ -57,12 +57,11 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
         eprint!("Error\nMaximum of 7 tiers allowed, {} were specified\nCannot have more than 5 intermediate tiers\nCan only have 1 stdin tier and final (catch all) tier\n", args.len()-2);
         std::process::exit(1);
     } else {
-        data_strategy = args[1].clone();
+        data_strategy = args[1].clone();    //determin the tiering strategy, either count or interval
     }
 
         
     let num_tiers = args.len();
-    let should_halt = Arc::new(AtomicBool::new(false));
 
     let (tiers, catch_all_policy, stdin_tier) = match data_strategy.as_str() {
         "count" => {
@@ -93,7 +92,7 @@ pub fn setup_my_app() -> Result<(Arc<RwLock<dyn DataStrategy + Send + Sync>>, St
     };
 
 
-    Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy ,should_halt, num_tiers))
+    Ok((aggregation_strategy, data_strategy ,tiers, catch_all_policy, num_tiers))
 }
 
 //creates count based intermediate and catch all tiers based on the user command line arguments
@@ -163,9 +162,7 @@ fn create_inteval_tiers (num_tiers: usize, args: &[String]) -> (Vec<Arc<RwLock<T
         tiers.push( Arc::new(RwLock::new(TierData::new(condition, chunk_size, Some(0)))) );
         catch_all_policy = catch_all
     }
-    println!("The num tiers is {}", tiers.len());
-    println!("Tier 1 {}", tiers[0].read().unwrap().condition);
-    println!("Tier 2 {}", tiers[1].read().unwrap().condition);
+
     (tiers, catch_all_policy)
 }
 
@@ -221,7 +218,7 @@ fn create_interval_catch_all(args: &[String], catch_all_index: usize) -> (usize,
 
 fn convert_time_unit(time_str: &str) -> Result<usize, String> {
     /*
-    Method to ensure tier time argument is
+    Method that convertes command line argument duration (seconds minutes, hours) into seconds ensure tier time argument is
     - number greater than 0
     - includes the duration symbol
     */
@@ -283,6 +280,8 @@ fn extract_after_c(input: &str) -> Option<String> {
 
 fn print_help() {
     let help_message = r#"Usage: summarst [summarisation-policy] [stdin-data-condition] [tier-N-condition] ... [catch-all-tier]
+    The maximum number of tiers allowed is 7, including the [stdin-data-condition] and [catch-all-tier]
+    X, Y values piped into the tool must be in the form of x y, seperated by a space
 
 summarisation-policy:
     Count: Aggregates elements into a bin whenever the specified number of elements is reached
@@ -359,8 +358,8 @@ mod tests {
 
     #[test]
     fn test_process_tier() {
-        let mut current_tier_data = Arc::new(RwLock::new(TierData::new(0, 0, None)));
-        let mut previous_tier_data = Arc::new(RwLock::new(TierData::new(0, 0, None)));
+        let current_tier_data = Arc::new(RwLock::new(TierData::new(0, 0, None)));
+        let previous_tier_data = Arc::new(RwLock::new(TierData::new(0, 0, None)));
         let x_dummy_bins = Bin::create_uniform_bins(5.0, 10); // for example: 5 bins with all values set to 5.0
         current_tier_data.write().unwrap().x_stats = x_dummy_bins.clone();
         current_tier_data.write().unwrap().y_stats = x_dummy_bins;
@@ -386,28 +385,6 @@ mod tests {
         assert_eq!(previous_tier_data.read().unwrap().x_stats[5].mean, 5.0);
         assert_eq!(previous_tier_data.read().unwrap().y_stats[5].mean, 5.0);
 
-        /*
-        // Setup test data
-        let current_tier_data = TierData::new(); // Populate this with test data
-        let previous_tier_data = TierData::new(); // Populate this if necessary
-        let current_tier = Arc::new(RwLock::new(current_tier_data));
-        let previous_tier = Arc::new(RwLock::new(previous_tier_data));
-        let cut_length = 5; // Example value
-
-        // Call the function
-        process_tier(&current_tier, &previous_tier, cut_length);
-
-        // Verify the results
-        {
-            let current_tier_lock = current_tier.read().unwrap();
-            let previous_tier_lock = previous_tier.read().unwrap();
-
-            // Assertions go here
-            // Example:
-            // assert_eq!(current_tier_lock.x_stats.len(), expected_length);
-            // assert_eq!(previous_tier_lock.y_stats.last(), Some(&current_tier_y_average));
-            // ...
-        }*/
     }
 
 
