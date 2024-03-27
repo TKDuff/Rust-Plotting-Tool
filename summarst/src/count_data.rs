@@ -33,12 +33,6 @@ impl DataStrategy for CountRawData {
                                                 .map(|&[x, y]| (x, y))  //map function called 2D vector, maps each x,y array element to tuple
                                                 .unzip(); //unzip seperates tuples into two seperate vectors, x_vec and y_vec
 
-        println!("Points to aggregate, excluding last: ");
-        for point in &x_vec {
-            print!("{},", point);
-        }
-        println!("\n");
-
         //create Data objects for statrs library
         let x = Data::new(x_vec.clone());   
         let y = Data::new(y_vec.clone());
@@ -96,7 +90,6 @@ impl DataStrategy for CountRawData {
     }
 
     fn check_cut(&self) -> Option<usize> {
-        println!("Length is {}", self.points.len());
         if (self.points.len() > 1) && (self.points.len()) % self.condition == 0 {
             return Some(self.points.len() -1 )
         } else {

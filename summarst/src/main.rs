@@ -99,9 +99,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     fn setup_count(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
-        if num_tiers == 4 && catch_all_policy {
+        if num_tiers == 4 && catch_all_policy { //create count edge case only if there is a catch all policy, if none then no need to merge bins so don't create thread
             main_threads::count_rd_to_ca_edge(initial_tier_accessor); 
-        } else if num_tiers > 4{
+        } else if num_tiers > 4 {
             let num_tiers = tier_vector.len();
             let catch_all_tier = tier_vector[num_tiers-1].clone(); //correctly gets the catch all tier, have to minus one since len not 0 indexed 
     
@@ -117,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     fn setup_interval(raw_data_accessor: Arc<RwLock<dyn DataStrategy + Send + Sync>>, initial_tier_accessor: Arc<RwLock<TierData>>, num_tiers: usize, catch_all_policy: bool, tier_vector: Vec<Arc<RwLock<TierData>>>) {
-        if num_tiers == 4 {
+        if num_tiers == 4 { //even if there is no catch all policy still need to record seconds, so create thread. Is doing a useless condition check
             main_threads::interval_rd_to_ca_edge(initial_tier_accessor);
         } else {
             let num_tiers = tier_vector.len();
