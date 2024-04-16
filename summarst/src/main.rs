@@ -141,7 +141,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     eframe::run_native(
-        "My egui App",native_options,Box::new(move |_|{Box::new(my_app)}),
+        "summarst",native_options,Box::new(move |_|{Box::new(my_app)}),
     );
 
     Ok(())
@@ -252,7 +252,7 @@ impl App for MyApp<>  {    //implementing the App trait for the MyApp type, MyAp
 
 
                     if number_of_tiers == 1 {
-                        ui.add(egui::Label::new(formatted_label(&format!("Edge case Tier {}: {}", 1, tier_plot_lines_length[1]-1), Color32::BLACK, 16.0 , false)));
+                        ui.add(egui::Label::new(formatted_label(&format!("Tier {}: {}", 1, tier_plot_lines_length[1]-1), Color32::BLACK, 16.0 , false)));
                     } else {
                         for i in 1..number_of_tiers { 
                             let display_length = if tier_plot_lines_length[i] >= 2 {

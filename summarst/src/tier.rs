@@ -48,6 +48,10 @@ impl TierData {
     }
 
     pub fn get_slices(&self, length: usize) -> (&[Bin], &[Bin])  {
+        /*using 'cmp' to ensure slice not out of bounds
+        start at 2nd element (exclude first bin) up to the 2nd last element (excluding last bin)
+        Compares 'length' value to the tier length minux 1 and chooses whichever is smaller, ensuring the slice is not out of bounds
+        */
         let x_slice = &self.x_stats[1..std::cmp::min(length, self.x_stats.len() - 1)];
         let y_slice = &self.y_stats[1..std::cmp::min(length, self.y_stats.len() - 1)];
 
