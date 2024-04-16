@@ -106,3 +106,9 @@ Catch all tier has minimum size of 1C1
 ```
 $proc1 | summarst count 1 1 1 1 1 1 1C1
 ```
+
+### Appendice
+* GUI created using [Egui](https://github.com/emilk/egui), specifically created plot using [Egui_plot](https://crates.io/crates/egui_plot)
+* This is my final year project for 4th year in Maynooth University
+* I may work on this more in the future, consider this version 1. 
+* To me it works fine but there is many areas to improve given more time
