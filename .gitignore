@@ -1,12 +1,9 @@
-# Ignore Rust build artifacts
-target/
-Cargo.lock
+*
 
-# Ignore other compiled files
-basic_threading
-mpscTest
-plot
-program1
-program2
-sync_to_github.sh
-rustTesting
+# But not these files
+!README.md
+!summarst/
+!summarst_gif.gif
+
+# Additionally, do not ignore the .gitignore file itself
+!.gitignore
